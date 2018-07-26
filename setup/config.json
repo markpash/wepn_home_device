@@ -1,0 +1,15 @@
+{
+    "server":"0.0.0.0",
+    "server_port":9388,
+    "local_port":1194,
+    "local_address":"127.0.0.1",
+    "password": "CHANGE_12918203918",
+    "timeout":60,
+    "method": "aes-256-cfb",
+    "nameserver" : "8.8.8.8",
+    "mode" : "tcp_and_udp",
+    "obfs":"http_simple_compatible",
+    "obfs_param":"",
+    "workers":5 ,
+    "manager-address":"127.0.0.1:6001"
+}

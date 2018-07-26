@@ -1,0 +1,45 @@
+[openvpn]
+enabled = 1
+email = 0
+port = 3074
+
+[hw]
+buttons = 1
+led = 1
+
+[email]
+host = email-smtp.us-west-2.amazonaws.com
+port = 587
+username = CHANGE_SESUSER
+email = devices@we-pn.com
+password = CHANGE_SESPASS
+
+[mqtt]
+host = api.we-pn.com
+port = 8883
+timeout = 60
+username = CHANGE_DEVID
+password = CHANGE_DEVKEY
+
+[django]
+id = CHANGE_DEVID
+serial_number = CHANGE_SERIALNUM 
+host = api.we-pn.com
+url = https://api.we-pn.com
+device_key = CHANGE_DEVKEY
+
+[shadow]
+enabled = 1
+email = 1
+conf_dir = /var/local/pproxy/shadow/
+conf_json = /var/local/pproxy/shadow.json
+db-path = /var/local/pproxy/shadow.db
+server-socket = /var/local/pproxy/shadow/shadow.sock
+method = aes-256-cfb
+start-port = 4000
+
+[status]
+state = 2
+claimed = 1
+sw = 0.400
+
