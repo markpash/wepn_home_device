@@ -74,8 +74,10 @@ class Shadow:
             port=max_port + 1 
 
         cmd = 'add : {"server_port": '+str(port)+' , "password" : "'+str(password)+'" } '
+        self.shadow_conf_file_save(port, password)
         self.sock.send(str.encode(cmd))
-        print(self.sock.recv(1056))
+        self.shadow_conf_file_save(port, password)
+        print("socket return:" + str(self.sock.recv(1056)))
         #open the port for this now
         print('enabling port forwarding to port ' + str(port))
         device = Device()
@@ -85,7 +87,7 @@ class Shadow:
         servers.upsert({'certname':cname, 'server_port':port, 'password':password},['certname'])
         #retrun success or failure if file doesn't exist
         for a in local_db['servers']:
-            print(a)
+            print("server:" + str(a))
         return
 
 
@@ -100,7 +102,7 @@ class Shadow:
             print (server['server_port'])
             cmd = 'remove : {"server_port": '+str(server['server_port'])+' } '
             self.sock.send(str.encode(cmd))
-            print(self.sock.recv(1056))
+            print("socket response to delete:" + str(self.sock.recv(1056)))
             #add certname, port, password to a json list to ues at delete/boot
             servers.delete(certname=cname)
             print('disabling port forwarding to port ' + str(port))
@@ -109,10 +111,16 @@ class Shadow:
         #retrun success or failure if file doesn't exist
         if 0 and local_db is not None:
             for a in local_db['servers']:
-                print(a)
+                print("servers for delete" + str(a))
         return
         return
 
+    def shadow_conf_file_save(self, server_port, password):
+        conf_json = ' {"server_port": '+str(server_port)+' ,\r\n "password" : "'+str(password)+'" , \r\n"mode":"tcp_and_udp", \r\n"nameserver":"8.8.8.8", \r\n"method":"aes-256-cfb", \r\n "timeout":300, \r\n "workers":10} '
+        shadow_file = '/usr/local/pproxy/.shadowsocks/.shadowsocks_'+str(server_port)+'.conf'
+        with open(shadow_file, 'w') as shadow_conf:
+           shadow_conf.write(conf_json)
+           shadow_conf.close()
 
     def start_all(self):
         #used at boot time
@@ -122,8 +130,12 @@ class Shadow:
         if not servers:
             return
         for server in local_db['servers']:
-            cmd = 'add : {"server_port": '+str(server['server_port'])+' , "password" : "'+str(server['password'])+'" } '
+            cmd = 'add : {"server_port": '+str(server['server_port'])+' , "password" : "'+str(server['password'])+'"} '
+            #this is a workaround for the ss-manager/ss-server mismatch. we force the mode in conf to be string, not int
+            #once the ss-manager is updated from source, remove this workaround
+            self.shadow_conf_file_save(server['server_port'], server['password'])
             self.sock.send(str.encode(cmd))
+            self.shadow_conf_file_save(server['server_port'], server['password'])
             print(cmd + ' >> '+ str(self.sock.recv(1056)))
             device = Device()
             device.open_port(server['server_port'], 'ShadowSocks '+server['certname'])
@@ -187,9 +199,7 @@ class Shadow:
             server = servers.find_one(certname = cname)
             if server is not None:
                 uri = str(self.config.get('shadow','method')) + ':' + str(server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
-                print(uri + '\n\n')
-                uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')
-                print(uri64)
+                uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')+"#WEPN-"+str(cname)
 
                 txt = 'To use ShadowSocks: \n\n1.Copy the below text, \n2. Open Outline or ShadowSocks apps on your phone \n3. Import this link as a new server. \n'
                 txt += uri64

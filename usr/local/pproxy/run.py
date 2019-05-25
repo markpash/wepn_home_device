@@ -21,6 +21,8 @@ oled.set_led_present(config.get('hw','led'))
 oled.show_logo()
 time.sleep(5)
 
+#TODO(reza): as a last resort, the excpet blocks should print error 
+# message to LCD before restarting service.
 if 1 == int(status.get('status','claimed')):
     while True:
           try:
@@ -33,6 +35,14 @@ if 1 == int(status.get('status','claimed')):
               continue
           break
 else:
-    ONBOARD = OnBoard()
-    ONBOARD.start()
+    while True:
+          try:
+             ONBOARD = OnBoard()
+             ONBOARD.start()
+          except:
+              del(ONBOARD) 
+              print("Retrying in 60 seconds ....")
+              time.sleep(60)
+              continue
+          break
 

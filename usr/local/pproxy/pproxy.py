@@ -96,6 +96,7 @@ class PProxy():
             time.sleep(5)
             heart_beat = HeartBeat()
             heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
+            print('heartbeat from process_key 2')
             heart_beat.send_heartbeat()
         #Power off   
         elif (key == "3"):
@@ -177,7 +178,7 @@ class PProxy():
 
     # The callback for when a PUBLISH message is received from the server.
     def on_message(self, client, userdata, msg):
-        print(msg.topic+" "+str(msg.payload))
+        print("on_message: "+msg.topic+" "+str(msg.payload))
         try:
             data = json.loads(msg.payload)
         except:
@@ -193,7 +194,7 @@ class PProxy():
             port = self.config.get('shadow','start-port')
             services.add_user(username, ip_address, password, int(port))
             txt, html = services.get_add_email_text(username, ip_address)
-            print(txt)
+            print("add_user:"+txt)
             if self.config.get('openvpn','email') == '1':
                 vpn_file = self.get_safe_path(username)
                 self.send_mail(self.config.get('email', 'email'), data['email'],
@@ -201,10 +202,11 @@ class PProxy():
                            'Familiar phrase is '+ data['passcode'] + '\n' + txt,
                            vpn_file)
             else:
+                outline_manual = '/usr/local/pproxy/ui/outline.png'
                 self.send_mail(self.config.get('email', 'email'), data['email'],
                            "Your VPN details",
                            'Familiar phrase is '+ data['passcode'] + '\n' + txt,
-                           None)
+                           outline_manual)
  
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])
@@ -252,9 +254,10 @@ class PProxy():
             self.save_state("3")
             #reboot to go into onboarding
             self.device.reboot()
-        print(data)
+        print("incoming data:"+str(data))
     #callback for diconnection of MQTT from server
     def on_disconnect(self,client, userdata, reason_code):
+        print("MQTT disconnected")
         self.mqtt_connected = 0
         self.mqtt_reason = reason_code
         self.status.set('mqtt',0)
@@ -280,7 +283,7 @@ class PProxy():
         client.tls_set("/etc/ssl/certs/DST_Root_CA_X3.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
         rc= client.username_pw_set(username=self.config.get('mqtt', 'username'),
                                password=self.config.get('mqtt', 'password'))
-        print(str(self.config.get('mqtt','host')))
+        print("mqtt host:" +str(self.config.get('mqtt','host')))
         try:
             rc=client.connect(str(self.config.get('mqtt', 'host')),
                        int(self.config.get('mqtt', 'port')),

@@ -64,17 +64,16 @@ class HeartBeat:
         self.status.save()
 
         data_json = json.dumps(data)
-        print(data_json)
+        print("HB data to send: " +data_json)
         url = self.config.get('django', 'url')+"/api/device/heartbeat/"
         try:
             response = requests.get(url, data=data_json, headers=headers)
-            print(response.status_code)
+            print("Response to HB" + str(response.status_code))
         except requests.exceptions.RequestException as exception_error:
-            print("Error" + str(exception_error))
+            print("Error in sending heartbeat: \r\n\t" + str(exception_error))
         if (led_print):
             led = OLED()
             led.set_led_present(self.config.get('hw','led'))
-            print('led'+self.config.get('hw','led'))
             if (status == 2):
                icon = "O"
             else:

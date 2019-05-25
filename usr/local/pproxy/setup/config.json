@@ -3,7 +3,7 @@
     "server_port":9388,
     "local_port":1194,
     "local_address":"127.0.0.1",
-    "password": "CHANGE_12918203918",
+    "password": "CHANGE_PASS1782634ajhd",
     "timeout":60,
     "method": "aes-256-cfb",
     "nameserver" : "8.8.8.8",

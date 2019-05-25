@@ -27,5 +27,5 @@ root    ALL=(ALL:ALL) ALL
 #includedir /etc/sudoers.d
 
 #pproxy controls
-pproxy ALL=NOPASSWD: /etc/init.d/openvpn,/sbin/reboot,/sbin/poweroff, /usr/local/sbin/update-pproxy.sh, /usr/local/sbin/update-system.sh
+pproxy ALL=NOPASSWD: /etc/init.d/openvpn,/sbin/reboot,/sbin/poweroff, /usr/local/sbin/restart-pproxy.sh, /usr/local/sbin/update-pproxy.sh, /usr/local/sbin/update-system.sh
 

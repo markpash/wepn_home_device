@@ -48,7 +48,8 @@ class OnBoard():
         self.mqtt_connected = 0
         self.mqtt_reason = 0
         self.factory = rpi_gpio.KeypadFactory()
-        self.rand_key = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(10))
+        choose_from = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+        self.rand_key = ''.join(random.SystemRandom().choice(choose_from) for _ in range(10))
         self.rand_key = self.rand_key + str(self.checksum(str(self.rand_key)))
         return
 
@@ -104,6 +105,9 @@ class OnBoard():
             heart_beat = HeartBeat()
             heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
             heart_beat.send_heartbeat(0)
+            display_str = [(1, "Device Key:", 0), (2,'',0), (3, str(self.rand_key), 0),]
+            led.display(display_str, 18)
+
         #Power off   
         elif (key == "3"):
             services.stop()
@@ -132,8 +136,9 @@ class OnBoard():
                   self.config.write(configfile)
              with open(STATUS_FILE, 'w') as statusfile:
                   self.status.write(statusfile)
+             client.disconnect()
              device = Device()
-             device.reboot()
+             device.restart_pproxy_service()
 
 
     def start(self):
@@ -155,11 +160,18 @@ class OnBoard():
         client.tls_set("/etc/ssl/certs/DST_Root_CA_X3.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
         rc= client.username_pw_set(username=self.config.get('mqtt', 'username'),
                                password=self.rand_key)
-        print(str(self.config.get('mqtt','host')))
-
-        rc=client.connect(str(self.config.get('mqtt', 'host')),
+        print("mqtt host:" +str(self.config.get('mqtt','host')))
+        try:
+              rc=client.connect(str(self.config.get('mqtt', 'host')),
                        int(self.config.get('mqtt', 'port')),
-                       int(self.config.get('mqtt', 'timeout')))
+                       int(self.config.get('mqtt', 'onboard-timeout')))
+        except Exception as error:
+            print("MQTT connect failed")
+            display_str = [(1, chr(33)+'     '+chr(33),1), (2, "Network error,",0), (3, "check cable...", 0) ]
+            oled.display(display_str, 15)
+            if (int(self.config.get('hw','buttons'))):
+                keypad.cleanup()
+            raise
 
         # Blocking call that processes network traffic, dispatches callbacks and
         # handles reconnecting.

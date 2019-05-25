@@ -85,7 +85,18 @@ chmod 600 /etc/openvpn/easy-rsa/pki/.rnd
 /usr/bin/crontab -u root /usr/local/pproxy/setup/cron-root
 #install iptables, configure iptables for port forwarding and blocking
 /bin/bash /usr/local/pproxy/openvpn-iptables.sh
+chown root.root /usr/local/sbin/ip-shadow.sh
+chmod 0755 /usr/local/sbin/ip-shadow.sh
+chown root.root /usr/local/sbin/restart-pproxy.sh
+chmod 0755 /usr/local/sbin/restart-pproxy.sh
+chmod 0755 /etc/network/if-up.d/pproxy.sh
+chmod 0755 /etc/network/if-down.d/pproxy.sh
 
+##################################
+# Setup DNS
+##################################
+systemctl enable bind9
+systemctl start bind9
 
 ##################################
 #Configure ShadowSocks
@@ -101,9 +112,11 @@ cp /usr/local/pproxy/setup/shadowsocks-libev-manager /etc/default/
 cp /usr/local/pproxy/setup/shadowsocks-libev /etc/default/
 cp /usr/local/pproxy/setup/config.json /etc/shadowsocks-libev/config.json
 chown shadowsocks.shadow-runners /etc/shadowsocks-libev/config.json
-chmod 770 /etc/shadowsocks-libev/config.json
+chmod 775 /etc/shadowsocks-libev/config.json
 chown pproxy.shadow-runners /var/local/pproxy/shadow/shadow.sock
-chmod 770 /var/local/pproxy/shadow/shadow.sock
+chmod 775 /var/local/pproxy/shadow/shadow.sock
+chown pproxy.shadow-runners /var/local/pproxy/shadow/
+chmod 775 /var/local/pproxy/shadow/
 
 /bin/ln -s /etc/init.d/shadowsocks-libev /etc/rc3.d/S01shadowsocks-libev
 /bin/ln -s /etc/init.d/shadowsocks-libev /etc/rc5.d/S01shadowsocks-libev
@@ -125,7 +138,11 @@ then
    echo 'i2c-dev' >> /etc/modules
 fi
 
+
 echo "Restarting services"
+modprobe i2c_dev
+modprobe i2c_bcm2708
+
 systemctl restart shadowsocks-libev
 systemctl restart shadowsocks-libev-manager
 /bin/sh /etc/init.d/pproxy restart

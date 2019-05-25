@@ -15,6 +15,7 @@ status = configparser.ConfigParser()
 status.read(STATUS_FILE)
 
 config.set('mqtt','host','we-pn.com')
+config.set('mqtt','onboard-timeout','10')
 
 host = config.get('django','host')
 if host == "we-pn.com":
@@ -48,7 +49,7 @@ if not status.has_section('status'):
     status.set('status','pin','00000000')
     status.set('status','mqtt-reason','0')
 
-status.set('status','sw','0.502')
+status.set('status','sw','0.9.13')
 
 with open(CONFIG_FILE, 'w') as configfile:
    config.write(configfile)

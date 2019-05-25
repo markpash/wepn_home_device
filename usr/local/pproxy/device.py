@@ -46,13 +46,17 @@ class Device():
             process = subprocess.Popen(args)
             process.wait()
         except Exception as error_exception:
-            print(args)	
+            print(args)
             print("Error happened in running command:" + cmd)
             print("Error details:\n"+str(error_exception))
-            system.exit()
+            process.kill()
 
     def turn_off(self):
         cmd = "sudo /sbin/poweroff"
+        self.execute_cmd(cmd)
+
+    def restart_pproxy_service(self):
+        cmd = "sudo /usr/local/sbin/restart-pproxy.sh"
         self.execute_cmd(cmd)
 
     def reboot(self):
@@ -69,8 +73,10 @@ class Device():
 
     def open_port(self, port, text):
         cmd="/usr/bin/upnpc -e '"+str(text)+"' -r "+str(port)+"  TCP > /dev/null 2>&1"
+        print(cmd)
         self.execute_cmd(cmd)
         cmd="/usr/bin/upnpc -e '"+str(text)+"' -r "+str(port)+"  UDP > /dev/null 2>&1"
+        print(cmd)
         self.execute_cmd(cmd)
 
     def close_port(self, port):

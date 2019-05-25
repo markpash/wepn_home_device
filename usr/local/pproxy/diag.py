@@ -77,7 +77,7 @@ class WPDiag:
     def can_connect_to_external_port(self,port):
         try:
             external_ip = str(ipw.myip())
-            print('.external ip is '+str(external_ip))
+            print('Diag: external ip is '+str(external_ip))
             s = socket.create_connection((external_ip, port),10)
             s.sendall(b'test\n')
             return True
@@ -88,7 +88,7 @@ class WPDiag:
     def can_connect_to_internal_port(self,port):
         try:
             internal_ip = str(self.get_local_ip())
-            print('local ip is '+str(internal_ip))
+            print('Diag connect internet:local ip is '+str(internal_ip))
             s = socket.create_connection((internal_ip, port),10)
             s.sendall(b'test\n')
             return True
@@ -100,7 +100,7 @@ class WPDiag:
         try:
             #cmd = "/usr/bin/python shadow_diag.py -c aes-ctr.json"
             #r = self.execute_cmd(cmd)
-            print("return values is ")
+            #print("return values is ")
             return True
         except OSError:
             pass
@@ -132,7 +132,7 @@ class WPDiag:
         url = self.config.get('django', 'url')+"/api/device/diagnosis/"
         try:
             response = requests.post(url, data=data_json, headers=headers)
-            print(response.status_code)
+            print("server diag analysis:" + str(response.status_code))
             return response.json()
         except requests.exceptions.RequestException as exception_error:
             print("Error" + str(exception_error))
