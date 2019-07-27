@@ -29,7 +29,7 @@ def open_listener(host, port):
     conn.sendall(data)
     conn.close()
 
-port  = 4001 
+port  = 4091 
 oled = OLED()
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
@@ -50,7 +50,7 @@ while True:
       iport = WPD.can_connect_to_external_port(port)  
       print('port test:' + str(iport))
       #error_code = 1*(local_ip is not "") + internet *2 + 4 * service + 8 * port; 
-      error_code = WPD.get_error_code(0)
+      error_code = WPD.get_error_code(port)
       print('device status code: '+str(error_code))
 
       s_resp = WPD.get_server_diag_analysis(error_code)

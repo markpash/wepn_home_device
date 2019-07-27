@@ -37,4 +37,17 @@ def add_user(cname, ip_address, password, port):
     cmd = 'add : {"server_port": '+str(port)+' , "password" : "'+str(password)+'" } '
     print("cmd="+cmd)
 
+def print_all():
+        #used at service stop time
+        #loop over cert files, stop all 
+        local_db = dataset.connect('sqlite:////var/local/pproxy/shadow.db')
+        servers = local_db['servers']
+        if not servers:
+            print('no servers')
+            return
+        for server in local_db['servers']:
+            cmd = 'remove : {"server_port": '+str(server['server_port'])+' }' 
+            print(cmd)
+
 add_user('abcd','1.1.1.1','kjasas../.../da',999)
+print_all()

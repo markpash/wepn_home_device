@@ -53,7 +53,7 @@ class Shadow:
             self.sock.close()
             os.remove(self.socket_path)
 
-    def add_user(self, cname, ip_address, password, port):
+    def add_user(self, cname, ip_address, password, unused_port):
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         #get max of assigned ports, new port is 1+ that. 
         #if no entry in DB, copy from config default port start
@@ -72,6 +72,8 @@ class Shadow:
                 max_port = int(self.config.get('shadow','start-port'))
             print("New port assigned is " + str(max_port+1) + " was " + str(port))
             port=max_port + 1 
+        else:
+            port = server['server_port']
 
         cmd = 'add : {"server_port": '+str(port)+' , "password" : "'+str(password)+'" } '
         self.shadow_conf_file_save(port, password)
@@ -214,3 +216,18 @@ class Shadow:
             txt  = "Access to VPN server IP address " +  ip_address + " is revoked.",
             html = "Access to VPN server IP address " +  ip_address + " is revoked.",
         return txt, html
+
+    def get_max_port(self):
+        local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
+        #get max of assigned ports
+        #if no entry in DB, copy from config default port start
+        servers = local_db['servers']
+        try:
+            results = local_db.query('select max(server_port) from servers')
+            row = list(results)[0]
+            max_port = row['max(server_port)'] 
+        except:
+            max_port = None
+        if max_port is None:
+            max_port = int(self.config.get('shadow','start-port'))
+        return max_port

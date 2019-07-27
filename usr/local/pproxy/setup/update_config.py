@@ -49,7 +49,7 @@ if not status.has_section('status'):
     status.set('status','pin','00000000')
     status.set('status','mqtt-reason','0')
 
-status.set('status','sw','0.9.13')
+status.set('status','sw','0.9.21')
 
 with open(CONFIG_FILE, 'w') as configfile:
    config.write(configfile)

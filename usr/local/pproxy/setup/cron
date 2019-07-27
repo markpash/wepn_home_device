@@ -26,3 +26,4 @@
 #daily while rollout in progress
 @daily sudo /usr/local/sbin/update-pproxy.sh >/dev/null 2>&1
 @hourly sudo /usr/local/sbin/update-pproxy.sh >/dev/null 2>&1
+@monthly sudo /usr/local/sbin/update-system.sh >/dev/null 2>&1

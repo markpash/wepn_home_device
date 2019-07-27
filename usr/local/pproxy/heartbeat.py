@@ -8,6 +8,7 @@ ipw = IPW()
 
 from oled import OLED as OLED
 from diag import WPDiag
+from shadow import Shadow
 
 CONFIG_FILE='/etc/pproxy/config.ini'
 STATUS_FILE='/var/local/pproxy/status.ini'
@@ -49,7 +50,12 @@ class HeartBeat:
         headers = {"Content-Type": "application/json"}
         external_ip = str(ipw.myip())
         status = int(self.status.get('state'))
-        diag_code = self.diag.get_error_code(self.config.get('openvpn','port'))
+        test_port=int(self.config.get('openvpn','port')) + 1
+        print("enabled:" + str(self.config.get('shadow','enabled')))
+        if int(self.config.get('shadow','enabled'))==1:
+            shadow = Shadow()
+            test_port=int( shadow.get_max_port() ) + 2
+        diag_code = self.diag.get_error_code(test_port)
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "ip_address": external_ip,

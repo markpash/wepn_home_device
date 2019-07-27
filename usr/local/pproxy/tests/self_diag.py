@@ -1,3 +1,6 @@
+import os
+up_dir = os.path.dirname(os.path.abspath(__file__))+'/../'
+sys.path.append(up_dir)
 from diag import WPDiag
 import time
 from oled import OLED

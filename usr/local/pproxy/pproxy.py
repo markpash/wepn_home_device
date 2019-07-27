@@ -94,6 +94,14 @@ class PProxy():
             display_str = [(1, "Serial #",0), (2, serial_number,0), ]
             led.display(display_str, 19)
             time.sleep(5)
+            display_str = [(1, "Local IP",0), (2, diag.get_local_ip(),0), ]
+            print(display_str)
+            led.display(display_str, 19)
+            time.sleep(5)
+            display_str = [(1, "Local MAC Address",0), (2, diag.get_local_mac(),0), ]
+            print(display_str)
+            led.display(display_str, 19)
+            time.sleep(5)
             heart_beat = HeartBeat()
             heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
             print('heartbeat from process_key 2')

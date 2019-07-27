@@ -4,6 +4,7 @@ import shlex
 import subprocess
 import json
 import requests
+import threading
 from device import Device
  
 try:
@@ -30,6 +31,10 @@ class WPDiag:
        self.mqtt_reason = 0
        self.device = Device()
 
+    def __del__(self):
+        if self.listener:
+            self.listener._stop()
+
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
 
@@ -50,7 +55,33 @@ class WPDiag:
           ip= ""; 
        return ip
 
+    def get_local_mac(self):
+       try:
+          mac = ni.ifaddresses('eth0')[ni.AF_LINK][0]['addr']
+       except KeyError:
+          pass
+          mac= ""; 
+       return mac
+
+    def open_listener(self, host, port):
+        print("listener up...")
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((host,port))
+
+        #this listener should die after one connection
+        #if port forwarding does not work, it will stay alive, so
+        # destructor will stop this thread
+        s.listen(1)
+        conn,addr = s.accept()
+        print ('Connected by ', addr)
+        data = conn.recv(8)
+        conn.sendall(data)
+        conn.close()
+
     def open_test_port(self, port):
+        self.listener = threading.Thread(target=self.open_listener,args=['',port])
+        self.listener.setDaemon(True)
+        self.listener.start()
         self.device.open_port(port, 'pproxy test port')
 
     def close_test_port(self, port):
@@ -86,6 +117,8 @@ class WPDiag:
             return False
 
     def can_connect_to_internal_port(self,port):
+        #NOTE: if this is used, make sure there is an extra port listener
+        #running. By default, only one connection will be handled.
         try:
             internal_ip = str(self.get_local_ip())
             print('Diag connect internet:local ip is '+str(internal_ip))
@@ -110,11 +143,12 @@ class WPDiag:
         self.mqtt_connected = is_connected
         self.mqtt_reason = reason
 
-    def get_error_code(self,port):
+    def get_error_code(self,port_no):
         local_ip = self.get_local_ip()
         internet = self.is_connected_to_internet()
         service = self.is_connected_to_service()
-        port = self.can_connect_to_external_port(port)    
+        self.open_test_port(port_no)
+        port = self.can_connect_to_external_port(port_no)    
         shadow = self.can_shadow_to_self(port)
         mqtt = int(self.status.get('mqtt'))
         claimed = int(self.status.get('claimed'))

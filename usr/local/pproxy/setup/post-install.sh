@@ -2,6 +2,10 @@
 ## Add PProxy user
 ######################################
 echo "Configuring PProxy ... "
+
+## Removing .git residue just in case
+rm -rf /.git/*
+
 echo "Adding users"
 adduser pproxy --disabled-password --disabled-login --home /usr/local/pproxy --quiet --gecos "PPROXY User"
 adduser openvpn --disabled-password --disabled-login  --quiet --gecos "OpenVPN User"
@@ -24,6 +28,7 @@ cat /usr/local/pproxy/setup/sudoers > /etc/sudoers
 /usr/bin/pip3 install -r /usr/local/pproxy/setup/requirements.txt
 
 #autostart service
+chmod 0755 /etc/init.d/pproxy
 /bin/ln -s /etc/init.d/pproxy /etc/rc3.d/S01pproxy
 /bin/ln -s /etc/init.d/pproxy /etc/rc5.d/S01pproxy
 
