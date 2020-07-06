@@ -87,9 +87,13 @@ class PProxy():
             display_str = [(1, "Starting Diagnostics",0), (2, "please wait ...",0) ]
             led.display(display_str, 15)
             diag.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
-            display_str = [(1, "Status Code",0), (2, str(diag.get_error_code( self.config.get('openvpn','port') )),0) ]
+            test_port=int(self.config.get('openvpn','port')) + 1
+            if int(self.config.get('shadow','enabled'))==1:
+                shadow = Shadow()
+                test_port=int( shadow.get_max_port() ) + 2
+            display_str = [(1, "Status Code",0), (2, str(diag.get_error_code( test_port )),0) ]
             led.display(display_str, 20)
-            time.sleep(2)
+            time.sleep(3)
             serial_number = self.config.get('django','serial_number')
             display_str = [(1, "Serial #",0), (2, serial_number,0), ]
             led.display(display_str, 19)
@@ -98,7 +102,7 @@ class PProxy():
             print(display_str)
             led.display(display_str, 19)
             time.sleep(5)
-            display_str = [(1, "Local MAC Address",0), (2, diag.get_local_mac(),0), ]
+            display_str = [(1, "MAC Address",0), (2, diag.get_local_mac(),0), ]
             print(display_str)
             led.display(display_str, 19)
             time.sleep(5)
@@ -122,8 +126,13 @@ class PProxy():
             self.device.turn_off()
 
     def send_mail(self, send_from, send_to,
-                  subject, text, file_in,
+                  subject, text, files_in,
                   server="127.0.0.1"):
+
+        if not isinstance(files_in, list):
+            files_in_list = [files_in]
+        else:
+            files_in_list = files_in
 
         msg = MIMEMultipart()
         msg['From'] = send_from
@@ -133,15 +142,16 @@ class PProxy():
 
         msg.attach(MIMEText(text))
 
-        if (file_in != None):
-            fil = open(file_in, "rb")
-            part = MIMEApplication(
-                fil.read(),
-                Name=basename(file_in)
-            )
-            part['Content-Disposition'] = 'attachment; filename="%s"' % basename(file_in)
-            #TODO: also add screenshots for a quick "howto" for user
-            msg.attach(part)
+        if files_in_list != None:
+            for file_in in files_in_list:
+                if (file_in != None):
+                    with  open(file_in, "rb") as current_file:
+                        part = MIMEApplication(
+                            current_file.read(),
+                            Name=basename(file_in)
+                        )
+                        part['Content-Disposition'] = 'attachment; filename="%s"' % basename(file_in)
+                        msg.attach(part)
 
 
         try:
@@ -203,6 +213,8 @@ class PProxy():
             services.add_user(username, ip_address, password, int(port))
             txt, html = services.get_add_email_text(username, ip_address)
             print("add_user:"+txt)
+            # TODO: this is not general enough, improve to assess if each service is enabled
+            #       without naming OpenVPN explicitly
             if self.config.get('openvpn','email') == '1':
                 vpn_file = self.get_safe_path(username)
                 self.send_mail(self.config.get('email', 'email'), data['email'],
@@ -210,11 +222,12 @@ class PProxy():
                            'Familiar phrase is '+ data['passcode'] + '\n' + txt,
                            vpn_file)
             else:
-                outline_manual = '/usr/local/pproxy/ui/outline.png'
+                manuals = [ '/usr/local/pproxy/ui/outline.png',
+                            '/usr/local/pproxy/ui/potatso.png']
                 self.send_mail(self.config.get('email', 'email'), data['email'],
                            "Your VPN details",
                            'Familiar phrase is '+ data['passcode'] + '\n' + txt,
-                           outline_manual)
+                           manuals)
  
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])

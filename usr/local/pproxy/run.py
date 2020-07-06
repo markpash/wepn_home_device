@@ -21,8 +21,6 @@ oled.set_led_present(config.get('hw','led'))
 oled.show_logo()
 time.sleep(5)
 
-#TODO(reza): as a last resort, the excpet blocks should print error 
-# message to LCD before restarting service.
 if 1 == int(status.get('status','claimed')):
     while True:
           try:

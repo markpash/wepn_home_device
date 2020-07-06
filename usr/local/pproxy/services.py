@@ -55,9 +55,11 @@ class Services:
     def is_enanbled(self, service_name):
         return
     
-    def add_user(self, certname, ip_address, password, port):
+    def add_user(self, certname, ip_address, suggested_password, suggested_port):
+        # Note: services may use another port (based on used ports) or password 
+        # (if user already exists.
         for service in self.services:
-            service['obj'].add_user(certname, ip_address, password, port)
+            service['obj'].add_user(certname, ip_address, suggested_password, suggested_port)
         return
 
     def delete_user(self,certname):

@@ -46,8 +46,8 @@ def print_all():
             print('no servers')
             return
         for server in local_db['servers']:
-            cmd = 'remove : {"server_port": '+str(server['server_port'])+' }' 
+            cmd = 'remove : {"server_port": '+str(server['server_port'])+' '+str(server['password'])+' }' 
             print(cmd)
 
-add_user('abcd','1.1.1.1','kjasas../.../da',999)
+#add_user('abcd','1.1.1.1','kjasas../.../da',999)
 print_all()

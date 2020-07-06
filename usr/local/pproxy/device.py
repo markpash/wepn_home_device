@@ -23,6 +23,7 @@ import ipw
 import paho.mqtt.client as mqtt
 from pad4pi import rpi_gpio
 from oled import OLED as OLED
+from wstatus import WStatus as WStatus
 
 COL_PINS = [26] # BCM numbering
 ROW_PINS = [19,13,6] # BCM numbering
@@ -30,26 +31,61 @@ KEYPAD = [
         ["1",],["2",],["3"],
 ]
 CONFIG_FILE='/etc/pproxy/config.ini'
+PORT_STATUS_FILE='/var/local/pproxy/port.ini'
 
 
 class Device():
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
+        self.status = WStatus(PORT_STATUS_FILE)
+        self.correct_port_status_file()
+
+    def correct_port_status_file(self):
+        if not self.status.has_section('port-fwd'):
+            self.status.add_section('port-fwd')
+            self.status.set_field('port-fwd','fails','0')
+            self.status.set_field('port-fwd','fails-max','3')
+            self.status.set_field('port-fwd','skipping','0')
+            self.status.set_field('port-fwd','skips','0')
+            self.status.set_field('port-fwd','skips-max','20')
+            self.status.save()
+
+    def __del__(self):
+        self.status.save()
 
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
 
     def execute_cmd(self, cmd):
         try:
+            failed = 0
             args = shlex.split(cmd)
             process = subprocess.Popen(args)
+            sp = subprocess.Popen(args, 
+                    stdout=subprocess.PIPE, 
+                    stderr=subprocess.PIPE)
+            out, err = sp.communicate()
             process.wait()
+            #if out:
+            #    print ("standard output of subprocess:")
+            #    print (out)
+            if err:
+                failed+=1
+                #print ("standard error of subprocess:")
+                #print (err)
+                #print ("returncode of subprocess:")
+                #print ("returncode="+str(sp.returncode))
+            # Does not work: return sp.returncode
+            return failed
         except Exception as error_exception:
             print(args)
             print("Error happened in running command:" + cmd)
             print("Error details:\n"+str(error_exception))
             process.kill()
+            return 99 
+
+
 
     def turn_off(self):
         cmd = "sudo /sbin/poweroff"
@@ -72,15 +108,65 @@ class Device():
         self.execute_cmd(cmd)
 
     def open_port(self, port, text):
-        cmd="/usr/bin/upnpc -e '"+str(text)+"' -r "+str(port)+"  TCP > /dev/null 2>&1"
-        print(cmd)
-        self.execute_cmd(cmd)
-        cmd="/usr/bin/upnpc -e '"+str(text)+"' -r "+str(port)+"  UDP > /dev/null 2>&1"
-        print(cmd)
-        self.execute_cmd(cmd)
+        skip = int(self.status.get_field('port-fwd','skipping'))
+        skip_count = int(self.status.get_field('port-fwd','skips'))
+        if skip:
+            if skip_count < int(self.status.get_field('port-fwd','skips-max')):
+                # skip, do nothing just increase cound
+                skip_count += 1
+                self.status.set_field('port-fwd','skips', str(skip_count))
+            else:
+                # skipped too much, try open port again in case it works
+                self.status.set_field('port-fwd','skipping', '0')
+                self.status.set_field('port-fwd','skips', '0')
+        else:
+            # no skipping, just try opening port normally with UPNP
+            self.set_port_forward("open", port, text)
+        print("skipping?" + str(skip) + " count=" + str(skip_count))
 
     def close_port(self, port):
-        cmd="/usr/bin/upnpc -d "+str(port)+"  TCP > /dev/null 2>&1"
-        self.execute_cmd(cmd)
-        cmd="/usr/bin/upnpc -d "+str(port)+"  UDP > /dev/null 2>&1"
-        self.execute_cmd(cmd)
+        skip = int(self.status.get_field('port-fwd','skipping'))
+        skip_count = int(self.status.get_field('port-fwd','skips'))
+        if skip:
+            if skip_count < int(self.status.get_field('port-fwd','skips-max')):
+                # skip, do nothing just increase cound
+                skip_count += 1
+                self.status.set_field('port-fwd','skips', str(skip_count))
+            else:
+                # skipped too much, try open port again in case it works
+                self.status.set_field('port-fwd','skipping', '0')
+                self.status.set_field('port-fwd','skips', '0')
+            self.status.save()
+        else:
+            # no skipping, just try opening port normally with UPNP
+            self.set_port_forward("close", port, "")
+        print("skipping?" + str(skip) + " count=" + str(skip_count))
+
+    def set_port_forward(self, open_close, port, text):
+        failed = 0
+        upnpc_cmd = "/usr/bin/upnpc "
+        if open_close == "open":
+            upnpc_cmd += "-e '"+str(text)+"' -r "+str(port)
+        if open_close == "close":
+            upnpc_cmd += " -d "+str(port)
+        cmd= upnpc_cmd + "  TCP"
+        print(cmd)
+        if self.execute_cmd(cmd) != 0:
+            failed += 1
+        cmd=upnpc_cmd + "  UDP"
+        print(cmd)
+        if self.execute_cmd(cmd) != 0:
+            failed += 1
+        # if we failed, check to see if max-fails has passed
+        fails = int(self.status.get_field('port-fwd','fails'))
+        if failed > 0:
+            print("-----------------------PORT MAP FAILED----------------------------")
+            if fails >= int(self.status.get_field('port-fwd','fails-max')):
+                # if passed limit, reset fail count, 
+                self.status.set_field('port-fwd','fails', 0 )
+                # indicate next one is going to be skip
+                self.status.set_field('port-fwd','skipping', 1 )
+            else:
+                # failed, but has not passed the threshold
+                fails += failed
+                self.status.set_field('port-fwd','fails', str(fails))

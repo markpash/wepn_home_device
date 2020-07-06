@@ -101,7 +101,35 @@ chmod 0755 /etc/network/if-down.d/pproxy.sh
 # Setup DNS
 ##################################
 systemctl enable bind9
-systemctl start bind9
+
+if [[ ! -f /var/log/named/bind.log ]]; then 
+	mkdir -p /var/log/named
+	chmod bind.bind /var/log/named/
+
+	echo > /etc/bind/named.conf.local << EOF
+//
+// Do any local configuration here
+//
+
+// Consider adding the 1918 zones here, if they are not used in your
+// organization
+//include "/etc/bind/zones.rfc1918";
+logging{
+  channel simple_log {
+    file "/var/log/named/bind.log" versions 3 size 5m;
+    severity warning;
+    print-time yes;
+    print-severity yes;
+    print-category yes;
+  };
+  category default{
+    simple_log;
+  };
+};
+EOF
+fi
+systemctl restart bind9
+
 
 ##################################
 #Configure ShadowSocks

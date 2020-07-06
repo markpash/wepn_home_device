@@ -70,10 +70,13 @@ class Shadow:
                 max_port = None
             if max_port is None:
                 max_port = int(self.config.get('shadow','start-port'))
-            print("New port assigned is " + str(max_port+1) + " was " + str(port))
+            print("New port assigned is " + str(max_port+1) + " was " + str(unused_port))
             port=max_port + 1 
         else:
             port = server['server_port']
+            # also reuse the same password, making it easier for end user
+            # to update the app manually if needed
+            password = server['password']
 
         cmd = 'add : {"server_port": '+str(port)+' , "password" : "'+str(password)+'" } '
         self.shadow_conf_file_save(port, password)
@@ -129,6 +132,7 @@ class Shadow:
         #loop over cert files, start each
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
+        device = Device()
         if not servers:
             return
         for server in local_db['servers']:
@@ -139,7 +143,6 @@ class Shadow:
             self.sock.send(str.encode(cmd))
             self.shadow_conf_file_save(server['server_port'], server['password'])
             print(cmd + ' >> '+ str(self.sock.recv(1056)))
-            device = Device()
             device.open_port(server['server_port'], 'ShadowSocks '+server['certname'])
         return
 
@@ -156,17 +159,17 @@ class Shadow:
             self.sock.send(str.encode(cmd))
             print(server['certname'] + ' >>' + cmd + ' >> '+ str(self.sock.recv(1056)))
         return 
-    #forward_all is used with cron to make sure port forwardings stay active
-    #if service is stopped, forwardings can stay active. there will be no ss server to serve
+    # forward_all is used with cron to make sure port forwardings stay active
+    # if service is stopped, forwardings can stay active. there will be no ss server to serve
     def forward_all(self):
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
+        device = Device()
         if not servers:
             print('no servers')
             return
         for server in local_db['servers']:
             print('forwaring '+ str(server['server_port'])+' for '+ server['certname'])
-            device = Device()
             device.open_port(server['server_port'], 'ShadowSocks '+server['certname'])
         return
     def start(self):
@@ -203,10 +206,12 @@ class Shadow:
                 uri = str(self.config.get('shadow','method')) + ':' + str(server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
                 uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')+"#WEPN-"+str(cname)
 
-                txt = 'To use ShadowSocks: \n\n1.Copy the below text, \n2. Open Outline or ShadowSocks apps on your phone \n3. Import this link as a new server. \n'
+                txt = 'To use ShadowSocks: \n\n1.Copy the below text, \n2. Open Outline or ShadowSocks apps on your phone \n3. Import this link as a new server. \n\n'
                 txt += uri64
+                txt += '\n You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). We recommend using Potatso if Outline does not correctly work.'
                 html = 'For ShadowSocks: <ul> <li>Copy the below text, </li><li> Open Outline or ShadowSocks apps on your phone </li><li> Import this link as a new server. </li></ul><br /><br/>'
                 html += uri64 
+                html += '<p>You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). We recommend using Potatso if Outline does not correctly work.</p>'
         return txt, html
 
     def get_removal_email_text(self, certname, ip_address):

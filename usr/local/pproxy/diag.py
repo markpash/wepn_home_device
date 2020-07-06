@@ -30,6 +30,7 @@ class WPDiag:
        self.mqtt_connected = 0
        self.mqtt_reason = 0
        self.device = Device()
+       self.listener = None
 
     def __del__(self):
         if self.listener:
@@ -66,7 +67,11 @@ class WPDiag:
     def open_listener(self, host, port):
         print("listener up...")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind((host,port))
+        try:
+            s.bind((host,port))
+        except OSError as err:
+            print("OSError: "+str(e))
+            return
 
         #this listener should die after one connection
         #if port forwarding does not work, it will stay alive, so
