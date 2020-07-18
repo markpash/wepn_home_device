@@ -15,8 +15,9 @@ class WStatus:
 
     def save(self):
         #TODO: add lock checking
-        with open(self.source_file, 'w') as statusfile:
-           self.status.write(statusfile)
+        if self.source_file and self.status:
+            with open(self.source_file, 'w') as statusfile:
+               self.status.write(statusfile)
 
 
     def has_section(self, section):

@@ -66,6 +66,12 @@ class OnBoard():
         return (shlex.quote(str_in))
 
 
+    def save_temp_key(self):
+        # this is needed for the local webserver to read
+        self.status.set('status', 'temporary_key', self.rand_key)
+        with open(STATUS_FILE, 'w') as statusfile:
+            self.status.write(statusfile)
+
     def save_state(self, new_state, led_print=1):
         self.status.set('status', 'state', new_state)
         self.status.set('status', 'sw', self.status.get('status','sw'))
@@ -132,6 +138,7 @@ class OnBoard():
              self.config.set('mqtt','password',self.rand_key)
              self.config.set('django','device_key',self.rand_key)
              self.status.set('status','claimed', '1')
+             self.status.set('status', 'temporary_key', "CLAIMED")
              with open(CONFIG_FILE, 'w') as configfile:
                   self.config.write(configfile)
              with open(STATUS_FILE, 'w') as statusfile:
@@ -146,6 +153,7 @@ class OnBoard():
         oled = OLED()
         oled.set_led_present(self.config.get('hw','led'))
         oled.show_logo()
+        self.save_temp_key()
         #icons, if needed to add later: (1, chr(110)+ chr(43)+chr(75) , 1), 
         display_str = [(1, "Device Key:", 0), (2,'',0), (3, str(self.rand_key), 0),]
         oled.display(display_str, 18)

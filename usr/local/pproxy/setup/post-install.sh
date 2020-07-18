@@ -1,19 +1,25 @@
+PPROXY_HOME=/usr/local/pproxy/
+
 ######################################
 ## Add PProxy user
 ######################################
-echo "Configuring PProxy ... "
+echo -e "\n* Configuring PProxy ... "
+echo -e "If you are setting up services yourself, expect some user/owner/file warnings."
+echo -e "These are usually harmless errors."
 
 ## Removing .git residue just in case
 rm -rf /.git/*
 
-echo "Adding users"
-adduser pproxy --disabled-password --disabled-login --home /usr/local/pproxy --quiet --gecos "PPROXY User"
+echo -e "\nAdding users"
+adduser pproxy --disabled-password --disabled-login --home $PPROXY_HOME --quiet --gecos "WEPN PPROXY User"
 adduser openvpn --disabled-password --disabled-login  --quiet --gecos "OpenVPN User"
+# Adding specific API user so it can have access to local network
+adduser wepn-api --disabled-password --disabled-login --home $PPROXY_HOME/local_server --quiet --gecos "WEPN-API User"
 adduser pproxy gpio 
-echo "Correcing owners..."
-chown pproxy.pproxy /usr/local/pproxy
-chown -R pproxy.pproxy /usr/local/pproxy/* 
-chown -R pproxy.pproxy /usr/local/pproxy/.* 
+echo -e "\nCorrecing owners..."
+chown pproxy.pproxy $PPROXY_HOME
+chown -R pproxy.pproxy $PPROXY_HOME/* 
+chown -R pproxy.pproxy $PPROXY_HOME/.* 
 mkdir -p /var/local/pproxy
 mkdir -p /var/local/pproxy/shadow/
 touch /var/local/pproxy/status.ini
@@ -21,11 +27,19 @@ chown pproxy.pproxy /var/local/pproxy
 chown pproxy.pproxy /var/local/pproxy/*
 chown pproxy.pproxy /var/local/pproxy/.*
 chown pproxy.pproxy /var/local/pproxy/shadow/*
-cat /usr/local/pproxy/setup/sudoers > /etc/sudoers
+
+echo -e "correcting scripts that rung as sudo"
+for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system
+do
+	chown root.root /usr/local/sbin/$SCRIPT.sh
+	chmod 755 /usr/local/sbin/$SCRIPT.sh
+done
+
+cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
 
 
-/usr/bin/pip3 install -r /usr/local/pproxy/setup/requirements.txt
+/usr/bin/pip3 install -r $PPROXY_HOME/setup/requirements.txt
 
 #autostart service
 chmod 0755 /etc/init.d/pproxy
@@ -37,11 +51,11 @@ mkdir -p /etc/pproxy/
 chmod ugo+rx /etc/pproxy/
 if [[ ! -f /etc/pproxy/config.ini ]];
 then
-	cp /usr/local/pproxy/config.ini.orig /etc/pproxy/config.ini
+	cp $PPROXY_HOME/setup/config.ini.orig /etc/pproxy/config.ini
 	chown pproxy.pproxy /etc/pproxy/config.ini
 	chmod 744 /etc/pproxy/config.ini
 else
-	/usr/bin/python3 /usr/local/pproxy/setup/update_config.py
+	/usr/bin/python3 $PPROXY_HOME/setup/update_config.py
 fi
 
 chown pproxy.pproxy /etc/pproxy/config.ini
@@ -51,11 +65,12 @@ chmod 744 /etc/pproxy/config.ini
 ######################################
 ## Add OpenVPN Users, Set it up
 ######################################
-echo "Set up OpenVPN ..."
+echo -e "\nSet up OpenVPN ..."
 
 if [[ ! -f /etc/openvpn/server.conf ]]; then 
-  echo "Seems like OpenVPN is not configured, initializing that now"
-  /bin/bash /usr/local/pproxy/setup/init_vpn.sh
+  echo -e "\n\nSeems like OpenVPN is not configured, initializing that now"
+  echo -e "this can take a LONG time (hours)"
+  /bin/bash $PPROXY_HOME/setup/init_vpn.sh
 fi
 addgroup easy-rsa
 adduser openvpn easy-rsa
@@ -86,10 +101,10 @@ chmod 600 /etc/openvpn/easy-rsa/pki/.rnd
 #empty crontab
 #add heartbeat to crontab
 #add apt-get update && apt-get install pproxy-rpi to weekly crontab
-/usr/bin/crontab -u pproxy /usr/local/pproxy/setup/cron
-/usr/bin/crontab -u root /usr/local/pproxy/setup/cron-root
+/usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
+/usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
 #install iptables, configure iptables for port forwarding and blocking
-/bin/bash /usr/local/pproxy/openvpn-iptables.sh
+/bin/bash $PPROXY_HOME/openvpn-iptables.sh
 chown root.root /usr/local/sbin/ip-shadow.sh
 chmod 0755 /usr/local/sbin/ip-shadow.sh
 chown root.root /usr/local/sbin/restart-pproxy.sh
@@ -99,14 +114,16 @@ chmod 0755 /etc/network/if-down.d/pproxy.sh
 
 ##################################
 # Setup DNS
+# This can be used to make 
+# queries faster and safer
 ##################################
 systemctl enable bind9
 
 if [[ ! -f /var/log/named/bind.log ]]; then 
 	mkdir -p /var/log/named
-	chmod bind.bind /var/log/named/
+	chown bind.bind /var/log/named/
 
-	echo > /etc/bind/named.conf.local << EOF
+	echo -e > /etc/bind/named.conf.local << EOF
 //
 // Do any local configuration here
 //
@@ -130,20 +147,43 @@ EOF
 fi
 systemctl restart bind9
 
+##################################
+# Create SSL invalid certifcates
+##################################
+echo -e "\n Setting up the local INVALID certificates"
+echo -e "These are ONLY used for local network communications."
+echo -e "Local API server will disable itself if it detects port exposure to external IP."
+addgroup wepn-web
+adduser pproxy wepn-web
+adduser wepn-api wepn-web
+cd $PPROXY_HOME/local_server/
+openssl genrsa -out wepn-local.key 2048 
+openssl req -new -key wepn-local.key -out wepn-local.csr -subj "/C=US/ST=California/L=California/O=WEPN/OU=Local WEPN Device/CN=invalid.com"
+openssl x509 -req -days 365 -in wepn-local.csr -signkey wepn-local.key -out wepn-local.crt
+
+chgrp wepn-web wepn-local.* 
+chgrp wepn-web . 
+chmod g+r wepn-local.*
+chmod g+r .
+cp $PPROXY_HOME/setup/wepn-api.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable wepn-api
+systemctl start wepn-api
+cd $PPROXY_HOME/setup/
 
 ##################################
-#Configure ShadowSocks
+# Configure ShadowSocks
 ##################################
-echo "echo ShadowSocks is being set up ... "
+echo -e "\n ShadowSocks is being set up ... "
 adduser shadowsocks --disabled-password --disabled-login  --quiet --gecos "ShadowSocks User"
 addgroup shadow-runners
 adduser pproxy shadow-runners
 adduser shadowsocks shadow-runners
-cp /usr/local/pproxy/setup/shadowsocks-libev-manager.service /lib/systemd/system/
-cp /usr/local/pproxy/setup/shadowsocks-libev.service /lib/systemd/system/
-cp /usr/local/pproxy/setup/shadowsocks-libev-manager /etc/default/
-cp /usr/local/pproxy/setup/shadowsocks-libev /etc/default/
-cp /usr/local/pproxy/setup/config.json /etc/shadowsocks-libev/config.json
+cp $PPROXY_HOME/setup/shadowsocks-libev-manager.service /lib/systemd/system/
+cp $PPROXY_HOME/setup/shadowsocks-libev.service /lib/systemd/system/
+cp $PPROXY_HOME/setup/shadowsocks-libev-manager /etc/default/
+cp $PPROXY_HOME/setup/shadowsocks-libev /etc/default/
+cp $PPROXY_HOME/setup/config.json /etc/shadowsocks-libev/config.json
 chown shadowsocks.shadow-runners /etc/shadowsocks-libev/config.json
 chmod 775 /etc/shadowsocks-libev/config.json
 chown pproxy.shadow-runners /var/local/pproxy/shadow/shadow.sock
@@ -159,20 +199,20 @@ systemctl enable shadowsocks-libev
 systemctl enable shadowsocks-libev-manager
 
 
-echo "enabling i2c"
+echo -e "\n enabling i2c"
 if grep -Fq "#dtparam=i2c_arm=on" /boot/config.txt 
 then
-   echo 'dtparam=i2c_arm=on' >> /boot/config.txt
+   echo -e 'dtparam=i2c_arm=on' >> /boot/config.txt
 fi
 
 if ! grep -Fq "i2c" /etc/modules 
 then
-   echo 'i2c-bcm2708' >> /etc/modules
-   echo 'i2c-dev' >> /etc/modules
+   echo -e 'i2c-bcm2708' >> /etc/modules
+   echo -e 'i2c-dev' >> /etc/modules
 fi
 
 
-echo "Restarting services"
+echo -e "\n#### Restarting services ####"
 modprobe i2c_dev
 modprobe i2c_bcm2708
 
@@ -180,4 +220,5 @@ systemctl restart shadowsocks-libev
 systemctl restart shadowsocks-libev-manager
 /bin/sh /etc/init.d/pproxy restart
 
-echo "Installation of PProxy done."
+
+echo -e "Installation of PProxy done."

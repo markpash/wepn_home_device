@@ -121,7 +121,11 @@ class Shadow:
         return
 
     def shadow_conf_file_save(self, server_port, password):
-        conf_json = ' {"server_port": '+str(server_port)+' ,\r\n "password" : "'+str(password)+'" , \r\n"mode":"tcp_and_udp", \r\n"nameserver":"8.8.8.8", \r\n"method":"aes-256-cfb", \r\n "timeout":300, \r\n "workers":10} '
+        conf_json = ' {"server_port": '+str(server_port)+' ,\r\n "password" : "'+\
+            str(password)+ \
+            '" , \r\n"mode":"tcp_and_udp", \r\n"nameserver":"8.8.8.8", \r\n"method":"'+\
+            str(self.config.get('shadow','method'))+\
+            '", \r\n "timeout":300, \r\n "workers":10} '
         shadow_file = '/usr/local/pproxy/.shadowsocks/.shadowsocks_'+str(server_port)+'.conf'
         with open(shadow_file, 'w') as shadow_conf:
            shadow_conf.write(conf_json)

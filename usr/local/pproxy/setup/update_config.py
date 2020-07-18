@@ -40,7 +40,7 @@ if not config.has_section('shadow'):
    config.set('shadow','conf_json', '/var/local/pproxy/shadow.json')
    config.set('shadow','db-path', '/var/local/pproxy/shadow.db')
    config.set('shadow','server-socket', '/var/local/pproxy/shadow/shadow.sock')
-   config.set('shadow','method', 'aes-256-cfb')
+   config.set('shadow','method', 'aes-256-gcm')
    config.set('shadow','start-port', '4000')
 
 if not status.has_section('status'):
@@ -63,7 +63,9 @@ if not port_status.has_section('port-fwd'):
 if status.has_section('port-fwd'):
     status.remove_section('port-fwd')
 
-status.set('status','sw','0.9.25')
+status.set('status','sw','0.9.27')
+config.set('shadow','method', 'aes-256-gcm')
+config.set('hw','iface', 'eth0')
 
 with open(CONFIG_FILE, 'w') as configfile:
    config.write(configfile)

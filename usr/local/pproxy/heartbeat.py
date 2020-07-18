@@ -28,8 +28,11 @@ class HeartBeat:
         self.config.read(CONFIG_FILE)
         self.status = WStatus()
         self.diag = WPDiag()
+        # This one is displayed on screen for call verification
         self.pin = random.SystemRandom().randint(1111111111, 9999999999)
+        # This one is used for API access
         self.local_token = random.SystemRandom().randint(1111111111, 9999999999)
+        # Print these to screen for bring-your-own device users without a screen
         print("PIN="+str(self.pin))
         print("Local token="+str(self.local_token))
     
@@ -52,8 +55,8 @@ class HeartBeat:
     def send_heartbeat(self, led_print=1):
         headers = {"Content-Type": "application/json"}
         external_ip = str(ipw.myip())
-        ni.ifaddresses('eth0')
-        local_ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+        ni.ifaddresses(self.config.get('hw','iface'))
+        local_ip = ni.ifaddresses(self.config.get('hw','iface'))[ni.AF_INET][0]['addr']
         status = int(self.status.get('state'))
         test_port=int(self.config.get('openvpn','port')) + 1
         if int(self.config.get('shadow','enabled'))==1:

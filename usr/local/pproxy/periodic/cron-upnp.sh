@@ -1,6 +1,7 @@
-IP=` ifconfig eth0 | perl -nle 's/dr:(\S+)/print $1/e'`
-iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP
-/bin/bash /usr/local/pproxy/periodic/ip-shadow.sh
+#IP=` ifconfig eth0 | perl -nle 's/dr:(\S+)/print $1/e'`
+#iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP
+#/bin/bash /usr/local/pproxy/periodic/ip-shadow.sh
+sudo /usr/local/sbin/ip-shadow.sh
 #forward OpenVPN ports
 /usr/bin/upnpc -e 'plain OpenVPN server' -r 1194  TCP
 /usr/bin/upnpc -e 'plain OpenVPN server' -r 3074  TCP

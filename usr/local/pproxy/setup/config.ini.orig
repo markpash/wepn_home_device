@@ -6,6 +6,7 @@ port = 3074
 [hw]
 buttons = 1
 led = 1
+iface = eth0
 
 [email]
 host = email-smtp.us-west-2.amazonaws.com
@@ -35,7 +36,7 @@ conf_dir = /var/local/pproxy/shadow/
 conf_json = /var/local/pproxy/shadow.json
 db-path = /var/local/pproxy/shadow.db
 server-socket = /var/local/pproxy/shadow/shadow.sock
-method = aes-256-cfb
+method = aes-256-gcm
 start-port = 4000
 
 [status]

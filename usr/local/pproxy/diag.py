@@ -26,6 +26,7 @@ class WPDiag:
        self.config.read(CONFIG_FILE)
        self.status = WStatus()
        self.claimed = self.status.get('claimed')
+       self.iface = str(self.config.get('hw','iface'))
        self.port = 987
        self.mqtt_connected = 0
        self.mqtt_reason = 0
@@ -50,7 +51,7 @@ class WPDiag:
 
     def get_local_ip(self):
        try:
-          ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+          ip = ni.ifaddresses(self.iface)[ni.AF_INET][0]['addr']
        except KeyError:
           pass
           ip= ""; 
@@ -58,7 +59,7 @@ class WPDiag:
 
     def get_local_mac(self):
        try:
-          mac = ni.ifaddresses('eth0')[ni.AF_LINK][0]['addr']
+          mac = ni.ifaddresses(self.iface)[ni.AF_LINK][0]['addr']
        except KeyError:
           pass
           mac= ""; 
