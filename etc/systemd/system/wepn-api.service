@@ -1,0 +1,17 @@
+[Unit]
+Description=WEPN API Service
+After=network.target 
+
+[Service]
+User=wepn-api
+ExecStart= uwsgi --wsgi-file wsgi.py --mount /=api:app --https 0.0.0.0:5000,wepn-local.crt,wepn-local.key
+KillMode=process
+Restart=on-failure
+RestartPreventExitStatus=255
+Type=notify
+RuntimeDirectory=/usr/local/pproxy/local_server/
+WorkingDirectory=/usr/local/pproxy/local_server/
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
