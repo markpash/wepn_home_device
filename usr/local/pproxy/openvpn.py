@@ -57,6 +57,9 @@ class OpenVPN:
     def can_email(self):
         return (int(self.config.get('openvpn','email')) is 1)
 
+    def get_service_creds_summary(self, ip_address):
+        return {}
+
     def get_add_email_text(self, certname, ip_address):
         txt = ''
         html = ''

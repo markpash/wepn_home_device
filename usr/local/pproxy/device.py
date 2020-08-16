@@ -52,7 +52,8 @@ class Device():
             self.status.save()
 
     def __del__(self):
-        self.status.save()
+        if self.status:
+            self.status.save()
 
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))

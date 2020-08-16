@@ -37,7 +37,8 @@ else:
           try:
              ONBOARD = OnBoard()
              ONBOARD.start()
-          except:
+          except Exception as e:
+              print(e)
               del(ONBOARD) 
               print("Retrying in 60 seconds ....")
               time.sleep(60)

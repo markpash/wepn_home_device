@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 User=wepn-api
-ExecStart= uwsgi --wsgi-file wsgi.py --mount /=api:app --https 0.0.0.0:5000,wepn-local.crt,wepn-local.key
+ExecStart=/usr/local/bin/uwsgi --wsgi-file wsgi.py --mount /=api:app --https 0.0.0.0:5000,wepn-local.crt,wepn-local.key
 KillMode=process
 Restart=on-failure
 RestartPreventExitStatus=255

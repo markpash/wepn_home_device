@@ -71,7 +71,7 @@ class WPDiag:
         try:
             s.bind((host,port))
         except OSError as err:
-            print("OSError: "+str(e))
+            print("OSError: "+str(err))
             return
 
         #this listener should die after one connection

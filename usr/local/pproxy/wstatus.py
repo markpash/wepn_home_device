@@ -1,4 +1,4 @@
-
+import sys
 try:
     from self.configparser import configparser
 except ImportError:
@@ -15,9 +15,15 @@ class WStatus:
 
     def save(self):
         #TODO: add lock checking
-        if self.source_file and self.status:
+        print(self.status)
+        print(self.source_file)
+        if self.source_file is not None and self.status is not None:
+          try:
             with open(self.source_file, 'w') as statusfile:
                self.status.write(statusfile)
+          except Exception as err:
+              #err = sys.exc_info()[0]
+              print("Something happened when writing status file:" + str(err))
 
 
     def has_section(self, section):
