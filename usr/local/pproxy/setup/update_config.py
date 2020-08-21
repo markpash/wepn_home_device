@@ -63,8 +63,8 @@ if not port_status.has_section('port-fwd'):
 if status.has_section('port-fwd'):
     status.remove_section('port-fwd')
 
-status.set('status','sw','0.9.28')
-config.set('shadow','method', 'aes-256-gcm')
+status.set('status','sw','0.9.29')
+config.set('shadow','method', 'aes-256-cfm')
 config.set('hw','iface', 'eth0')
 
 with open(CONFIG_FILE, 'w') as configfile:

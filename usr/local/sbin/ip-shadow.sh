@@ -1,3 +1,5 @@
+exit
+# Currntly not stable
 DEFAULT_GW=`ip route | grep default | awk '{print $3}'`
 iptables -F
 
