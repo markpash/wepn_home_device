@@ -22,6 +22,7 @@ try:
 except ImportError:
     import configparser
 from wstatus import WStatus
+from services import Services
 
 class HeartBeat:
     def __init__(self):
@@ -32,6 +33,7 @@ class HeartBeat:
         self.config.read(CONFIG_FILE)
         self.status = WStatus()
         self.diag = WPDiag()
+        self.services = Services()
         # This one is displayed on screen for call verification
         self.pin = random.SystemRandom().randint(1111111111, 9999999999)
         # This one is used for API access
@@ -54,6 +56,8 @@ class HeartBeat:
     def set_mqtt_state(self,is_connected, reason):
        self.mqtt_connected = is_connected
        self.mqtt_reason = reason
+       pass
+
 
     #send heartbeat. if led_print==1, update LED
     def send_heartbeat(self, led_print=1):
@@ -67,6 +71,7 @@ class HeartBeat:
             shadow = Shadow()
             test_port=int( shadow.get_max_port() ) + 2
         diag_code = self.diag.get_error_code(test_port)
+        access_creds = self.services.get_service_creds_summary(external_ip)
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "ip_address": external_ip,
@@ -78,6 +83,7 @@ class HeartBeat:
             'port': self.config.get('openvpn', 'port'),
             "software_version": self.status.get('sw'),
             "diag_code": diag_code,
+            "access_cred": access_creds,
         }
         self.status.set('pin', str(self.pin))
         self.status.set('local_token', str(self.local_token))

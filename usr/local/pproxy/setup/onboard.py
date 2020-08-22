@@ -169,17 +169,22 @@ class OnBoard():
         rc= client.username_pw_set(username=self.config.get('mqtt', 'username'),
                                password=self.rand_key)
         print("mqtt host:" +str(self.config.get('mqtt','host')))
-        try:
-              rc=client.connect(str(self.config.get('mqtt', 'host')),
-                       int(self.config.get('mqtt', 'port')),
-                       int(self.config.get('mqtt', 'onboard-timeout')))
-        except Exception as error:
-            print("MQTT connect failed")
-            display_str = [(1, chr(33)+'     '+chr(33),1), (2, "Network error,",0), (3, "check cable...", 0) ]
-            oled.display(display_str, 15)
-            if (int(self.config.get('hw','buttons'))):
-                keypad.cleanup()
-            raise
+        while True:
+            try:
+                  time.sleep(int(self.config.get('mqtt', 'onboard-timeout')))
+                  print("password for mqtt= "+ self.rand_key)
+                  rc=client.connect(str(self.config.get('mqtt', 'host')),
+                           int(self.config.get('mqtt', 'port')),
+                           int(self.config.get('mqtt', 'onboard-timeout')))
+            except Exception as error:
+                print("MQTT connect failed")
+                display_str = [(1, chr(33)+'     '+chr(33),1), (2, "Network error,",0), (3, "check cable...", 0) ]
+                oled.display(display_str, 15)
+                if (int(self.config.get('hw','buttons'))):
+                    keypad.cleanup()
+
+                time.sleep(int(self.config.get('mqtt', 'onboard-timeout')))
+                #raise
 
         # Blocking call that processes network traffic, dispatches callbacks and
         # handles reconnecting.

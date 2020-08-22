@@ -64,7 +64,6 @@ if not port_status.has_section('port-fwd'):
 if status.has_section('port-fwd'):
     status.remove_section('port-fwd')
 
-
 # GCM is required, but onlder shadowsocks doesn't support it
 cache = apt.Cache()
 shadowsocks_3 = False

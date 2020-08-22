@@ -12,6 +12,7 @@ import sys
 import flask
 from flask import request
 from flask_api import status as http_status
+import hashlib
 
 sys.path.insert(1, '..')
 try:
@@ -40,16 +41,19 @@ def return_link(cname):
         server = servers.find_one(certname = cname)
         uri="unknown"
         uri64 = "empty"
+        digest = ""
         if server is not None:
                 uri = str(config.get('shadow','method')) + ':' + str(server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
                 print(uri)
                 uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')+"#WEPN-"+str(server['certname'])
-        return uri64
+                digest = hashlib.sha256(uri64.encode()).hexdigest()[:10]
+        link= "{\"link\":\""+uri64+"\", \"digest\": \"" + str(digest) + "\" }"
+        return link
 
 def valid_token(incoming):
     status = WStatus() 
-    return sanitize_str(incoming)==status.get_field('status','local_token')
-
+    valid_token = status.get_field('status','local_token')
+    return sanitize_str(incoming)==str(valid_token)
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = False 
@@ -79,7 +83,7 @@ def claim_info():
     if int(is_claimed)==1:
         dev_key="CLAIMED"
     else:
-        dev_key = http_status.get_field('status', 'temporary_key')
+        dev_key = status.get_field('status', 'temporary_key')
     return "{\"claimed\":\""+is_claimed+"\", \"serial_number\": \"" + str(serial_number) + "\", \"device_key\":\"" + dev_key + "\"}"
 
 

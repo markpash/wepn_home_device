@@ -74,3 +74,10 @@ class Services:
             txt += ttxt + '\n'
             html += thtml + '<br />'
         return txt, html
+
+    def get_service_creds_summary(self, ip_address):
+        creds = {}
+        for service in self.services:
+            creds.update( service['obj'].get_service_creds_summary(ip_address) )
+        return creds
+

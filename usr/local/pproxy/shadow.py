@@ -10,6 +10,7 @@ import dataset
 import sqlite3 as sqli
 import base64
 import device
+import hashlib
 
 try:
     from self.configparser import configparser
@@ -198,6 +199,19 @@ class Shadow:
 
     def can_email(self):
         return (int(self.config.get('shadow','email')) is 1)
+
+    def get_service_creds_summary(self, ip_address):
+        local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
+        servers = local_db['servers']
+        device = Device()
+        creds = {}
+        if not servers or not self.is_enabled():
+            return '{}'
+        for server in local_db['servers']:
+            uri = str(self.config.get('shadow','method')) + ':' + str(server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
+            uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')+"#WEPN-"+str(server['certname'])
+            creds [server['certname']] = hashlib.sha256(uri64.encode()).hexdigest()[:10]
+        return creds
 
     def get_add_email_text(self, cname, ip_address):
         txt = ''
