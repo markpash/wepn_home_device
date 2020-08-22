@@ -4,6 +4,10 @@ import random
 import requests
 import socket
 import netifaces as ni
+import platform
+import os
+import sys
+
 from ipw import IPW
 ipw = IPW()
 

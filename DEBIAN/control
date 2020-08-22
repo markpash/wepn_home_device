@@ -1,5 +1,5 @@
 Package: pproxy-rpi
-Version: 0.9.29
+Version: 0.11.1
 Maintainer: Reza <support@we-pn.com>
 Architecture: all 
 Description: RPi3 python executables for We-PN PProxy

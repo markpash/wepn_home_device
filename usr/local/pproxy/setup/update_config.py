@@ -1,3 +1,4 @@
+import apt
 #########################################
 ## Fix old setup files
 ## add missing fileds, correct host
@@ -63,8 +64,23 @@ if not port_status.has_section('port-fwd'):
 if status.has_section('port-fwd'):
     status.remove_section('port-fwd')
 
-status.set('status','sw','0.9.29')
-config.set('shadow','method', 'aes-256-cfm')
+
+# GCM is required, but onlder shadowsocks doesn't support it
+cache = apt.Cache()
+shadowsocks_3 = False
+version = "C"
+if cache['shadowsocks-libev'].is_installed:
+    for pkg in cache['shadowsocks-libev'].versions:
+        if pkg.version.startswith("3"):
+            shadowsocks_3 = True
+if shadowsocks_3:
+    config.set('shadow','method', 'aes-256-gcm')
+    version = "G"
+else:
+    config.set('shadow','method', 'aes-256-cfm')
+
+status.set('status','sw','0.11.1'+'.'+version)
+
 config.set('hw','iface', 'eth0')
 
 with open(CONFIG_FILE, 'w') as configfile:
