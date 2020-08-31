@@ -14,7 +14,7 @@ class OpenVPN:
         return
 
 
-    def add_user(self, certname, ip_address, password, port):
+    def add_user(self, certname, ip_address, password, port, lang):
         cmd = '/bin/sh ./add_user.sh '+ certname + ' '+ ip_address + ' ' + str(self.config.get('openvpn', 'port'))
         print(cmd)
         self.execute_cmd(cmd)
@@ -60,7 +60,7 @@ class OpenVPN:
     def get_service_creds_summary(self, ip_address):
         return {}
 
-    def get_add_email_text(self, certname, ip_address):
+    def get_add_email_text(self, certname, ip_address, lang):
         txt = ''
         html = ''
         if self.is_enabled() and self.can_email() :

@@ -55,22 +55,23 @@ class Services:
     def is_enanbled(self, service_name):
         return
     
-    def add_user(self, certname, ip_address, suggested_password, suggested_port):
+    def add_user(self, certname, ip_address, suggested_password, suggested_port, lang='en'):
         # Note: services may use another port (based on used ports) or password 
         # (if user already exists.
         for service in self.services:
-            service['obj'].add_user(certname, ip_address, suggested_password, suggested_port)
+            service['obj'].add_user(certname, ip_address, suggested_password,
+                                    suggested_port, lang)
         return
 
     def delete_user(self,certname):
         for service in self.services:
             service['obj'].delete_user(certname)
         return
-    def get_add_email_text(self, certname, ip_address):
+    def get_add_email_text(self, certname, ip_address, lang):
         txt = '\n'
         html = ''
         for service in self.services:
-            ttxt, thtml = service['obj'].get_add_email_text(certname, ip_address)
+            ttxt, thtml = service['obj'].get_add_email_text(certname, ip_address, lang)
             txt += ttxt + '\n'
             html += thtml + '<br />'
         return txt, html

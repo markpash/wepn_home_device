@@ -54,7 +54,7 @@ class Shadow:
             self.sock.close()
             os.remove(self.socket_path)
 
-    def add_user(self, cname, ip_address, password, unused_port):
+    def add_user(self, cname, ip_address, password, unused_port, lang):
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         #get max of assigned ports, new port is 1+ that. 
         #if no entry in DB, copy from config default port start
@@ -90,7 +90,8 @@ class Shadow:
         device.open_port(port, 'ShadowSocks '+cname)
 
         #add certname, port, password to a json list to ues at delete/boot
-        servers.upsert({'certname':cname, 'server_port':port, 'password':password},['certname'])
+        servers.upsert({'certname':cname, 'server_port':port, 'password':password, 'language':lang},
+                        ['certname'])
         #retrun success or failure if file doesn't exist
         for a in local_db['servers']:
             print("server:" + str(a))
@@ -213,7 +214,7 @@ class Shadow:
             creds [server['certname']] = hashlib.sha256(uri64.encode()).hexdigest()[:10]
         return creds
 
-    def get_add_email_text(self, cname, ip_address):
+    def get_add_email_text(self, cname, ip_address, lang):
         txt = ''
         html = ''
         if self.is_enabled() and self.can_email() :
@@ -232,7 +233,7 @@ class Shadow:
                 html += '<p>You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). We recommend using Potatso if Outline does not correctly work.</p>'
         return txt, html
 
-    def get_removal_email_text(self, certname, ip_address):
+    def get_removal_email_text(self, certname, ip_address, lang):
         txt = ''
         html = ''
         if self.is_enabled() and self.can_email() :

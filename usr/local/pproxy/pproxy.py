@@ -204,14 +204,19 @@ class PProxy():
         services = Services()
         if (data['action'] == 'add_user'):
             username = self.sanitize_str(data['cert_name'])
-            print("Adding user: "+ username)
+            try:
+                # extra sanitization to avoid path injection
+                lang = re.sub(r'\\\\/*\.?',"",self.sanitize_str(data['language']))
+            except:
+                lang = 'en'
+            print("Adding user: "+ username +" with language:" + lang)
             ip_address = self.sanitize_str(ipw.myip())
             password = random.SystemRandom().randint(1111111111, 9999999999)
             #TODO why re cannot remove \ even with escape?
             data['passcode'] = re.sub(r'[\\\\/*?:"<>|.]',"",data['passcode'][:25].replace("\n",''))
             port = self.config.get('shadow','start-port')
-            services.add_user(username, ip_address, password, int(port))
-            txt, html = services.get_add_email_text(username, ip_address)
+            services.add_user(username, ip_address, password, int(port), lang)
+            txt, html = services.get_add_email_text(username, ip_address, lang)
             print("add_user:"+txt)
             # TODO: this is not general enough, improve to assess if each service is enabled
             #       without naming OpenVPN explicitly
@@ -222,8 +227,8 @@ class PProxy():
                            'Familiar phrase is '+ data['passcode'] + '\n' + txt,
                            vpn_file)
             else:
-                manuals = [ '/usr/local/pproxy/ui/outline.png',
-                            '/usr/local/pproxy/ui/potatso.png']
+                manuals = [ '/usr/local/pproxy/ui/'+lang+'/outline.png',
+                            '/usr/local/pproxy/ui/'+lang+'/potatso.png']
                 self.send_mail(self.config.get('email', 'email'), data['email'],
                            "Your VPN details",
                            'Familiar phrase is '+ data['passcode'] + '\n' + txt,

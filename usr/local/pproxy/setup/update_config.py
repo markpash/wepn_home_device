@@ -67,18 +67,16 @@ if status.has_section('port-fwd'):
 # GCM is required, but onlder shadowsocks doesn't support it
 cache = apt.Cache()
 shadowsocks_3 = False
-version = "C"
 if cache['shadowsocks-libev'].is_installed:
     for pkg in cache['shadowsocks-libev'].versions:
         if pkg.version.startswith("3"):
             shadowsocks_3 = True
 if shadowsocks_3:
     config.set('shadow','method', 'aes-256-gcm')
-    version = "G"
 else:
     config.set('shadow','method', 'aes-256-cfm')
 
-status.set('status','sw','0.11.1'+'.'+version)
+status.set('status','sw','0.11.1')
 
 config.set('hw','iface', 'eth0')
 
