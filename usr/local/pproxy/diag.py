@@ -21,7 +21,8 @@ STATUS_FILE='/var/local/pproxy/status.ini'
 
 class WPDiag:
 
-    def __init__(self):
+    def __init__(self, logger):
+       self.logger = logger
        self.config = configparser.ConfigParser()
        self.config.read(CONFIG_FILE)
        self.status = WStatus()
@@ -45,8 +46,8 @@ class WPDiag:
             args = shlex.split(cmd)
             subprocess.Popen(args)
         except Exception as error_exception:
-            print("Error happened in running command:" + cmd)
-            print("Error details:\n"+str(error_exception))
+            self.logger.error("Error happened in running command:" + cmd)
+            self.logger.error("Error details:\n"+str(error_exception))
             system.exit()
 
     def get_local_ip(self):
@@ -66,12 +67,12 @@ class WPDiag:
        return mac
 
     def open_listener(self, host, port):
-        print("listener up...")
+        self.logger.debug("listener up...")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.bind((host,port))
         except OSError as err:
-            print("OSError: "+str(err))
+            self.logger.error("OSError: "+str(err))
             return
 
         #this listener should die after one connection
@@ -79,7 +80,7 @@ class WPDiag:
         # destructor will stop this thread
         s.listen(1)
         conn,addr = s.accept()
-        print ('Connected by ', addr)
+        self.logger.info ('Connected by ', addr)
         data = conn.recv(8)
         conn.sendall(data)
         conn.close()
@@ -114,7 +115,7 @@ class WPDiag:
     def can_connect_to_external_port(self,port):
         try:
             external_ip = str(ipw.myip())
-            print('Diag: external ip is '+str(external_ip))
+            self.logger.debug('Diag: external ip is '+str(external_ip))
             s = socket.create_connection((external_ip, port),10)
             s.sendall(b'test\n')
             return True
@@ -127,7 +128,7 @@ class WPDiag:
         #running. By default, only one connection will be handled.
         try:
             internal_ip = str(self.get_local_ip())
-            print('Diag connect internet:local ip is '+str(internal_ip))
+            self.logger.debug('Diag connect internet: local ip is '+str(internal_ip))
             s = socket.create_connection((internal_ip, port),10)
             s.sendall(b'test\n')
             return True
@@ -172,8 +173,8 @@ class WPDiag:
         url = self.config.get('django', 'url')+"/api/device/diagnosis/"
         try:
             response = requests.post(url, data=data_json, headers=headers)
-            print("server diag analysis:" + str(response.status_code))
+            self.logger.info("server diag analysis:" + str(response.status_code))
             return response.json()
         except requests.exceptions.RequestException as exception_error:
-            print("Error" + str(exception_error))
+            self.logger.error(str(exception_error))
             pass

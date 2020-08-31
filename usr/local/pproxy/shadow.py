@@ -11,6 +11,7 @@ import sqlite3 as sqli
 import base64
 import device
 import hashlib
+import random #just for testing
 
 try:
     from self.configparser import configparser
@@ -29,9 +30,10 @@ from device import Device
 CONFIG_FILE='/etc/pproxy/config.ini'
 
 class Shadow:
-    def __init__(self):
+    def __init__(self, logger):
         self.config = configparser.ConfigParser()
         self.config.read('/etc/pproxy/config.ini')
+        self.logger = logger
         fd, self.socket_path = tempfile.mkstemp()
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -71,7 +73,7 @@ class Shadow:
                 max_port = None
             if max_port is None:
                 max_port = int(self.config.get('shadow','start-port'))
-            print("New port assigned is " + str(max_port+1) + " was " + str(unused_port))
+            self.logger.info("New port assigned is " + str(max_port+1) + " was " + str(unused_port))
             port=max_port + 1 
         else:
             port = server['server_port']
@@ -83,10 +85,10 @@ class Shadow:
         self.shadow_conf_file_save(port, password)
         self.sock.send(str.encode(cmd))
         self.shadow_conf_file_save(port, password)
-        print("socket return:" + str(self.sock.recv(1056)))
+        self.logger.debug("socket return: " + str(self.sock.recv(1056)))
         #open the port for this now
-        print('enabling port forwarding to port ' + str(port))
-        device = Device()
+        self.logger.info('enabling port forwarding to port ' + str(port))
+        device = Device(self.logger)
         device.open_port(port, 'ShadowSocks '+cname)
 
         #add certname, port, password to a json list to ues at delete/boot
@@ -94,7 +96,7 @@ class Shadow:
                         ['certname'])
         #retrun success or failure if file doesn't exist
         for a in local_db['servers']:
-            print("server:" + str(a))
+            self.logger.debug("server: " + str(a))
         return
 
 
@@ -106,19 +108,18 @@ class Shadow:
         if server is not None:
 
             port = server['server_port']
-            print (server['server_port'])
             cmd = 'remove : {"server_port": '+str(server['server_port'])+' } '
             self.sock.send(str.encode(cmd))
-            print("socket response to delete:" + str(self.sock.recv(1056)))
+            self.logger.info("socket response to delete:" + str(self.sock.recv(1056)))
             #add certname, port, password to a json list to ues at delete/boot
             servers.delete(certname=cname)
-            print('disabling port forwarding to port ' + str(port))
-            device = Device()
+            self.logger.info('disabling port forwarding to port ' + str(port))
+            device = Device(self.logger)
             device.close_port(port)
         #retrun success or failure if file doesn't exist
         if 0 and local_db is not None:
             for a in local_db['servers']:
-                print("servers for delete" + str(a))
+                self.logger.debug("servers for delete: " + str(a))
         return
         return
 
@@ -138,7 +139,7 @@ class Shadow:
         #loop over cert files, start each
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
-        device = Device()
+        device = Device(self.logger)
         if not servers:
             return
         for server in local_db['servers']:
@@ -148,7 +149,7 @@ class Shadow:
             self.shadow_conf_file_save(server['server_port'], server['password'])
             self.sock.send(str.encode(cmd))
             self.shadow_conf_file_save(server['server_port'], server['password'])
-            print(cmd + ' >> '+ str(self.sock.recv(1056)))
+            self.logger.debug(cmd + ' >> '+ str(self.sock.recv(1056)))
             device.open_port(server['server_port'], 'ShadowSocks '+server['certname'])
         return
 
@@ -158,24 +159,24 @@ class Shadow:
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
         if not servers:
-            print('no servers')
+            self.logger.info('no servers')
             return
         for server in local_db['servers']:
             cmd = 'remove : {"server_port": '+str(server['server_port'])+' } '
             self.sock.send(str.encode(cmd))
-            print(server['certname'] + ' >>' + cmd + ' >> '+ str(self.sock.recv(1056)))
+            self.logger.debug(server['certname'] + ' >>' + cmd + ' >> '+ str(self.sock.recv(1056)))
         return 
     # forward_all is used with cron to make sure port forwardings stay active
     # if service is stopped, forwardings can stay active. there will be no ss server to serve
     def forward_all(self):
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
-        device = Device()
+        device = Device(self.logger)
         if not servers:
-            print('no servers')
+            self.logger.info('no servers')
             return
         for server in local_db['servers']:
-            print('forwaring '+ str(server['server_port'])+' for '+ server['certname'])
+            self.logger.debug('forwaring '+ str(server['server_port'])+' for '+ server['certname'])
             device.open_port(server['server_port'], 'ShadowSocks '+server['certname'])
         return
     def start(self):
@@ -204,7 +205,7 @@ class Shadow:
     def get_service_creds_summary(self, ip_address):
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
-        device = Device()
+        device = Device(self.logger)
         creds = {}
         if not servers or not self.is_enabled():
             return '{}'
@@ -213,6 +214,17 @@ class Shadow:
             uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')+"#WEPN-"+str(server['certname'])
             creds [server['certname']] = hashlib.sha256(uri64.encode()).hexdigest()[:10]
         return creds
+
+    def get_usage_status_summary(self):
+        local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
+        servers = local_db['servers']
+        device = Device(self.logger)
+        usage = {}
+        if not servers or not self.is_enabled():
+            return '{}'
+        for server in local_db['servers']:
+            usage [server['certname']] =  random.randint(1, 10)
+        return usage
 
     def get_add_email_text(self, cname, ip_address, lang):
         txt = ''

@@ -1,4 +1,5 @@
 import sys
+import logging.config
 try:
     from self.configparser import configparser
 except ImportError:
@@ -6,8 +7,9 @@ except ImportError:
 STATUS_FILE='/var/local/pproxy/status.ini'
 
 class WStatus:
-    def __init__(self, source_file=None):
+    def __init__(self, logger, source_file=None):
         self.status = configparser.ConfigParser()
+        self.logger = logger
         if source_file==None:
             source_file = STATUS_FILE
         self.status.read(source_file)
@@ -15,8 +17,7 @@ class WStatus:
 
     def save(self):
         #TODO: add lock checking
-        print(self.status)
-        print(self.source_file)
+        self.logger.debug(self.status)
         if self.source_file is not None and self.status is not None:
           try:
             with open(self.source_file, 'w') as statusfile:
@@ -42,14 +43,14 @@ class WStatus:
         if not isinstance(value, str):
             value = str(value)
         self.status.set(section, field, value)
-        print('setting '+field+' to '+value)
+        self.logger.debug('setting '+field+' to '+value)
 
 
     def get(self, field):
         try:
             return self.get_field('status', field)
         except:
-            print("Unknown field:" + field)
+            self.logger.error("Unknown field: " + field)
             return ""
 
 
@@ -57,6 +58,6 @@ class WStatus:
         try:
             return self.status.get(section, field)
         except:
-            print("Unknown section/field:" + section + ":"+ field)
+            self.logger.error("Unknown section/field: " + section + ":"+ field)
             return ""
 

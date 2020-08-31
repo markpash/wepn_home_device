@@ -4,6 +4,7 @@ from time import gmtime, strftime
 import time
 import ssl
 import random
+import logging.config
 try:
     from self.configparser import configparser
 except ImportError:
@@ -35,10 +36,11 @@ PORT_STATUS_FILE='/var/local/pproxy/port.ini'
 
 
 class Device():
-    def __init__(self):
+    def __init__(self, logger):
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
-        self.status = WStatus(PORT_STATUS_FILE)
+        self.status = WStatus(logger, PORT_STATUS_FILE)
+        self.logger = logger
         self.correct_port_status_file()
 
     def correct_port_status_file(self):
@@ -52,7 +54,7 @@ class Device():
             self.status.save()
 
     def __del__(self):
-        if self.status:
+        if self.status is not None:
             self.status.save()
 
     def sanitize_str(self, str_in):
@@ -80,9 +82,9 @@ class Device():
             # Does not work: return sp.returncode
             return failed
         except Exception as error_exception:
-            print(args)
-            print("Error happened in running command:" + cmd)
-            print("Error details:\n"+str(error_exception))
+            self.logger.error(args)
+            self.logger.error("Error happened in running command:" + cmd)
+            self.logger.error("Error details:\n"+str(error_exception))
             process.kill()
             return 99 
 
@@ -123,7 +125,7 @@ class Device():
         else:
             # no skipping, just try opening port normally with UPNP
             self.set_port_forward("open", port, text)
-        print("skipping?" + str(skip) + " count=" + str(skip_count))
+        self.logger.info("skipping? " + str(skip) + " count=" + str(skip_count))
 
     def close_port(self, port):
         skip = int(self.status.get_field('port-fwd','skipping'))
@@ -141,7 +143,7 @@ class Device():
         else:
             # no skipping, just try opening port normally with UPNP
             self.set_port_forward("close", port, "")
-        print("skipping?" + str(skip) + " count=" + str(skip_count))
+        self.logger.info("skipping?" + str(skip) + " count=" + str(skip_count))
 
     def set_port_forward(self, open_close, port, text):
         failed = 0
@@ -151,17 +153,17 @@ class Device():
         if open_close == "close":
             upnpc_cmd += " -d "+str(port)
         cmd= upnpc_cmd + "  TCP"
-        print(cmd)
+        self.logger.debug(cmd)
         if self.execute_cmd(cmd) != 0:
             failed += 1
         cmd=upnpc_cmd + "  UDP"
-        print(cmd)
+        self.logger.debug(cmd)
         if self.execute_cmd(cmd) != 0:
             failed += 1
         # if we failed, check to see if max-fails has passed
         fails = int(self.status.get_field('port-fwd','fails'))
         if failed > 0:
-            print("-----------------------PORT MAP FAILED----------------------------")
+            self.logger.error("-----------------------PORT MAP FAILED----------------------------")
             if fails >= int(self.status.get_field('port-fwd','fails-max')):
                 # if passed limit, reset fail count, 
                 self.status.set_field('port-fwd','fails', 0 )

@@ -8,46 +8,47 @@ except ImportError:
 
 CONFIG_FILE='/etc/pproxy/config.ini'
 class OpenVPN:
-    def __init__(self):
+    def __init__(self, logger):
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
+        self.logger = logger
         return
 
 
     def add_user(self, certname, ip_address, password, port, lang):
         cmd = '/bin/sh ./add_user.sh '+ certname + ' '+ ip_address + ' ' + str(self.config.get('openvpn', 'port'))
-        print(cmd)
+        self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def delete_user(self, certname):
         cmd = '/bin/sh ./delete_user.sh '+ certname
-        print(cmd)
+        self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def start(self):
         cmd = "sudo /etc/init.d/openvpn start"
-        print(cmd)
+        self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
 
     def stop(self):
         cmd = "sudo /etc/init.d/openvpn stop"
-        print(cmd)
+        self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def restart(self):
         cmd = "sudo /etc/init.d/openvpn restart"
-        print(cmd)
+        self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def reload(self):
         cmd = "sudo /etc/init.d/openvpn reload"
-        print(cmd)
+        self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return 
 
@@ -58,6 +59,9 @@ class OpenVPN:
         return (int(self.config.get('openvpn','email')) is 1)
 
     def get_service_creds_summary(self, ip_address):
+        return {}
+
+    def get_usage_status_summary(self):
         return {}
 
     def get_add_email_text(self, certname, ip_address, lang):
@@ -84,9 +88,9 @@ class OpenVPN:
             process = subprocess.Popen(args)
             process.wait()
         except Exception as error_exception:
-            print(args)	
-            print("Error happened in running command:" + cmd)
-            print("Error details:\n"+str(error_exception))
+            self.logger.error(args)	
+            self.logger.error("Error happened in running command:" + cmd)
+            self.logger.error("Error details:\n"+str(error_exception))
             system.exit()
 
 

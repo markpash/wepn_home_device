@@ -3,6 +3,7 @@ import time
 from oled import OLED as OLED
 import os
 from setup.onboard import OnBoard
+import logging
 
 try:
     from self.configparser import configparser
@@ -11,6 +12,12 @@ except ImportError:
 
 CONFIG_FILE='/etc/pproxy/config.ini'
 STATUS_FILE='/var/local/pproxy/status.ini'
+
+LOG_CONFIG="/etc/pproxy/logging-debug.ini"
+logging.config.fileConfig(LOG_CONFIG,
+            disable_existing_loggers=False)
+
+logger = logging.getLogger("debug-pproxy")
 
 oled = OLED()
 
@@ -24,7 +31,8 @@ oled.show_logo()
 
 try:
     if 1 == int(status.get('status','claimed')):
-        PPROXY_PROCESS = PProxy()
+        PPROXY_PROCESS = PProxy(logger)
+        #PPROXY_PROCESS.set_logger(logger)
         PPROXY_PROCESS.start()
     else:
         ONBOARD = OnBoard()

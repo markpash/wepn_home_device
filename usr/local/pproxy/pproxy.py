@@ -5,6 +5,7 @@ import ssl
 import random
 import os
 import re
+import logging.config
 try:
     from self.configparser import configparser
 except ImportError:
@@ -37,24 +38,43 @@ KEYPAD = [
 ]
 CONFIG_FILE='/etc/pproxy/config.ini'
 STATUS_FILE='/var/local/pproxy/status.ini'
+LOG_CONFIG="/etc/pproxy/logging.ini"
+logging.config.fileConfig(LOG_CONFIG,
+            disable_existing_loggers=False)
 
 ipw =IPW()
 
 class PProxy():
-    def __init__(self):
+    def __init__(self, logger=None):
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
-        self.status = WStatus()
-        self.device = Device()
         self.mqtt_connected = 0
         self.mqtt_reason = 0
         self.factory = rpi_gpio.KeypadFactory()
+        self.loggers = {} 
+        self.loggers["heartbeat"] = logging.getLogger("heartbeat")
+        self.loggers["diag"] = logging.getLogger("diag")
+        self.loggers["services"] = logging.getLogger("services")
+        self.loggers["wstatus"] = logging.getLogger("wstatus")
+        self.loggers["device"] = logging.getLogger("device")
+        if logger is not None:
+            self.logger=logger
+        else:
+            self.logger = logging.getLogger("pproxy")
+        self.status = WStatus(self.loggers['wstatus'])
+        self.device = Device(self.loggers['device'])
         return
 
     def __del__(self):
-        print("PProxy shutting down.")
+        self.logger.debug("PProxy shutting down.")
         self.factory.cleanup()
 
+
+    def set_logger(self, logger):
+        self.logger = logger
+
+    def set_loggers(self, index, logger):
+        self.loggers[index] = logger
 
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
@@ -63,13 +83,13 @@ class PProxy():
     def save_state(self, new_state, led_print=1):
         self.status.set('state', new_state)
         self.status.save()
-        print('heartbeat from save_state '+new_state)
-        heart_beat = HeartBeat()
+        self.logger.debug('heartbeat from save_state '+new_state)
+        heart_beat = HeartBeat(self.loggers["heartbeat"])
         heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
         heart_beat.send_heartbeat(led_print)
 
     def process_key(self, key):
-        services = Services()
+        services = Services(self.loggers['services'])
         if (key == "1"):
             current_state=self.status.get('state')
             if (current_state == "2"):
@@ -82,14 +102,14 @@ class PProxy():
         #Run Diagnostics
         elif (key == "2"):
             led = OLED()
-            diag = WPDiag()
+            diag = WPDiag(self.loggers['diag'])
             led.set_led_present(self.config.get('hw','led'))
             display_str = [(1, "Starting Diagnostics",0), (2, "please wait ...",0) ]
             led.display(display_str, 15)
             diag.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
             test_port=int(self.config.get('openvpn','port')) + 1
             if int(self.config.get('shadow','enabled'))==1:
-                shadow = Shadow()
+                shadow = Shadow(self.loggers['shadow'])
                 test_port=int( shadow.get_max_port() ) + 2
             display_str = [(1, "Status Code",0), (2, str(diag.get_error_code( test_port )),0) ]
             led.display(display_str, 20)
@@ -99,16 +119,16 @@ class PProxy():
             led.display(display_str, 19)
             time.sleep(5)
             display_str = [(1, "Local IP",0), (2, diag.get_local_ip(),0), ]
-            print(display_str)
+            self.logger.info(display_str)
             led.display(display_str, 19)
             time.sleep(5)
             display_str = [(1, "MAC Address",0), (2, diag.get_local_mac(),0), ]
-            print(display_str)
+            self.logger.debug(display_str)
             led.display(display_str, 19)
             time.sleep(5)
-            heart_beat = HeartBeat()
+            heart_beat = HeartBeat(self.loggers["heartbeat"])
             heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
-            print('heartbeat from process_key 2')
+            self.logger.debug('heartbeat from process_key 2')
             heart_beat.send_heartbeat()
         #Power off   
         elif (key == "3"):
@@ -162,13 +182,13 @@ class PProxy():
             server.login(self.config.get('email', 'username'), self.config.get('email', 'password'))
             server.sendmail(send_from, send_to, msg.as_string())
             server.close()
-            print('successfully sent the mail')
+            self.logger.debug('successfully sent the mail')
         except Exception as error_exception:
-            print("failed to send mail: "+ str(error_exception))
+            self.logger.critical("failed to send mail: "+ str(error_exception))
 
     # The callback for when the client receives a CONNACK response from the server.
     def on_connect(self, client, userdata, flags, result_code):
-        print("Connected with result code "+str(result_code))
+        self.logger.info("Connected with result code "+str(result_code))
         self.mqtt_connected = 1
         self.mqtt_reason = result_code
         self.status.set('mqtt',1)
@@ -179,9 +199,9 @@ class PProxy():
         # reconnect then subscriptions will be renewed.
         #client.subscribe("$SYS/#")
         topic = "devices/"+self.config.get('mqtt', 'username')+"/#"
-        print('subscribing to: '+topic)
+        self.logger.info('subscribing to: '+topic)
         client.subscribe(topic,qos=1)
-        print('connected to service MQTT, saving state')
+        self.logger.info('connected to service MQTT, saving state')
         self.save_state("2")
 
 
@@ -196,12 +216,12 @@ class PProxy():
 
     # The callback for when a PUBLISH message is received from the server.
     def on_message(self, client, userdata, msg):
-        print("on_message: "+msg.topic+" "+str(msg.payload))
+        self.logger.debug("on_message: "+msg.topic+" "+str(msg.payload))
         try:
             data = json.loads(msg.payload)
         except:
             data = json.loads(msg.payload.decode("utf-8"))
-        services = Services()
+        services = Services(self.loggers['services'])
         if (data['action'] == 'add_user'):
             username = self.sanitize_str(data['cert_name'])
             try:
@@ -217,7 +237,7 @@ class PProxy():
             port = self.config.get('shadow','start-port')
             services.add_user(username, ip_address, password, int(port), lang)
             txt, html = services.get_add_email_text(username, ip_address, lang)
-            print("add_user:"+txt)
+            self.logger.debug("add_user: "+txt)
             # TODO: this is not general enough, improve to assess if each service is enabled
             #       without naming OpenVPN explicitly
             if self.config.get('openvpn','email') == '1':
@@ -236,7 +256,7 @@ class PProxy():
  
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])
-            print("Removing user: "+username)
+            self.logger.debug("Removing user: "+username)
             ip_address = ipw.myip()
             services.delete_user(username)
             txt, html = services.get_add_email_text(username, ip_address)
@@ -283,7 +303,7 @@ class PProxy():
         print("incoming data:"+str(data))
     #callback for diconnection of MQTT from server
     def on_disconnect(self,client, userdata, reason_code):
-        print("MQTT disconnected")
+        self.logger.info("MQTT disconnected")
         self.mqtt_connected = 0
         self.mqtt_reason = reason_code
         self.status.set('mqtt',0)
@@ -295,10 +315,10 @@ class PProxy():
         oled = OLED()
         oled.set_led_present(self.config.get('hw','led'))
         oled.show_logo()
-        services = Services()
+        services = Services(self.loggers['services'])
         services.start()
         client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=False)
-        print('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LED='+
+        self.logger.debug('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LED='+
                 self.config.get('hw','led'))
         if (int(self.config.get('hw','buttons'))):
             keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
@@ -309,14 +329,14 @@ class PProxy():
         client.tls_set("/etc/ssl/certs/DST_Root_CA_X3.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
         rc= client.username_pw_set(username=self.config.get('mqtt', 'username'),
                                password=self.config.get('mqtt', 'password'))
-        print("mqtt host:" +str(self.config.get('mqtt','host')))
+        self.logger.debug("mqtt host: " +str(self.config.get('mqtt','host')))
         try:
             rc=client.connect(str(self.config.get('mqtt', 'host')),
                        int(self.config.get('mqtt', 'port')),
                        int(self.config.get('mqtt', 'timeout')))
 
         except Exception as error:
-            print("MQTT connect failed")
+            self.logger.error("MQTT connect failed")
             display_str = [(1, chr(33)+'     '+chr(33),1), (2, "Network error,",0), (3, "check cable...", 0) ]
             oled.display(display_str, 15)
             if (int(self.config.get('hw','buttons'))):

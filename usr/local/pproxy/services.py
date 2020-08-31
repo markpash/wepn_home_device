@@ -1,3 +1,4 @@
+import logging.config
 from shadow import Shadow
 from openvpn import OpenVPN
 try:
@@ -8,20 +9,20 @@ except ImportError:
 CONFIG_FILE='/etc/pproxy/config.ini'
 
 class Services:
-    def __init__(self):
+    def __init__(self, logger):
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
         self.services = []
-        self.services.append({'name':'openvpn', 'obj': OpenVPN() })
-        self.services.append({'name':'shadow', 'obj': Shadow() })
-        self.shadow = Shadow()
+        self.services.append({'name':'openvpn', 'obj': OpenVPN(logger) })
+        self.services.append({'name':'shadow', 'obj': Shadow(logger) })
+        self.logger = logger
         #self.dante = Dante()
         return
 
 
     def start_all(self):
         for service in self.services:
-            print("Starting "+service['name'])
+            self.logger.info("Starting "+service['name'])
             service['obj'].start()
         return
 
@@ -35,18 +36,20 @@ class Services:
 
     def stop_all(self):
         for service in self.services:
-            print("Stopping "+service['name'])
+            self.logger.info("Stopping "+service['name'])
             service['obj'].stop()
         return
 
     def restart_all(self):
-        self.openvpn.restart()
-        self.shadow.restart()
+        for service in self.services:
+            self.logger.info("Restarting "+service['name'])
+            service['obj'].restart()
         return
 
     def reload_all(self):
-        self.openvpn.reload()
-        self.shadow.reload()
+        for service in self.services:
+            self.logger.info("Reloading "+service['name'])
+            service['obj'].reload()
         return
 
     def can_email(self, service_name):
@@ -81,4 +84,11 @@ class Services:
         for service in self.services:
             creds.update( service['obj'].get_service_creds_summary(ip_address) )
         return creds
+    
+    def get_usage_status_summary(self):
+        usage = {}
+        for service in self.services:
+            usage.update( service['obj'].get_usage_status_summary() )
+        return usage
+
 
