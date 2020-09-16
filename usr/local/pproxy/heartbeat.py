@@ -33,9 +33,9 @@ class HeartBeat:
         self.mqtt_reason = 0
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
-        self.status = WStatus()
-        self.diag = WPDiag()
-        self.services = Services()
+        self.status = WStatus(logger)
+        self.diag = WPDiag(logger)
+        self.services = Services(logger)
         # This one is displayed on screen for call verification
         self.pin = random.SystemRandom().randint(1111111111, 9999999999)
         # This one is used for API access

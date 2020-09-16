@@ -12,6 +12,7 @@ import base64
 import device
 import hashlib
 import random #just for testing
+import json
 
 try:
     from self.configparser import configparser
@@ -58,8 +59,8 @@ class Shadow:
 
     def add_user(self, cname, ip_address, password, unused_port, lang):
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
-        #get max of assigned ports, new port is 1+ that. 
-        #if no entry in DB, copy from config default port start
+        # get max of assigned ports, new port is 1+ that. 
+        # if no entry in DB, copy from config default port start
         servers = local_db['servers']
         server = servers.find_one(certname = cname)
         #if already exists, use same port
@@ -86,12 +87,12 @@ class Shadow:
         self.sock.send(str.encode(cmd))
         self.shadow_conf_file_save(port, password)
         self.logger.debug("socket return: " + str(self.sock.recv(1056)))
-        #open the port for this now
+        # open the port for this now
         self.logger.info('enabling port forwarding to port ' + str(port))
         device = Device(self.logger)
         device.open_port(port, 'ShadowSocks '+cname)
 
-        #add certname, port, password to a json list to ues at delete/boot
+        # add certname, port, password to a json list to ues at delete/boot
         servers.upsert({'certname':cname, 'server_port':port, 'password':password, 'language':lang},
                         ['certname'])
         #retrun success or failure if file doesn't exist
@@ -222,7 +223,59 @@ class Shadow:
         usage = {}
         if not servers or not self.is_enabled():
             return '{}'
+        # query current usage from it
+        cmd = 'ping'
+        self.logger.debug(cmd)
+        self.sock.send(str.encode(cmd))
+        # ping response has some text, remove it
+        raw_str = str(self.sock.recv(1056)).replace("b'stat:","").replace("'","")
+        self.logger.debug(raw_str)
+        response = json.loads(raw_str)
+        usage_db = dataset.connect('sqlite:///'+self.config.get('usage', 'db-path'))
+        usage_servers = local_db['servers']
+        usage_status = -1
+        for i in response:
+            print(str(i) + " = " + str(response[i]))
         for server in local_db['servers']:
+            try:
+                usage_value = -1
+                current_usage = response[str(server['server_port'])]+20
+                self.logger.debug("port="+str(server['server_port']) +\
+                        " usage=" + str(response[str(server['server_port'])]))
+                usage_server = usage_servers.find_one(certname = server['certname'])
+                if usage_server is None or 'usage' not in usage_server:
+                    # not yet in the database
+                    usage_value = current_usage
+                else:
+                    # already has some value
+                    if usage_server['usage'] is not None and usage_server['usage'] > current_usage:
+                            # wrap around, device recently rebooted?
+                            current_usage = current_usage + usage_server['usage']
+                    else:
+                            # not a wrap around, just replace
+                            usage_value = current_usage
+                if usage_value > 0:
+                    usage_status = 1
+                self.logger.debug('certname:'+server['certname']+
+                        ' server_port:'+str(server['server_port'])+
+                        ' usage:'+str(usage_value)+
+                        ' status:'+str(usage_status))
+                usage_servers.upsert({'certname':server['certname'],
+                    'server_port':server['server_port'],
+                    'usage':usage_value,
+                    'status':usage_status},['certname'])
+
+            except KeyError as e:
+                self.logger.error("Port not found in ping stats: " + str(e))
+        for usage_server in usage_db['servers']:
+            if usage_server['usage_status'] in [0, -1]:
+                # -1 = never connected
+                # 0 = not connected after latest update
+                # find the shadowsocks server
+                server = servers.find_one(certname = usage_server['certname'])
+                #for server_usage in response:
+                    # if higher than current value, replace
+                    # if lower than current value, add to existing
             usage [server['certname']] =  random.randint(1, 10)
         return usage
 

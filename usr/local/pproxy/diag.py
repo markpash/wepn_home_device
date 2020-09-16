@@ -25,13 +25,13 @@ class WPDiag:
        self.logger = logger
        self.config = configparser.ConfigParser()
        self.config.read(CONFIG_FILE)
-       self.status = WStatus()
+       self.status = WStatus(logger)
        self.claimed = self.status.get('claimed')
        self.iface = str(self.config.get('hw','iface'))
        self.port = 987
        self.mqtt_connected = 0
        self.mqtt_reason = 0
-       self.device = Device()
+       self.device = Device(logger)
        self.listener = None
 
     def __del__(self):

@@ -44,6 +44,11 @@ if not config.has_section('shadow'):
    config.set('shadow','method', 'aes-256-gcm')
    config.set('shadow','start-port', '4000')
 
+if not config.has_section('usage'):
+   config.add_section('usage')
+   config.set('usage','db_path', '/var/local/pproxy/usage.db')
+
+
 if not status.has_section('status'):
     status.add_section('status')
     status.set('status','claimed','0')
