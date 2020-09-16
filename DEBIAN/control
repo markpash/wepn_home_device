@@ -1,6 +1,6 @@
 Package: pproxy-rpi
-Version: 0.11.1
+Version: 0.11.2
 Maintainer: Reza <support@we-pn.com>
 Architecture: all 
 Description: RPi3 python executables for We-PN PProxy
-Depends: miniupnpc, iptables, openvpn, python3-pip, libopenjp2-7-dev, libtiff5, i2c-tools, rng-tools, python-apt, dnsutils, bind9, shadowsocks-libev, uwsgi
+Depends: miniupnpc, iptables, openvpn, python3-pip, python3-flask, libopenjp2-7-dev, libtiff5, i2c-tools, rng-tools, python-apt, dnsutils, bind9, shadowsocks-libev, uwsgi
