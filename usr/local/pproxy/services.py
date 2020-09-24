@@ -82,13 +82,19 @@ class Services:
     def get_service_creds_summary(self, ip_address):
         creds = {}
         for service in self.services:
-            creds.update( service['obj'].get_service_creds_summary(ip_address) )
+            res = service['obj'].get_service_creds_summary(ip_address)
+            self.logger.debug(res)
+            if bool(res):   # check if there are any friends
+                    creds.update(res)
         return creds
     
     def get_usage_status_summary(self):
         usage = {}
         for service in self.services:
-            usage.update( service['obj'].get_usage_status_summary() )
+            res=service['obj'].get_usage_status_summary()
+            if bool(res):   # check if there are any friends
+                    self.logger.debug(res)
+                    usage.update(res)
         return usage
 
 

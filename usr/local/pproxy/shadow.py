@@ -209,8 +209,10 @@ class Shadow:
         device = Device(self.logger)
         creds = {}
         if not servers or not self.is_enabled():
-            return '{}'
+            self.logger.debug("No servers found for usage")
+            return {}
         for server in local_db['servers']:
+            self.logger.debug("creds for " + server['certname'])
             uri = str(self.config.get('shadow','method')) + ':' + str(server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
             uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')+"#WEPN-"+str(server['certname'])
             creds [server['certname']] = hashlib.sha256(uri64.encode()).hexdigest()[:10]
@@ -220,9 +222,10 @@ class Shadow:
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
         device = Device(self.logger)
-        usage = {}
+        usage_results = {}
         if not servers or not self.is_enabled():
-            return '{}'
+            self.logger.debug("No servers found for usage")
+            return {}
         # query current usage from it
         cmd = 'ping'
         self.logger.debug(cmd)
@@ -237,16 +240,20 @@ class Shadow:
         for i in response:
             print(str(i) + " = " + str(response[i]))
         for server in local_db['servers']:
+            self.logger.debug("usage for " + server['certname'])
             try:
                 usage_value = -1
-                current_usage = response[str(server['server_port'])]+20
+                usage_status = -1
+                current_usage = response[str(server['server_port'])]
                 self.logger.debug("port="+str(server['server_port']) +\
                         " usage=" + str(response[str(server['server_port'])]))
                 usage_server = usage_servers.find_one(certname = server['certname'])
                 if usage_server is None or 'usage' not in usage_server:
                     # not yet in the database
                     usage_value = current_usage
+                    self.logger.debug("Usage not in db yet. value=" + str(usage_value))
                 else:
+                    self.logger.debug("Current usage in db = " + str(usage_server['usage']))
                     # already has some value
                     if usage_server['usage'] is not None and usage_server['usage'] > current_usage:
                             # wrap around, device recently rebooted?
@@ -254,6 +261,7 @@ class Shadow:
                     else:
                             # not a wrap around, just replace
                             usage_value = current_usage
+                self.logger.debug("usage value = " + str(usage_value))
                 if usage_value > 0:
                     usage_status = 1
                 self.logger.debug('certname:'+server['certname']+
@@ -264,20 +272,11 @@ class Shadow:
                     'server_port':server['server_port'],
                     'usage':usage_value,
                     'status':usage_status},['certname'])
+                usage_results[server['certname']] = usage_status
 
             except KeyError as e:
                 self.logger.error("Port not found in ping stats: " + str(e))
-        for usage_server in usage_db['servers']:
-            if usage_server['usage_status'] in [0, -1]:
-                # -1 = never connected
-                # 0 = not connected after latest update
-                # find the shadowsocks server
-                server = servers.find_one(certname = usage_server['certname'])
-                #for server_usage in response:
-                    # if higher than current value, replace
-                    # if lower than current value, add to existing
-            usage [server['certname']] =  random.randint(1, 10)
-        return usage
+        return usage_results
 
     def get_add_email_text(self, cname, ip_address, lang):
         txt = ''

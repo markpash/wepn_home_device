@@ -75,6 +75,7 @@ class HeartBeat:
         diag_code = self.diag.get_error_code(test_port)
         access_creds = self.services.get_service_creds_summary(external_ip)
         usage_status = self.services.get_usage_status_summary()
+        self.logger.debug(usage_status)
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "ip_address": external_ip,
