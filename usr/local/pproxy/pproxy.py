@@ -146,21 +146,35 @@ class PProxy():
             self.device.turn_off()
 
     def send_mail(self, send_from, send_to,
-                  subject, text, files_in,
+                  subject, text, html, files_in,
                   server="127.0.0.1"):
+        if int(self.config.get('email', 'enabled')) == 0:
+            # email is completely disabled
+            self.logger.debug("Email feature is completely off.")
+            return
 
+        self.logger.info("preparing email")
         if not isinstance(files_in, list):
             files_in_list = [files_in]
         else:
             files_in_list = files_in
+        msg = MIMEMultipart('alternative')
 
-        msg = MIMEMultipart()
         msg['From'] = send_from
         msg['To'] = send_to
         msg['Date'] = formatdate(localtime=True)
         msg['Subject'] = subject
 
-        msg.attach(MIMEText(text))
+        template = open("ui/emails_template.html", "r")
+        email_html= template.read()
+
+        template.close()
+        email_html = email_html.replace("{{text}}", html)
+        part1 = MIMEText(text, 'plain')
+
+        part2 = MIMEText(email_html, 'html')
+        msg.attach(part1)
+        msg.attach(part2)
 
         if files_in_list != None:
             for file_in in files_in_list:
@@ -182,9 +196,9 @@ class PProxy():
             server.login(self.config.get('email', 'username'), self.config.get('email', 'password'))
             server.sendmail(send_from, send_to, msg.as_string())
             server.close()
-            self.logger.debug('successfully sent the mail')
+            self.logger.info('successfully sent the mail')
         except Exception as error_exception:
-            self.logger.critical("failed to send mail: "+ str(error_exception))
+            self.logger.error("failed to send mail: "+ str(error_exception))
 
     # The callback for when the client receives a CONNACK response from the server.
     def on_connect(self, client, userdata, flags, result_code):
@@ -245,6 +259,7 @@ class PProxy():
                 self.send_mail(self.config.get('email', 'email'), data['email'],
                            "Your VPN details",
                            'Familiar phrase is '+ data['passcode'] + '\n' + txt,
+                           '<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+ html,
                            vpn_file)
             else:
                 manuals = [ '/usr/local/pproxy/ui/'+lang+'/outline.png',
@@ -252,6 +267,7 @@ class PProxy():
                 self.send_mail(self.config.get('email', 'email'), data['email'],
                            "Your VPN details",
                            'Familiar phrase is '+ data['passcode'] + '\n' + txt,
+                           '<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+ html,
                            manuals)
  
         elif (data['action'] == 'delete_user'):
@@ -259,10 +275,12 @@ class PProxy():
             self.logger.debug("Removing user: "+username)
             ip_address = ipw.myip()
             services.delete_user(username)
-            txt, html = services.get_add_email_text(username, ip_address)
             self.send_mail(self.config.get('email', 'email'), data['email'],
                            "Your VPN details",
-                           "Access to VPN server IP address " +  ip_address + " is revoked",
+                           #'Familiar phrase is '+ data['passcode'] + 
+                                '\nAccess to VPN server IP address ' +  ip_address + ' is revoked',
+                           #'<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+
+                                "<p>Access to VPN server IP address <b>" +  ip_address + "</b> is revoked</p>",
                            None)
         elif (data['action'] == 'reboot_device'):
             self.save_state("3")
