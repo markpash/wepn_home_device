@@ -48,6 +48,16 @@ def print_all():
         for server in local_db['servers']:
             cmd = 'list : {"server_port": '+str(server['server_port'])+', '+str(server['password'])+', "certname": '+ str(server['certname'])+'}' 
             print(cmd)
+def print_all_usage():
+        local_db = dataset.connect('sqlite:////var/local/pproxy/usage.db')
+        servers = local_db['servers']
+        if not servers:
+            print('no servers')
+            return
+        for server in local_db['servers']:
+            line = 'usage : {"server_port": '+str(server['server_port'])+', usage='+str(server['usage'])+', "certname": '+ str(server['certname'])+', status= '+ str(server['status'])+' }' 
+            print(line)
 
 #add_user('abcd','1.1.1.1','kjasas../.../da',999)
 print_all()
+print_all_usage()

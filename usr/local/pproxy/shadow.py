@@ -254,10 +254,10 @@ class Shadow:
                     self.logger.debug("Usage not in db yet. value=" + str(usage_value))
                 else:
                     self.logger.debug("Current usage in db = " + str(usage_server['usage']))
-                    # already has some value
-                    if usage_server['usage'] is not None and usage_server['usage'] > current_usage:
+                    # already has some value in usage db
+                    if usage_server['usage'] > current_usage:
                             # wrap around, device recently rebooted?
-                            current_usage = current_usage + usage_server['usage']
+                        usage_value = current_usage + usage_server['usage']
                     else:
                             # not a wrap around, just replace
                             usage_value = current_usage
@@ -289,12 +289,18 @@ class Shadow:
                 uri = str(self.config.get('shadow','method')) + ':' + str(server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
                 uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')+"#WEPN-"+str(cname)
 
-                txt = 'To use ShadowSocks: \n\n1.Copy the below text, \n2. Open Outline or ShadowSocks apps on your phone \n3. Import this link as a new server. \n\n'
+                txt = "Congratulations! You have been granted access to a private VPN server."
+                txt += 'This VPN server uses Shadowsocks server. To start using this service, '
+                txt += '\n\n1.Copy the below text, \n2. Open Outline or ShadowSocks apps on your phone \n3. Import this link as a new server. \n\n'
                 txt += uri64
-                txt += '\n You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). We recommend using Potatso if Outline does not correctly work.'
-                html = 'For ShadowSocks: <ul> <li>Copy the below text, </li><li> Open Outline or ShadowSocks apps on your phone </li><li> Import this link as a new server. </li></ul><br /><br/>'
-                html += uri64 
-                html += '<p>You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). We recommend using Potatso if Outline does not correctly work.</p>'
+                txt += '\n\n You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). We recommend using Potatso if Outline does not correctly work.'
+                txt += '\nGraphical manuals are attached to this email.'
+                html= "<h2>Congratulations! You have been granted access to a private VPN server.</h2>"
+                html += 'This VPN server uses Shadowsocks server. To start using this service, '
+                html += '<ul> <li>Copy the below text, </li><li> Open Outline or ShadowSocks apps on your phone </li><li> Import this link as a new server. </li></ul><br /><br/>'
+                html += "<center><b>" + uri64  +"</b></center>"
+                html += '<p>You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). We recommend using Potatso if Outline does not correctly work.<br/>'
+                html += 'Graphical manuals are attached to this email.</p>'
         return txt, html
 
     def get_removal_email_text(self, certname, ip_address, lang):
