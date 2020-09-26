@@ -18,8 +18,9 @@ status.read(STATUS_FILE)
 port_status = configparser.ConfigParser()
 port_status.read(PORT_STATUS_FILE)
 
-config.set('mqtt','host','we-pn.com')
-config.set('mqtt','onboard-timeout','10')
+if not config.has_option('mqtt','host'):
+   config.set('mqtt','host','we-pn.com')
+   config.set('mqtt','onboard-timeout','10')
 
 host = config.get('django','host')
 if host == "we-pn.com":
@@ -69,7 +70,15 @@ if not port_status.has_section('port-fwd'):
 if status.has_section('port-fwd'):
     status.remove_section('port-fwd')
 
-# GCM is required, but onlder shadowsocks doesn't support it
+
+if not config.has_option('email','enabled'):
+    config.set('email', 'enabled', 1)
+config.set('email','email',"WEPN Device<devices@we-pn.com>")
+
+if not config.has_option('hw','iface'):
+    config.set('hw','iface', 'eth0')
+
+# GCM is required, but older shadowsocks doesn't support it
 cache = apt.Cache()
 shadowsocks_3 = False
 if cache['shadowsocks-libev'].is_installed:
@@ -83,7 +92,6 @@ else:
 
 status.set('status','sw','0.11.1')
 
-config.set('hw','iface', 'eth0')
 
 with open(CONFIG_FILE, 'w') as configfile:
    config.write(configfile)

@@ -163,7 +163,7 @@ class Device():
         # if we failed, check to see if max-fails has passed
         fails = int(self.status.get_field('port-fwd','fails'))
         if failed > 0:
-            self.logger.error("-----------------------PORT MAP FAILED----------------------------")
+            self.logger.error("PORT MAP FAILED")
             if fails >= int(self.status.get_field('port-fwd','fails-max')):
                 # if passed limit, reset fail count, 
                 self.status.set_field('port-fwd','fails', 0 )

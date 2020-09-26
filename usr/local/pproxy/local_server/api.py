@@ -13,16 +13,19 @@ import flask
 from flask import request
 from flask_api import status as http_status
 import hashlib
+import logging.config
 
 sys.path.insert(1, '..')
 try:
     from configparser import configparser
 except ImportError:
     import configparser
+ERROR_LOG_FILE="/var/local/pproxy/error.log"
 from diag import WPDiag
 CONFIG_FILE='/etc/pproxy/config.ini'
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
+logger = logging.getLogger("local-api")
 import shlex
 from ipw import IPW
 from wstatus import WStatus
@@ -51,7 +54,7 @@ def return_link(cname):
         return link
 
 def valid_token(incoming):
-    status = WStatus() 
+    status = WStatus(logger) 
     valid_token = status.get_field('status','local_token')
     return sanitize_str(incoming)==str(valid_token)
 
@@ -67,7 +70,7 @@ def home():
 def api_all():
     if exposed:
         return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
-    status = WStatus() 
+    status = WStatus(logger) 
     if valid_token(request.args.get('local_token')):
         return str(return_link(sanitize_str(request.args.get('certname'))))
     else:
@@ -77,7 +80,7 @@ def api_all():
 def claim_info():
     if exposed:
         return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
-    status = WStatus()
+    status = WStatus(logger)
     serial_number = config.get('django','serial_number')
     is_claimed = status.get_field('status','claimed')
     if int(is_claimed)==1:
@@ -93,7 +96,7 @@ def run_diag():
         return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
       if not valid_token(request.args.get('local_token')):
           return "Not accessible", http_status.HTTP_401_UNAUTHORIZED
-      WPD = WPDiag()
+      WPD = WPDiag(logger)
       local_ip = WPD.get_local_ip()
       port = 4091
 
@@ -123,6 +126,26 @@ def check_port_available_externally():
     global exposed
     exposed = True
     return "ERROR: Exposure detected! APIs are closed now.", http_status.HTTP_503_SERVICE_UNAVAILABLE
+
+@app.route('/api/v1/diagnostics/error_log', methods=['GET','POST'])
+def get_error_log():
+    # read the last two error logs
+    # Note: while we emphasize not logging PII with logger.error(),
+    # we can also add a regex based PII scanner like scrubadub here
+    if exposed:
+        return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
+    if not valid_token(request.args.get('local_token')):
+        return "Not accessible", http_status.HTTP_401_UNAUTHORIZED
+    contents = ""
+    try:
+        with open(ERROR_LOG_FILE, 'r') as error_log:
+            contents = error_log.read()
+        with open(ERROR_LOG_FILE + ".1", 'r') as error_log:
+            contents += error_log.read()
+    except FileNotFoundError as err:
+        print("Not enough logs, returning what was there")
+        pass
+    return(contents)
 
 if __name__=='__main__':
     app.run(host= '0.0.0.0', ssl_context='adhoc')

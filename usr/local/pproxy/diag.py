@@ -47,7 +47,7 @@ class WPDiag:
             subprocess.Popen(args)
         except Exception as error_exception:
             self.logger.error("Error happened in running command:" + cmd)
-            self.logger.error("Error details:\n"+str(error_exception))
+            self.logger.error("Error details:"+str(error_exception))
             system.exit()
 
     def get_local_ip(self):
@@ -72,7 +72,7 @@ class WPDiag:
         try:
             s.bind((host,port))
         except OSError as err:
-            self.logger.error("OSError: "+str(err))
+            self.logger.error("OSError in openning diag listener: "+str(err))
             return
 
         #this listener should die after one connection
@@ -176,5 +176,5 @@ class WPDiag:
             self.logger.info("server diag analysis:" + str(response.status_code))
             return response.json()
         except requests.exceptions.RequestException as exception_error:
-            self.logger.error(str(exception_error))
+            self.logger.error("Error is parsing server's diag analysis: " + str(exception_error))
             pass

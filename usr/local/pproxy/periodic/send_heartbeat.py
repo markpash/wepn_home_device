@@ -6,7 +6,7 @@ sys.path.append(up_dir)
 LOG_CONFIG="/etc/pproxy/logging-debug.ini"
 logging.config.fileConfig(LOG_CONFIG,
             disable_existing_loggers=False)
-logger = logging.getLogger("periodic-heartbeat")
+logger = logging.getLogger("heartbeat")
 from heartbeat import HeartBeat
 from wstatus import WStatus
 status = WStatus(logger)
