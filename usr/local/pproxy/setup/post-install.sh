@@ -39,8 +39,8 @@ cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
 
 python3.7 -m pip install --upgrade pip
-/usr/bin/pip3 install --upgrade pip
-/usr/bin/pip3 install -r $PPROXY_HOME/setup/requirements.txt
+pip3 install --upgrade pip
+pip3 install -r $PPROXY_HOME/setup/requirements.txt
 
 #autostart service
 chmod 0755 /etc/init.d/pproxy

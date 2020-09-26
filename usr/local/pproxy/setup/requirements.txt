@@ -25,3 +25,5 @@ flask_api
 uwsgi
 requests
 netifaces
+python-json-logger
+simplejson

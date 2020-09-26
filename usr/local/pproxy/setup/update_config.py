@@ -72,7 +72,7 @@ if status.has_section('port-fwd'):
 
 
 if not config.has_option('email','enabled'):
-    config.set('email', 'enabled', 1)
+    config.set('email', 'enabled', '1')
 config.set('email','email',"WEPN Device<devices@we-pn.com>")
 
 if not config.has_option('hw','iface'):
@@ -90,7 +90,7 @@ if shadowsocks_3:
 else:
     config.set('shadow','method', 'aes-256-cfm')
 
-status.set('status','sw','0.11.1')
+status.set('status','sw','0.11.4')
 
 
 with open(CONFIG_FILE, 'w') as configfile:
