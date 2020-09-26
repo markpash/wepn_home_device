@@ -78,6 +78,11 @@ config.set('email','email',"WEPN Device<devices@we-pn.com>")
 if not config.has_option('hw','iface'):
     config.set('hw','iface', 'eth0')
 
+if not config.has_section('usage'):
+    config.add_section('usage')
+    config.set('usage','db-path', "/var/local/pproxy/usage.db")
+
+
 # GCM is required, but older shadowsocks doesn't support it
 cache = apt.Cache()
 shadowsocks_3 = False
