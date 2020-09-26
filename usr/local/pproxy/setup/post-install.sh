@@ -39,6 +39,15 @@ cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
 
 python3.7 -m pip install --upgrade pip
+PIP=pip3
+if ! command -v $PIP -V &> /dev/null
+then
+	PIP=/usr/local/bin/pip3
+fi
+
+$PIP install --upgrade pip
+$PIP install -r $PPROXY_HOME/setup/requirements.txt
+
 pip3 install --upgrade pip
 pip3 install -r $PPROXY_HOME/setup/requirements.txt
 

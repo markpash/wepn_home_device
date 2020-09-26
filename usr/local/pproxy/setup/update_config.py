@@ -47,7 +47,7 @@ if not config.has_section('shadow'):
 
 if not config.has_section('usage'):
    config.add_section('usage')
-   config.set('usage','db_path', '/var/local/pproxy/usage.db')
+   config.set('usage','db-path', '/var/local/pproxy/usage.db')
 
 
 if not status.has_section('status'):
@@ -95,7 +95,7 @@ if shadowsocks_3:
 else:
     config.set('shadow','method', 'aes-256-cfm')
 
-status.set('status','sw','0.11.4')
+status.set('status','sw','0.12.1')
 
 
 with open(CONFIG_FILE, 'w') as configfile:
