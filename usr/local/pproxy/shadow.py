@@ -248,7 +248,7 @@ class Shadow:
                 self.logger.debug("port="+str(server['server_port']) +\
                         " usage=" + str(response[str(server['server_port'])]))
                 usage_server = usage_servers.find_one(certname = server['certname'])
-                if usage_server is None or 'usage' not in usage_server:
+                if usage_server is None or usage_server['usage'] is None or 'usage' not in usage_server:
                     # not yet in the database
                     usage_value = current_usage
                     self.logger.debug("Usage not in db yet. value=" + str(usage_value))
