@@ -1,3 +1,4 @@
 *.pyc
 __pycache__
-local_test_config.ini
+prod_config.ini
+dev_config.ini
