@@ -128,7 +128,7 @@ def test_check_device_connected():
     status.read(STATUS_FILE)
     assert(status.get('status','claimed') == '1')
 
-    assert(status.get('status','mqtt')=='1')
+    assert(status.get('status','mqtt'=='1'))
 
 
 
