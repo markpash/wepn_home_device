@@ -10,11 +10,14 @@ password=abcd
 * To run tests
 
 For local results:
-pytest wepn_regression.py
+
+> pytest wepn_regression.py --v
 
 
 For an HTML result, uploadable:
 
-pytest wepn_regression.py --html=report.html -s
+> pytest wepn_regression.py --html=report.html -s
 
+To run a subset of the tests, you can identify it as semi-regex:
 
+> pytest wepn-regression.py  -vv -k 'test_login or test_claim'

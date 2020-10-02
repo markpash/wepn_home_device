@@ -5,9 +5,15 @@ try:
 except ImportError:
     import configparser
 
-TEST_CONFIG = 'local_test_config.ini'
+#TEST_CONFIG = 'dev_config.ini'
+TEST_CONFIG = 'prod_config.ini'
+STATUS_FILE = '/var/local/pproxy/status.ini'
+
+PPROXY_CONFIG='/etc/pproxy/config.ini'
 config = configparser.ConfigParser()
 config.read(TEST_CONFIG)
+pproxy_config = configparser.ConfigParser()
+pproxy_config.read(PPROXY_CONFIG)
 
 token=config.get('user', 'token')
 user=config.get('user', 'user')
@@ -21,6 +27,8 @@ url=config.get('device', 'url')
 key=config.get('device', 'key')
 serial=config.get('device', 'serial')
 
+static_friend_id=config.get('friend','static_id')
+
 
 import json
 import requests
@@ -28,6 +36,8 @@ import requests
 auth_token = "FF"
 friend_id = None
 device_id = None
+
+
 
 # making HTML output pretty
 @pytest.hookimpl(hookwrapper=True)
@@ -82,6 +92,7 @@ def test_login_fail():
 
 
 @pytest.mark.dependency(depends=["test_login"])	
+#@pytest.mark.skip(reason="this blocks on prod")
 def test_claim():
     global device_id
     headers = {
@@ -90,12 +101,36 @@ def test_claim():
             }
     payload = {"device_key":key,"serial_number":serial, "device_name":"Regression Device"}
     response = requests.post(url + '/device/claim/', json=payload, headers=headers)
+    print(response)
     jresponse = response.json()
-    #print (jresponse)
+    print (jresponse)
     #print(response.status_code)
     #print(payload)
     assert(response.status_code == 200)
     device_id = jresponse['id']
+
+@pytest.mark.dependency(depends=["test_login","test_claim"])
+def test_claim_fail_serial():
+    headers = {
+            "Authorization" : auth_token,
+            "content-type": "application/json"
+            }
+    payload = {"device_key":key,"serial_number":"BADBEEF", "device_name":"Regression Device"}
+    response = requests.post(url + '/device/claim/', json=payload, headers=headers)
+    #print(response)
+    assert(response.status_code != 200)
+
+
+@pytest.mark.dependency(depends=["test_login","test_claim"])
+def test_check_device_connected():
+    time.sleep(1) # assuming it takes x seconds for onboarding to kick-in
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
+    assert(status.get('status','claimed') == '1')
+
+    assert(status.get('status','mqtt')=='1')
+
+
 
 @pytest.mark.dependency(depends=["test_login","test_claim"])	
 def test_heartbeat():
@@ -111,25 +146,13 @@ def test_heartbeat():
     #print(response.status_code)
     assert(response.status_code == 200)
 
-@pytest.mark.dependency(depends=["test_login", "test_claim", "test_heartbeat"])	
-def test_unclaim():
-    global device_id
-    headers = {
-            "Authorization" : auth_token,
-            }
-    response = requests.get(url + '/device/'+str(device_id)+'/unclaim/', headers=headers)
-    jresponse = response.json()
-    #print (jresponse)
-    #print(response.status_code)
-    assert(response.status_code == 200)
 
 @pytest.mark.dependency(depends=["test_login"])	
 def test_list_friends():
-
     headers = {
             "Authorization" : auth_token,
             }
-    expected = [{"id":424,"email":"test-email@we-pn.com","telegram_handle":"no_handle","has_connected":True,"usage_status":-1,"passcode":"test pass code","cert_id":"1n.b4","language":"en"}]
+    expected = [{"id":int(static_friend_id),"email":"test-email@we-pn.com","telegram_handle":"no_handle","has_connected":True,"usage_status":-1,"passcode":"test pass code","cert_id":"1n.b4","language":"en"}]
     response = requests.get(url + '/friend/', headers=headers)
     jresponse = response.json()
     assert(response.status_code == 200)
@@ -143,42 +166,45 @@ def test_heartbeat_change_usage_status():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {"1n.b4":"1"}}
+    payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {"1n.b4":1}}
     response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
     jresponse = response.json()
     assert(response.status_code == 200)
-    expected = [{"id":424,"email":"test-email@we-pn.com","telegram_handle":"no_handle","has_connected":True,"usage_status":1,"passcode":"test pass code","cert_id":"1n.b4","language":"en"}]
+    expected = [{"id":int(static_friend_id),"email":"test-email@we-pn.com","telegram_handle":"no_handle","has_connected":True,"usage_status":1,"passcode":"test pass code","cert_id":"1n.b4","language":"en"}]
     response = requests.get(url + '/friend/', headers=headers)
     jresponse = response.json()
     assert(response.status_code == 200)
     print (jresponse)
     assert(jresponse == expected)
-    test_heartbeat() # reset the usge to -1
+    # reset the usge to -1
+    payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {"1n.b4":"-1"}}
+    response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
 
 
-@pytest.mark.dependency(depends=["test_login"])	
+@pytest.mark.dependency(depends=["test_login", "test_list_friends", "test_claim"])
 def test_add_friend():
     global friend_id
     headers = {
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {'id': 457, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'cn'}
+    payload = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'cn'}
     response = requests.post(url + '/friend/', json=payload, headers=headers)
+    print (response.content)
+    assert(response.status_code == 201)
     jresponse = response.json()
     #print (jresponse)
     #print(response.status_code)
-    assert(response.status_code == 201)
     payload['id'] = jresponse['id']
     friend_id = payload['id']
     #print(payload)
     assert(jresponse == payload)
+    time.sleep(5)
 
 
-@pytest.mark.dependency(depends=["test_add_friend"])	
+@pytest.mark.dependency(depends=["test_add_friend"])
 def test_delete_friend():
     global friend_id
-    #friend_id = "441"
     headers = {
             "Authorization" : auth_token,
             "content-type": "application/json"
@@ -187,7 +213,19 @@ def test_delete_friend():
     #print(response.status_code)
     #print(response.content)
     assert(response.status_code == 204)
-    frien_id = None
+    friend_id = None
+
+@pytest.mark.dependency(depends=["test_login", "test_claim", "test_heartbeat"])
+def test_unclaim():
+    global device_id
+    headers = {
+            "Authorization" : auth_token,
+            }
+    response = requests.get(url + '/device/'+str(device_id)+'/unclaim/', headers=headers)
+    jresponse = response.json()
+    #print (jresponse)
+    #print(response.status_code)
+    assert(response.status_code == 200)
 #test_login()
 #test_list()
 #test_add()
