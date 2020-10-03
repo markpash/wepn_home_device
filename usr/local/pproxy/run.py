@@ -38,6 +38,7 @@ else:
              ONBOARD = OnBoard()
              ONBOARD.start()
           except Exception as e:
+              print("Exception in onboarding")
               print(e)
               del(ONBOARD) 
               print("Retrying in 60 seconds ....")

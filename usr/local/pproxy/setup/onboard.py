@@ -17,6 +17,7 @@ from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 from subprocess import call
 import shlex
+import logging.config
 #import ipw
 from ipw import IPW
 import paho.mqtt.client as mqtt
@@ -35,16 +36,25 @@ KEYPAD = [
 ]
 CONFIG_FILE='/etc/pproxy/config.ini'
 STATUS_FILE='/var/local/pproxy/status.ini'
+LOG_CONFIG="/etc/pproxy/logging-debug.ini"
+logging.config.fileConfig(LOG_CONFIG,
+            disable_existing_loggers=False)
 
 ipw =IPW()
 
 class OnBoard():
-    def __init__(self):
+    def __init__(self, logger=None):
+        self.client = None
+        self.unclaimed = True
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
         self.status = configparser.ConfigParser()
         self.status.read(STATUS_FILE)
-        self.device = Device()
+        if logger is not None:
+            self.logger=logger
+        else:
+            self.logger = logging.getLogger("pproxy")
+        self.device = Device(self.logger)
         self.mqtt_connected = 0
         self.mqtt_reason = 0
         self.factory = rpi_gpio.KeypadFactory()
@@ -78,12 +88,12 @@ class OnBoard():
         with open(STATUS_FILE, 'w') as statusfile:
             self.status.write(statusfile)
         print('heartbeat from save_state '+new_state)
-        heart_beat = HeartBeat()
+        heart_beat = HeartBeat(self.logger)
         heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
         heart_beat.send_heartbeat(led_print)
 
     def process_key(self, key):
-        services = Services()
+        services = Services(self.logger)
         if (key == "1"):
             current_state=self.status.get('status','state')
             if (current_state == "2"):
@@ -95,8 +105,8 @@ class OnBoard():
             self.save_state(str(new_state))
         #Run Diagnostics
         elif (key == "2"):
-            led = OLED()
-            diag = WPDiag()
+            led = OLED(self.logger)
+            diag = WPDiag(self.logger)
             led.set_led_present(self.config.get('hw','led'))
             display_str = [(1, "Starting Diagnostics",0), (2, "please wait ...",0) ]
             led.display(display_str, 15)
@@ -108,7 +118,7 @@ class OnBoard():
             display_str = [(1, "Serial #",0), (2, serial_number,0), ]
             led.display(display_str, 19)
             time.sleep(5)
-            heart_beat = HeartBeat()
+            heart_beat = HeartBeat(self.logger)
             heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
             heart_beat.send_heartbeat(0)
             display_str = [(1, "Device Key:", 0), (2,'',0), (3, str(self.rand_key), 0),]
@@ -129,11 +139,14 @@ class OnBoard():
             led.display(display_str, 20)
             self.device.turn_off()
 
+    def on_disconnect(self, client, userdata, reason_code):
+        print(">>>MQTT disconnected")
 
     # The callback for when the client receives a CONNACK response from the server.
     def on_connect(self, client, userdata, flags, result_code):
         print("Connected with result code "+str(result_code))
         if (result_code == 0):
+             print("* setting device to claimed")
              #save the randomly generated devkey
              self.config.set('mqtt','password',self.rand_key)
              self.config.set('django','device_key',self.rand_key)
@@ -143,13 +156,16 @@ class OnBoard():
                   self.config.write(configfile)
              with open(STATUS_FILE, 'w') as statusfile:
                   self.status.write(statusfile)
-             client.disconnect()
-             device = Device()
+             self.client.disconnect()
+             self.client.loop_stop()
+             self.unclaimed = False
+             device = Device(self.logger)
              device.restart_pproxy_service()
 
+    def on_message(self, client, userdata, msg):
+        print(">>>on_message: "+msg.topic+" "+str(msg.payload))
 
     def start(self):
-        #generate randomdevkey
         oled = OLED()
         oled.set_led_present(self.config.get('hw','led'))
         oled.show_logo()
@@ -157,25 +173,29 @@ class OnBoard():
         #icons, if needed to add later: (1, chr(110)+ chr(43)+chr(75) , 1), 
         display_str = [(1, "Device Key:", 0), (2,'',0), (3, str(self.rand_key), 0),]
         oled.display(display_str, 18)
-        client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=False)
+        self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
         print('Randomly generated device key: ' + self.rand_key)
         print('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LED='+
                 self.config.get('hw','led'))
         if (int(self.config.get('hw','buttons'))):
             keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
             keypad.registerKeyPressHandler(self.process_key)
-        client.on_connect = self.on_connect
-        client.tls_set("/etc/ssl/certs/DST_Root_CA_X3.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
-        rc= client.username_pw_set(username=self.config.get('mqtt', 'username'),
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+        self.client.on_disconnect = self.on_disconnect
+        self.client.tls_set("/etc/ssl/certs/DST_Root_CA_X3.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
+        rc= self.client.username_pw_set(username=self.config.get('mqtt', 'username'),
                                password=self.rand_key)
         print("mqtt host:" +str(self.config.get('mqtt','host')))
-        while True:
+        while self.unclaimed:
             try:
-                  time.sleep(int(self.config.get('mqtt', 'onboard-timeout')))
                   print("password for mqtt= "+ self.rand_key)
-                  rc=client.connect(str(self.config.get('mqtt', 'host')),
+                  rc=self.client.connect(str(self.config.get('mqtt', 'host')),
                            int(self.config.get('mqtt', 'port')),
-                           int(self.config.get('mqtt', 'onboard-timeout')))
+                           int(self.config.get('mqtt', 'timeout')))
+                  self.client.loop_start()
+                  time.sleep(int(self.config.get('mqtt', 'onboard-timeout')))
+                  self.client.loop_stop()
             except Exception as error:
                 print("MQTT connect failed")
                 display_str = [(1, chr(33)+'     '+chr(33),1), (2, "Network error,",0), (3, "check cable...", 0) ]
@@ -184,12 +204,8 @@ class OnBoard():
                     keypad.cleanup()
 
                 time.sleep(int(self.config.get('mqtt', 'onboard-timeout')))
+                self.client.loop_stop()
                 #raise
 
-        # Blocking call that processes network traffic, dispatches callbacks and
-        # handles reconnecting.
-        # Other loop*() functions are available that give a threaded interface and a
-        # manual interface.
-        client.loop_forever()
         if (int(self.config.get('hw','buttons'))):
             keypad.cleanup()
