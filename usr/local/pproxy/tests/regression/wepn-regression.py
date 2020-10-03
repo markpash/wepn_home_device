@@ -5,8 +5,8 @@ try:
 except ImportError:
     import configparser
 
-#TEST_CONFIG = 'dev_config.ini'
-TEST_CONFIG = 'prod_config.ini'
+TEST_CONFIG = 'dev_config.ini'
+#TEST_CONFIG = 'prod_config.ini'
 STATUS_FILE = '/var/local/pproxy/status.ini'
 
 PPROXY_CONFIG='/etc/pproxy/config.ini'
@@ -25,7 +25,8 @@ client_secret=config.get('app', 'client_secret')
 
 url=config.get('device', 'url')
 key=config.get('device', 'key')
-serial=config.get('device', 'serial')
+#serial=config.get('device', 'serial')
+serial=pproxy_config.get('django', 'serial_number')
 
 static_friend_id=config.get('friend','static_id')
 
@@ -90,17 +91,27 @@ def test_login_fail():
     pass
 
 
+@pytest.mark.dependency(depends=["test_login"])
+def test_confirm_device_unclaimed():
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
+    assert(status.get('status','claimed') == '0')
 
 @pytest.mark.dependency(depends=["test_login"])	
 #@pytest.mark.skip(reason="this blocks on prod")
 def test_claim():
     global device_id
+    global key
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
+    key = status.get('status','temporary_key')
     headers = {
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"device_key":key,"serial_number":serial, "device_name":"Regression Device"}
+    payload = {"device_key":key, "serial_number":serial, "device_name":"Regression Device"}
     response = requests.post(url + '/device/claim/', json=payload, headers=headers)
+    print(payload)
     print(response)
     jresponse = response.json()
     print (jresponse)
@@ -121,15 +132,12 @@ def test_claim_fail_serial():
     assert(response.status_code != 200)
 
 
-@pytest.mark.dependency(depends=["test_login","test_claim"])
+@pytest.mark.dependency(depends=["test_login","test_claim","test_confirm_device_unclaimed"])
 def test_check_device_connected():
-    time.sleep(1) # assuming it takes x seconds for onboarding to kick-in
+    time.sleep(30) # assuming it takes x seconds for onboarding to kick-in
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
     assert(status.get('status','claimed') == '1')
-
-    assert(status.get('status','mqtt'=='1'))
-
 
 
 @pytest.mark.dependency(depends=["test_login","test_claim"])	
