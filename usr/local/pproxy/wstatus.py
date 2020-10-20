@@ -23,7 +23,7 @@ class WStatus:
                self.status.write(statusfile)
           except Exception as err:
               #err = sys.exc_info()[0]
-              self.logger.error("Something happened when writing status file:" + str(err))
+              self.logger.debug("Something happened when writing status file:" + str(err))
 
 
     def has_section(self, section):

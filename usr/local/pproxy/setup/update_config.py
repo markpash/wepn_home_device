@@ -82,6 +82,9 @@ config.set('email','email',"WEPN Device<devices@we-pn.com>")
 if not config.has_option('mqtt','onboard-timeout'):
     config.set('mqtt','onboard-timeout', '10')
 
+if not self.status.has_section('previous_keys'):
+    self.status.add_section('previous_keys')
+
 if not config.has_option('hw','iface'):
     config.set('hw','iface', 'eth0')
 
