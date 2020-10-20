@@ -1,8 +1,9 @@
-
 import sys
 import os
+import logging.config
+
 LOG_CONFIG="/etc/pproxy/logging.ini"
-logging.config.fileConfig(log_config,
+logging.config.fileConfig(LOG_CONFIG,
             disable_existing_loggers=False)
 logger = logging.getLogger("periodic-ports")
 
@@ -31,4 +32,3 @@ try:
     print(r.text)
 except:
     print("OK: API port is not reachable externally.")
-

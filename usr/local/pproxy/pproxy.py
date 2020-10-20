@@ -153,28 +153,38 @@ class PProxy():
             self.logger.debug("Email feature is completely off.")
             return
 
+        html_option = False
+        if (self.config.has_option('email','type') and
+               self.config.get('email','type') == 'html'):
+                html_option = True
         self.logger.info("preparing email")
         if not isinstance(files_in, list):
             files_in_list = [files_in]
         else:
             files_in_list = files_in
-        msg = MIMEMultipart('alternative')
+
+        if html_option:
+            msg = MIMEMultipart('alternative')
+        else:
+            msg = MIMEMultipart()
 
         msg['From'] = send_from
         msg['To'] = send_to
         msg['Date'] = formatdate(localtime=True)
         msg['Subject'] = subject
 
-        template = open("ui/emails_template.html", "r")
-        email_html= template.read()
-
-        template.close()
-        email_html = email_html.replace("{{text}}", html)
         part1 = MIMEText(text, 'plain')
-
-        part2 = MIMEText(email_html, 'html')
         msg.attach(part1)
-        msg.attach(part2)
+
+        if html_option:
+            template = open("ui/emails_template.html", "r")
+            email_html= template.read()
+
+            template.close()
+            email_html = email_html.replace("{{text}}", html)
+
+            part2 = MIMEText(email_html, 'html')
+            msg.attach(part2)
 
         if files_in_list != None:
             for file_in in files_in_list:
