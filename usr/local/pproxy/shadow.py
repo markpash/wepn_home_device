@@ -289,9 +289,9 @@ class Shadow:
                 uri = str(self.config.get('shadow','method')) + ':' + str(server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
                 uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')+"#WEPN-"+str(cname)
 
-                txt = "You have been granted access to a private VPN server."
-                txt += 'This VPN server uses Shadowsocks server. To start using this service, '
-                txt += '\n\n1.Copy the below text, \n2. Open Outline or ShadowSocks apps on your phone \n3. Import this link as a new server. \n\n'
+                txt = "You have been granted access to a private VPN server. "
+                txt += 'This VPN server uses Shadowsocks server. To start using this service:'
+                txt += '\n\n1. Copy the below text, \n2. Open Outline or ShadowSocks apps on your phone \n3. Import this link as a new server. \n\n'
                 txt += uri64
                 txt += '\n\n You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). We recommend using Potatso if Outline does not correctly work.'
                 txt += '\nGraphical manuals are attached to this email.'

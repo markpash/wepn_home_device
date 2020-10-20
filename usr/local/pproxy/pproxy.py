@@ -268,15 +268,15 @@ class PProxy():
                 vpn_file = self.get_safe_path(username)
                 self.send_mail(self.config.get('email', 'email'), data['email'],
                            "Your VPN details",
-                           'Familiar phrase is '+ data['passcode'] + '\n' + txt,
-                           '<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+ html,
+                           'The familiar phrase you have arranged with your friend is: '+ data['passcode'] + '\n' + txt,
+                           '<p>The familiar phrase you have arranged with your friend is: <b>'+ data['passcode'] + '</b></p>'+ html,
                            vpn_file)
             else:
                 manuals = [ '/usr/local/pproxy/ui/'+lang+'/outline.png',
                             '/usr/local/pproxy/ui/'+lang+'/potatso.png']
                 self.send_mail(self.config.get('email', 'email'), data['email'],
                            "Your VPN details",
-                           'Familiar phrase is '+ data['passcode'] + '\n' + txt,
+                           'The familiar phrase you have arranged with your friend is: '+ data['passcode'] + '\n' + txt,
                            '<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+ html,
                            manuals)
  
@@ -288,9 +288,9 @@ class PProxy():
             self.send_mail(self.config.get('email', 'email'), data['email'],
                            "Your VPN details",
                            #'Familiar phrase is '+ data['passcode'] + 
-                                '\nAccess to VPN server IP address ' +  ip_address + ' is revoked',
+                                '\nAccess to VPN server IP address ' +  ip_address + ' is revoked.',
                            #'<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+
-                                "<p>Access to VPN server IP address <b>" +  ip_address + "</b> is revoked</p>",
+                                "<p>Access to VPN server IP address <b>" +  ip_address + "</b> is revoked.</p>",
                            None)
         elif (data['action'] == 'reboot_device'):
             self.save_state("3")
