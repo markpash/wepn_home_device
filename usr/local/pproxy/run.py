@@ -66,7 +66,7 @@ if 1 == int(status.get('status','claimed')):
              PPROXY_PROCESS.start()
           except:
               del(PPROXY_PROCESS) 
-             logger.debug("Retrying in 60 seconds ....")
+              logger.debug("Retrying in 60 seconds ....")
               time.sleep(60)
               continue
           break
@@ -83,7 +83,7 @@ else:
           except Exception as e:
               logger.error("Exception in onboarding:" + str(e))
               if ONBOARD:
-              del(ONBOARD) 
+                  del(ONBOARD) 
               logger.debug("Retrying in 60 seconds ....")
               time.sleep(60)
               continue
