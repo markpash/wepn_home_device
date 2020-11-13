@@ -67,12 +67,17 @@ if not port_status.has_section('port-fwd'):
 if status.has_section('port-fwd'):
     status.remove_section('port-fwd')
 
+# temporary re-update for an earlier bug
+if config.has_option('email','enabled'):
+    if config.get('email','enabled') == 'text':
+        config.set('email', 'enabled', '1')
 
 if not config.has_option('email','enabled'):
     config.set('email', 'enabled', '1')
 
 if not config.has_option('email','type'):
-    config.set('email', 'enabled', 'text')
+    config.set('email', 'type', 'text')
+
 
 config.set('email','email',"WEPN Device<devices@we-pn.com>")
 
@@ -102,7 +107,7 @@ if shadowsocks_3:
 else:
     config.set('shadow','method', 'aes-256-cfm')
 
-status.set('status','sw','0.15.0')
+status.set('status','sw','1.0.0')
 
 
 with open(CONFIG_FILE, 'w') as configfile:
