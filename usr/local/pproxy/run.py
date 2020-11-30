@@ -30,6 +30,10 @@ oled.set_led_present(config.get('hw','led'))
 oled.show_logo()
 time.sleep(1)
 
+device = Device(logger)
+gateway_vendor = device.get_default_gw_vendor()
+logger.critical("Gateway vendor= " + str(gateway_vendor))
+
 is_claimed = False
 server_checkin_done = False
 response = None
@@ -57,7 +61,6 @@ if 1 == int(status.get('status','claimed')):
         with open(STATUS_FILE, 'w') as statusfile:
            status.write(statusfile)
         #reboot to go into onboarding
-        device = Device(logger)
         device.reboot()
 
     while True:

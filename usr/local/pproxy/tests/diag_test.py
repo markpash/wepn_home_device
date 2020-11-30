@@ -1,6 +1,7 @@
 import sys
 import json
 import os
+import logging
 up_dir = os.path.dirname(os.path.abspath(__file__))+'/../'
 sys.path.append(up_dir)
 
@@ -16,18 +17,31 @@ except ImportError:
 
 CONFIG_FILE='/etc/pproxy/config.ini'
 
+LOG_CONFIG="/etc/pproxy/logging-debug.ini"
+logging.config.fileConfig(LOG_CONFIG,
+            disable_existing_loggers=False)
+
+logger = logging.getLogger("diag")
+
+shutdown = False
 
 def open_listener(host, port):
     print("listener up...")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(30)
     s.bind((host,port))
 
     s.listen(1)
+    while not shutdown:
+        print("Shutdown is " + str(shutdown))
+        try:
     conn,addr = s.accept()
     print ('Connected by ', addr)
     data = conn.recv(8)
     conn.sendall(data)
     conn.close()
+        except socket.timeout:
+            continue
 
 port  = 4091 
 oled = OLED()
@@ -38,7 +52,7 @@ listener = threading.Thread(target=open_listener,args=['',port])
 listener.setDaemon(True)
 listener.start()
 while True:
-      WPD = WPDiag()
+      WPD = WPDiag(logger)
       local_ip = WPD.get_local_ip()
       print('local ip='+WPD.get_local_ip())
       
@@ -46,10 +60,11 @@ while True:
       print('internet: '+str(internet))
       service = WPD.is_connected_to_service()
       print('service: '+str(service))
-      WPD.open_test_port(port)
+      #WPD.open_test_port(port)
       iport = WPD.can_connect_to_external_port(port)  
+      shutdown=True
       print('port test:' + str(iport))
-      #error_code = 1*(local_ip is not "") + internet *2 + 4 * service + 8 * port; 
+      error_code = 1*(local_ip is not "") + internet *2 + 4 * service + 8 * port; 
       error_code = WPD.get_error_code(port)
       print('device status code: '+str(error_code))
 
@@ -79,4 +94,4 @@ while True:
       print("remote port test:" + str(WPD.can_connect_to_external_port(port)))
       break
       '''
-#listener._stop()
+listener._stop()

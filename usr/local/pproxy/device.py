@@ -4,7 +4,9 @@ from time import gmtime, strftime
 import time
 import ssl
 import random
+from getmac import get_mac_address
 import logging.config
+import netifaces
 try:
     from self.configparser import configparser
 except ImportError:
@@ -173,3 +175,24 @@ class Device():
                 # failed, but has not passed the threshold
                 fails += failed
                 self.status.set_field('port-fwd','fails', str(fails))
+
+    def get_default_gw_ip(self):
+        try:
+            gws = netifaces.gateways()
+            return gws['default'][netifaces.AF_INET][0]
+        except Exception as error_exception:
+            self.logger.error("Error happened in getting gateway IP")
+            self.logger.error("Error details:\n"+str(error_exception))
+            return '0.0.0.0'
+
+    def get_default_gw_mac(self):
+        gw_ip = self.get_default_gw_ip()
+        try:
+            gw_mac = get_mac_address(ip=gw_ip)
+            return gw_mac
+        except Exception as error_exception:
+            self.logger.error("Error happened in getting gateway IP")
+            self.logger.error("Error details:\n"+str(error_exception))
+            return '0.0.0.0'
+    def get_default_gw_vendor(self):
+        return self.get_default_gw_mac()[:8]

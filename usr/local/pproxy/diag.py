@@ -33,6 +33,7 @@ class WPDiag:
        self.mqtt_reason = 0
        self.device = Device(logger)
        self.listener = None
+       self.shutdown_listener = False
 
     def __del__(self):
         if self.listener:
@@ -69,6 +70,7 @@ class WPDiag:
     def open_listener(self, host, port):
         self.logger.debug("listener up...")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(30)
         try:
             s.bind((host,port))
         except OSError as err:
@@ -79,19 +81,22 @@ class WPDiag:
         #if port forwarding does not work, it will stay alive, so
         # destructor will stop this thread
         s.listen(1)
+        while not self.shutdown_listener:
         conn,addr = s.accept()
-        self.logger.info ('Connected by ', addr)
+            self.logger.info ('Connected by '+ str(addr[0]))
         data = conn.recv(8)
         conn.sendall(data)
         conn.close()
 
     def open_test_port(self, port):
+        self.shutdown_listener = False
         self.listener = threading.Thread(target=self.open_listener,args=['',port])
         self.listener.setDaemon(True)
         self.listener.start()
         self.device.open_port(port, 'pproxy test port')
 
     def close_test_port(self, port):
+        self.shutdown_listener = True
         self.device.close_port(port)
        
     def is_connected_to_internet(self):
@@ -119,7 +124,8 @@ class WPDiag:
             s = socket.create_connection((external_ip, port),10)
             s.sendall(b'test\n')
             return True
-        except OSError:
+        except OSError as err:
+            print(err)
             pass
             return False
 
