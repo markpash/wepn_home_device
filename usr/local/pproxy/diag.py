@@ -6,6 +6,7 @@ import json
 import requests
 import threading
 from device import Device
+import time 
  
 try:
     from self.configparser import configparser
@@ -68,7 +69,9 @@ class WPDiag:
        return mac
 
     def open_listener(self, host, port):
-        self.logger.debug("listener up...")
+        self.logger.debug("listener starting..." + str(port))
+        start = int(time.time())
+        print(start)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(30)
         try:
@@ -82,6 +85,9 @@ class WPDiag:
         # destructor will stop this thread
         s.listen(1)
         while not self.shutdown_listener:
+            if int(time.time()) - start > 120:
+                    self.shutdown_listener = True
+            self.logger.info ('waiting ... ')
         conn,addr = s.accept()
             self.logger.info ('Connected by '+ str(addr[0]))
         data = conn.recv(8)
@@ -117,6 +123,10 @@ class WPDiag:
             pass
             return False
 
+    # DEPRECATED
+    # Getting to the extrenal port from the device itself is not reliable,
+    # and many consumer routers lack the "route back" capability.
+    # As a result, we use the server to run a test for us now
     def can_connect_to_external_port(self,port):
         try:
             external_ip = str(ipw.myip())
@@ -128,6 +138,45 @@ class WPDiag:
             print(err)
             pass
             return False
+
+
+    def request_port_check(self, port):
+        experiment_num = 0
+        headers = {"Content-Type": "application/json"}
+        data = {
+            "serial_number": self.config.get('django', 'serial_number'),
+            "device_key":self.config.get('django', 'device_key'),
+            "input":{"port":str(port),"experiment_name":"HB started"},
+        }
+        data_json = json.dumps(data)
+        self.logger.debug("Port check data to send: " +data_json)
+        url = self.config.get('django', 'url')+"/api/experiment/"
+        try:
+            response = requests.post(url, data=data_json, headers=headers)
+            self.logger.debug("Response to port check request" + str(response.status_code))
+            resp = response.json()
+            experiment_num = resp['id']
+        except requests.exceptions.RequestException as exception_error:
+            self.logger.error("Error in sending portcheck request: \r\n\t" + str(exception_error))
+        return experiment_num
+
+    def fetch_port_check_results(self, experiment_number):
+        headers = {"Content-Type": "application/json"}
+        data = {
+                "serial_number": self.config.get('django', 'serial_number'),
+                "device_key":self.config.get('django', 'device_key'),
+                }
+        data_json = json.dumps(data)
+        url = self.config.get('django', 'url')+"/api/experiment/"+ experiment_number+"/result/"
+        try:
+            response = requests.post(url, data=data_json, headers=headers)
+            self.logger.info("server experiment results" + str(response.status_code))
+            self.logger.info(response.json())
+            return response.json()
+        except requests.exceptions.RequestException as exception_error:
+            self.logger.error("Error is parsing experiment results: " + str(exception_error))
+            pass
+        return
 
     def can_connect_to_internal_port(self,port):
         #NOTE: if this is used, make sure there is an extra port listener
@@ -161,10 +210,12 @@ class WPDiag:
         internet = self.is_connected_to_internet()
         service = self.is_connected_to_service()
         self.open_test_port(port_no)
-        port = self.can_connect_to_external_port(port_no)    
-        shadow = self.can_shadow_to_self(port)
+        shadow = self.can_shadow_to_self(port_no)
         mqtt = int(self.status.get('mqtt'))
         claimed = int(self.status.get('claimed'))
+        port = 0
+        if self.status.get_field('port_check', 'result')=="True":
+            port = 1
         error_code = (local_ip is not "") + (internet << 1) +  (service<< 2) + (port << 3) + (mqtt << 4) + (shadow << 5) + (claimed << 6)
         return error_code
 
