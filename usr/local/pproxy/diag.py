@@ -88,11 +88,11 @@ class WPDiag:
             if int(time.time()) - start > 120:
                     self.shutdown_listener = True
             self.logger.info ('waiting ... ')
-        conn,addr = s.accept()
+            conn,addr = s.accept()
             self.logger.info ('Connected by '+ str(addr[0]))
-        data = conn.recv(8)
-        conn.sendall(data)
-        conn.close()
+            data = conn.recv(8)
+            conn.sendall(data)
+            conn.close()
 
     def open_test_port(self, port):
         self.shutdown_listener = False
