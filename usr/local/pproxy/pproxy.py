@@ -5,6 +5,7 @@ import ssl
 import random
 import os
 import re
+import atexit
 import logging.config
 try:
     from self.configparser import configparser
@@ -57,6 +58,7 @@ class PProxy():
         self.loggers["services"] = logging.getLogger("services")
         self.loggers["wstatus"] = logging.getLogger("wstatus")
         self.loggers["device"] = logging.getLogger("device")
+        atexit.register(self.cleanup)
         if logger is not None:
             self.logger=logger
         else:
@@ -65,7 +67,7 @@ class PProxy():
         self.device = Device(self.loggers['device'])
         return
 
-    def __del__(self):
+    def cleanup(self):
         self.logger.debug("PProxy shutting down.")
         self.factory.cleanup()
 

@@ -35,11 +35,11 @@ def open_listener(host, port):
     while not shutdown:
         print("Shutdown is " + str(shutdown))
         try:
-    conn,addr = s.accept()
-    print ('Connected by ', addr)
-    data = conn.recv(8)
-    conn.sendall(data)
-    conn.close()
+            conn,addr = s.accept()
+            print ('Connected by ', addr)
+            data = conn.recv(8)
+            conn.sendall(data)
+            conn.close()
         except socket.timeout:
             continue
 

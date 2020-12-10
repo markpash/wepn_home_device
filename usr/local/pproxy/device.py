@@ -7,6 +7,7 @@ import random
 from getmac import get_mac_address
 import logging.config
 import netifaces
+import atexit
 try:
     from self.configparser import configparser
 except ImportError:
@@ -44,6 +45,7 @@ class Device():
         self.status = WStatus(logger, PORT_STATUS_FILE)
         self.logger = logger
         self.correct_port_status_file()
+        atexit.register(self.cleanup)
 
     def correct_port_status_file(self):
         if not self.status.has_section('port-fwd'):
@@ -55,7 +57,7 @@ class Device():
             self.status.set_field('port-fwd','skips-max','20')
             self.status.save()
 
-    def __del__(self):
+    def cleanup(self):
         if self.status is not None:
             self.status.save()
 

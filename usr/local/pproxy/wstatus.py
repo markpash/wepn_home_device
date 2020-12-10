@@ -1,5 +1,6 @@
 import sys
 import logging.config
+import atexit
 try:
     from self.configparser import configparser
 except ImportError:
@@ -18,12 +19,17 @@ class WStatus:
     def save(self):
         #TODO: add lock checking
         if self.source_file is not None and self.status is not None:
+          self.logger.info("writing status file")
           try:
-            with open(self.source_file, 'w') as statusfile:
-               self.status.write(statusfile)
+            statusfile = open(self.source_file, 'w')
+            self.status.write(statusfile)
+            statusfile.close()
           except Exception as err:
               #err = sys.exc_info()[0]
               self.logger.debug("Something happened when writing status file:" + str(err))
+
+    def reload(self):
+        self.status.read(self.source_file)
 
 
     def has_section(self, section):
