@@ -67,12 +67,14 @@ class HeartBeat:
         external_ip = str(ipw.myip())
         ni.ifaddresses(self.config.get('hw','iface'))
         local_ip = ni.ifaddresses(self.config.get('hw','iface'))[ni.AF_INET][0]['addr']
-        status = int(self.status.get('state'))
         test_port=int(self.config.get('openvpn','port')) + 1
         if int(self.config.get('shadow','enabled'))==1:
             shadow = Shadow(self.logger)
             test_port=int( shadow.get_max_port() ) + 2
+        # this line can update the status file contents
         diag_code = self.diag.get_error_code(test_port)
+        self.status.reload()
+        status = int(self.status.get('state'))
         access_creds = self.services.get_service_creds_summary(external_ip)
         usage_status = self.services.get_usage_status_summary()
         self.logger.debug(usage_status)

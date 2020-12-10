@@ -55,6 +55,13 @@ if not status.has_section('status'):
     status.set('status','pin','00000000')
     status.set('status','mqtt-reason','0')
 
+if not status.has_section('port_check'):
+    status.add_section('port_check')
+    status.set('port_check','last_check','2020-02-02 18:00:00.680749')
+    status.set('port_check','pending','False')
+    status.set('port_check','experiment_number','0')
+    status.set('port_check','result','False')
+
 
 if not port_status.has_section('port-fwd'):
     port_status.add_section('port-fwd')

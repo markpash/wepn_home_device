@@ -13,6 +13,7 @@ import device
 import hashlib
 import random #just for testing
 import json
+import atexit
 
 try:
     from self.configparser import configparser
@@ -35,6 +36,7 @@ class Shadow:
         self.config = configparser.ConfigParser()
         self.config.read('/etc/pproxy/config.ini')
         self.logger = logger
+        atexit.register(self.cleanup)
         fd, self.socket_path = tempfile.mkstemp()
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -48,7 +50,7 @@ class Shadow:
         self.sock.connect(self.config.get('shadow','server-socket'))
 
 
-    def __del__(self):
+    def cleanup(self):
         self.clear()
 
     def clear(self):

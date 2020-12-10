@@ -7,6 +7,11 @@ import requests
 import threading
 from device import Device
 import time 
+import atexit
+import datetime as datetime
+from datetime import timedelta
+import dateutil.parser
+import logging.config
  
 try:
     from self.configparser import configparser
@@ -35,10 +40,10 @@ class WPDiag:
        self.device = Device(logger)
        self.listener = None
        self.shutdown_listener = False
+       atexit.register(self.cleanup)
 
-    def __del__(self):
-        if self.listener:
-            self.listener._stop()
+    def cleanup(self):
+        self.shutdown_listener = True
 
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
@@ -178,6 +183,74 @@ class WPDiag:
             pass
         return
 
+    # Method to get the results of a pending experiment from the server
+    # True: keep waiting
+    # False: got it done
+    def get_results_from_server(self, port):
+           result =  self.fetch_port_check_results(self.status.get_field("port_check","experiment_number"))
+           if result['finished_time'] != None:
+                   self.logger.info("test results are in")
+                   self.close_test_port(port)
+                   self.status.set_field("port_check","pending", False)
+                   self.status.set_field("port_check","result", result['result']['experiment_result'])
+                   self.status.set_field("port_check","last_check", str(result['finished_time']))
+                   print(self.status.get_field("port_check","result"))
+                   self.status.save()
+                   return False
+           else:
+                self.logger.info("still waiting for test results")
+                return True 
+
+    # This method is a big wrapper to take care of all port testing aspects
+    # If a recent result is available, just skips doing anything
+    # If an experiment is ongoing (pending), just try fetching results of that
+    # If neither of above, try starting a new one
+    def perform_server_port_check(self, port):
+
+        if self.status.has_section("port_check"):
+            last_port_check = self.status.get_field("port_check","last_check")
+            self.logger.info("last port check was " + str(last_port_check))
+            last_check_date = dateutil.parser.parse(last_port_check)
+            self.logger.info("last port check was " + str(last_check_date))
+
+
+            long_term_expired = (last_check_date.replace(tzinfo=None) < 
+                    (datetime.datetime.now().replace(tzinfo=None) + timedelta(days = -1)))
+            short_term_expired = (last_check_date.replace(tzinfo=None) 
+                    < (datetime.datetime.now().replace(tzinfo=None) + timedelta(hours = -2)))
+            previous_failed = self.status.get_field("port_check","result") == "False"
+
+            self.logger.info("pending test results? " + self.status.get_field("port_check","pending"))
+            if self.status.get_field("port_check","pending") == "True":
+               self.logger.debug("A test has been initiated previously, getting the results")
+               self.get_results_from_server(port)
+            elif long_term_expired or (previous_failed and short_term_expired): 
+               #results are too old, request a new one
+               self.logger.info("port test results too old recently failed, retesting")
+               # please note that the port opened here will be closed by either
+               # (1) server successfully making a connection to it, or
+               # (2) timing out
+               # (3) a call to get_results_from_server. In theory 1 covers this too.
+               self.open_test_port(port)
+               experiment_number = self.request_port_check(port)
+               if experiment_number > 0:
+                   self.logger.debug("requesting new port check: " + str(experiment_number))
+                   self.status.set_field("port_check","pending", True)
+                   self.status.set_field("port_check","experiment_number", experiment_number)
+                   self.status.save()
+               else:
+                    self.logger.error("HB request to start port check returned bad id 0")
+
+               time.sleep(15)
+               attempts = 0
+               while self.get_results_from_server(port):
+                    time.sleep(5)
+                    attempts += 1
+                    if attempts > 5:
+                        # it is taking too long, let a future call retreive it
+                        # the 'pending' status variable is used for this
+                        break
+
     def can_connect_to_internal_port(self,port):
         #NOTE: if this is used, make sure there is an extra port listener
         #running. By default, only one connection will be handled.
@@ -209,7 +282,7 @@ class WPDiag:
         local_ip = self.get_local_ip()
         internet = self.is_connected_to_internet()
         service = self.is_connected_to_service()
-        self.open_test_port(port_no)
+        self.perform_server_port_check(port_no)
         shadow = self.can_shadow_to_self(port_no)
         mqtt = int(self.status.get('mqtt'))
         claimed = int(self.status.get('claimed'))
