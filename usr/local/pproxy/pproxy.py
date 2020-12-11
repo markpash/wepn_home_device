@@ -83,6 +83,7 @@ class PProxy():
 
 
     def save_state(self, new_state, led_print=1):
+        self.status.reload()
         self.status.set('state', new_state)
         self.status.save()
         self.logger.debug('heartbeat from save_state '+new_state)
@@ -217,6 +218,7 @@ class PProxy():
         self.logger.info("Connected with result code "+str(result_code))
         self.mqtt_connected = 1
         self.mqtt_reason = result_code
+        self.status.reload()
         self.status.set('mqtt',1)
         self.status.set('mqtt-reason', result_code)
         self.status.save()
@@ -323,6 +325,7 @@ class PProxy():
         elif (data['action'] == 'wipe_device'):
             #very important action: make sure all VPN/ShadowSocks are deleted, and stopped
             #now reset the status bits
+            self.status.reload()
             self.status.set('mqtt',0)
             self.status.set('mqtt-reason',0)
             self.status.set('claimed',0)
@@ -334,6 +337,7 @@ class PProxy():
     #callback for diconnection of MQTT from server
     def on_disconnect(self,client, userdata, reason_code):
         self.logger.info("MQTT disconnected")
+        self.status.reload()
         self.mqtt_connected = 0
         self.mqtt_reason = reason_code
         self.status.set('mqtt',0)
