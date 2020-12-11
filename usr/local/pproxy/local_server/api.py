@@ -106,9 +106,6 @@ def run_diag():
       print('internet: '+str(internet))
       service = WPD.is_connected_to_service()
       print('service: '+str(service))
-      WPD.open_test_port(port)
-      iport = WPD.can_connect_to_external_port(port)  
-      print('port test:' + str(iport))
       error_code = WPD.get_error_code(port)
       print('device status code: '+str(error_code))
 
