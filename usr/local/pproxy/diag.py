@@ -151,7 +151,7 @@ class WPDiag:
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "device_key":self.config.get('django', 'device_key'),
-            "input":{"port":str(port),"experiment_name":"HB started"},
+            "input":{"port":str(port),"experiment_name":"port_test"},
         }
         data_json = json.dumps(data)
         self.logger.debug("Port check data to send: " +data_json)
@@ -192,9 +192,13 @@ class WPDiag:
                    self.logger.info("test results are in")
                    self.close_test_port(port)
                    self.status.set_field("port_check","pending", False)
-                   self.status.set_field("port_check","result", result['result']['experiment_result'])
-                   self.status.set_field("port_check","last_check", str(result['finished_time']))
-                   print(self.status.get_field("port_check","result"))
+                   try:
+                       self.status.set_field("port_check","result", result['result']['experiment_result'])
+                       self.status.set_field("port_check","last_check", str(result['finished_time']))
+                   except:
+                       self.logger.error("result from server did not contain actual results")
+                       self.status.set_field("port_check","result", False)
+                       pass
                    self.status.save()
                    return False
            else:
