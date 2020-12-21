@@ -53,8 +53,8 @@ listener.setDaemon(True)
 listener.start()
 while True:
       WPD = WPDiag(logger)
-      local_ip = WPD.get_local_ip()
-      print('local ip='+WPD.get_local_ip())
+      local_ip = Device.get_local_ip()
+      print('local ip='+local_ip)
       
       internet = WPD.is_connected_to_internet()
       print('internet: '+str(internet))

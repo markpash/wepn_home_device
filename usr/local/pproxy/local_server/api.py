@@ -22,6 +22,7 @@ except ImportError:
     import configparser
 ERROR_LOG_FILE="/var/local/pproxy/error.log"
 from diag import WPDiag
+from device import Device
 CONFIG_FILE='/etc/pproxy/config.ini'
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
@@ -97,10 +98,10 @@ def run_diag():
       if not valid_token(request.args.get('local_token')):
           return "Not accessible", http_status.HTTP_401_UNAUTHORIZED
       WPD = WPDiag(logger)
-      local_ip = WPD.get_local_ip()
+      local_ip = Device.get_local_ip()
       port = 4091
 
-      print('local ip='+WPD.get_local_ip())
+      print('local ip='+local_ip)
       
       internet = WPD.is_connected_to_internet()
       print('internet: '+str(internet))

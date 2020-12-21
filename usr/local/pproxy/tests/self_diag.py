@@ -20,8 +20,8 @@ oled.set_led_present(config.get('hw','led'))
 
 while True:
       WPD = WPDiag()
-      local_ip = WPD.get_local_ip()
-      print('local ip='+WPD.get_local_ip())
+      local_ip = Device.get_local_ip()
+      print('local ip='+local_ip)
       internet = WPD.is_connected_to_internet()
       print("* Internet connected?")
       print(internet)

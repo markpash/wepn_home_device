@@ -8,6 +8,7 @@ from getmac import get_mac_address
 import logging.config
 import netifaces
 import atexit
+import upnpclient as upnp
 try:
     from self.configparser import configparser
 except ImportError:
@@ -45,7 +46,37 @@ class Device():
         self.status = WStatus(logger, PORT_STATUS_FILE)
         self.logger = logger
         self.correct_port_status_file()
+        self.igds = []
+        self.iface = str(self.config.get('hw','iface'))
         atexit.register(self.cleanup)
+
+    def find_igds(self):
+        devices = upnp.discover()
+        self.logger.info("upnp devices:" + str(devices))
+        for d in devices:
+            if "InternetGatewayDevice" in d.device_type:
+               try:
+                    self.logger.critical("IGD found: " + str(d.model_name) +\
+                            "-" + str(d.manufacturer)+ "-"+ str(d.location))
+               except Exception as err:
+                    self.logger.critical("IGD found, missing attributes")
+                    print(err)
+                    pass
+               self.igds.append(d)
+
+    def check_igd_supports_portforward(self, igd):
+        l3forward_supported = False
+        wanipconn_supported = False
+        for service in igd.services:
+            if "Layer3Forwardingg" in service.service_id:
+                l3forward_supported = True
+            if "WANIPConn" in service.service_id:
+                wanipconn_supported = True
+        if not l3forward_supported:
+            self.logger.error("Error: could not find L3 forwarding")
+        if not wanipconn_supported:
+            self.logger.error("Error: could not find WANIPConn")
+        return (l3forward_supported and wanipconn_supported)
 
     def correct_port_status_file(self):
         if not self.status.has_section('port-fwd'):
@@ -151,19 +182,44 @@ class Device():
 
     def set_port_forward(self, open_close, port, text):
         failed = 0
-        upnpc_cmd = "/usr/bin/upnpc "
-        if open_close == "open":
-            upnpc_cmd += "-e '"+str(text)+"' -r "+str(port)
-        if open_close == "close":
-            upnpc_cmd += " -d "+str(port)
-        cmd= upnpc_cmd + "  TCP"
-        self.logger.debug(cmd)
-        if self.execute_cmd(cmd) != 0:
-            failed += 1
-        cmd=upnpc_cmd + "  UDP"
-        self.logger.debug(cmd)
-        if self.execute_cmd(cmd) != 0:
-            failed += 1
+        local_ip = self.get_local_ip()
+        if not self.igds:
+            self.find_igds()
+        for igd in self.igds:
+            try:
+                if open_close == "open":
+                    igd.WANIPConn1.AddPortMapping(
+                            NewRemoteHost='0.0.0.0',
+                            NewExternalPort=port,
+                            NewProtocol='TCP',
+                            NewInternalPort=port,
+                            NewInternalClient=str(local_ip),
+                            NewEnabled='1',
+                            NewPortMappingDescription=str(text),
+                            NewLeaseDuration=10000)
+
+                    igd.WANIPConn1.AddPortMapping(
+                            NewRemoteHost='0.0.0.0',
+                            NewExternalPort=port,
+                            NewProtocol='UDP',
+                            NewInternalPort=port,
+                            NewInternalClient=str(local_ip),
+                            NewEnabled='1',
+                            NewPortMappingDescription=str(text),
+                            NewLeaseDuration=10000)
+                else:
+                    igd.WANIPConn1.DeletePortMapping(
+                            NewRemoteHost='0.0.0.0',
+                            NewExternalPort=port,
+                            NewProtocol='TCP')
+                    igd.WANIPConn1.DeletePortMapping(
+                            NewRemoteHost='0.0.0.0',
+                            NewExternalPort=port,
+                            NewProtocol='UDP')
+            except Exception as err:
+                self.logger.error("Port forward operation failed: "+str(e))
+                failed += 1
+
         # if we failed, check to see if max-fails has passed
         fails = int(self.status.get_field('port-fwd','fails'))
         if failed > 0:
@@ -177,6 +233,24 @@ class Device():
                 # failed, but has not passed the threshold
                 fails += failed
                 self.status.set_field('port-fwd','fails', str(fails))
+
+    def get_local_ip(self):
+        try:
+            ip = netifaces.ifaddresses(self.iface)[netifaces.AF_INET][0]['addr']
+            return ip
+        except Exception as error_exception:
+            self.logger.error("Error happened in getting my IP")
+            self.logger.error("Error details:\n"+str(error_exception))
+            return '0.0.0.0'
+
+
+    def get_local_mac(self):
+       try:
+          mac = netifaces.ifaddresses(self.iface)[netifaces.AF_LINK][0]['addr']
+       except KeyError:
+          pass
+          mac= ""; 
+       return mac
 
     def get_default_gw_ip(self):
         try:
