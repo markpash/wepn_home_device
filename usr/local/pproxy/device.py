@@ -56,8 +56,8 @@ class Device():
         for d in devices:
             if "InternetGatewayDevice" in d.device_type:
                try:
-                    self.logger.critical("IGD found: " + str(d.model_name) +\
-                            "-" + str(d.manufacturer)+ "-"+ str(d.location))
+                    self.logger.critical("IGD found: {" + str(d.model_name) +\
+                            ", " + str(d.manufacturer)+ ", "+ str(d.location) + "}")
                except Exception as err:
                     self.logger.critical("IGD found, missing attributes")
                     print(err)
@@ -188,34 +188,42 @@ class Device():
         for igd in self.igds:
             try:
                 if open_close == "open":
-                    igd.WANIPConn1.AddPortMapping(
-                            NewRemoteHost='0.0.0.0',
+                    ret = igd.WANIPConn1.AddPortMapping(
+                            NewRemoteHost='',
                             NewExternalPort=port,
                             NewProtocol='TCP',
                             NewInternalPort=port,
                             NewInternalClient=str(local_ip),
                             NewEnabled='1',
                             NewPortMappingDescription=str(text),
-                            NewLeaseDuration=10000)
+                            NewLeaseDuration=500000)
+                    if ret:
+                        self.logger.critical("return of port forward" + str(ret))
 
-                    igd.WANIPConn1.AddPortMapping(
-                            NewRemoteHost='0.0.0.0',
+                    ret = igd.WANIPConn1.AddPortMapping(
+                            NewRemoteHost='',
                             NewExternalPort=port,
                             NewProtocol='UDP',
                             NewInternalPort=port,
                             NewInternalClient=str(local_ip),
                             NewEnabled='1',
                             NewPortMappingDescription=str(text),
-                            NewLeaseDuration=10000)
+                            NewLeaseDuration=500000)
+                    if ret:
+                        self.logger.critical("return of port forward" + str(ret))
                 else:
-                    igd.WANIPConn1.DeletePortMapping(
-                            NewRemoteHost='0.0.0.0',
+                    ret = igd.WANIPConn1.DeletePortMapping(
+                            NewRemoteHost='',
                             NewExternalPort=port,
                             NewProtocol='TCP')
-                    igd.WANIPConn1.DeletePortMapping(
-                            NewRemoteHost='0.0.0.0',
+                    if ret:
+                        self.logger.critical("return of port forward" + str(ret))
+                    ret = igd.WANIPConn1.DeletePortMapping(
+                            NewRemoteHost='',
                             NewExternalPort=port,
                             NewProtocol='UDP')
+                    if ret:
+                        self.logger.critical("return of port forward" + str(ret))
             except Exception as err:
                 self.logger.error("Port forward operation failed: "+str(e))
                 failed += 1
