@@ -225,7 +225,7 @@ class Device():
                     if ret:
                         self.logger.critical("return of port forward" + str(ret))
             except Exception as err:
-                self.logger.error("Port forward operation failed: "+str(e))
+                self.logger.error("Port forward operation failed: "+str(err))
                 failed += 1
 
         # if we failed, check to see if max-fails has passed
