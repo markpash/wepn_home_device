@@ -47,6 +47,7 @@ class Device():
         self.logger = logger
         self.correct_port_status_file()
         self.igds = []
+        self.port_mappers = []
         self.iface = str(self.config.get('hw','iface'))
         atexit.register(self.cleanup)
 
@@ -63,6 +64,13 @@ class Device():
                     print(err)
                     pass
                self.igds.append(d)
+               # Here we find the actual service provider that can forward ports
+               # the default name is different for different routers
+               for service in d.services:
+                   for action in service.actions:
+                       if "AddPortMapping" in action.name:
+                           self.logger.critical("port mapper found for IGD")
+                           self.port_mappers.append(service)
 
     def check_igd_supports_portforward(self, igd):
         l3forward_supported = False
@@ -185,10 +193,10 @@ class Device():
         local_ip = self.get_local_ip()
         if not self.igds:
             self.find_igds()
-        for igd in self.igds:
+        for port_mapper in self.port_mappers:
             try:
                 if open_close == "open":
-                    ret = igd.WANIPConn1.AddPortMapping(
+                    ret = port_mapper.AddPortMapping(
                             NewRemoteHost='',
                             NewExternalPort=port,
                             NewProtocol='TCP',
@@ -200,7 +208,7 @@ class Device():
                     if ret:
                         self.logger.critical("return of port forward" + str(ret))
 
-                    ret = igd.WANIPConn1.AddPortMapping(
+                    ret = port_mapper.AddPortMapping(
                             NewRemoteHost='',
                             NewExternalPort=port,
                             NewProtocol='UDP',
@@ -212,13 +220,13 @@ class Device():
                     if ret:
                         self.logger.critical("return of port forward" + str(ret))
                 else:
-                    ret = igd.WANIPConn1.DeletePortMapping(
+                    ret = port_mapper.DeletePortMapping(
                             NewRemoteHost='',
                             NewExternalPort=port,
                             NewProtocol='TCP')
                     if ret:
                         self.logger.critical("return of port forward" + str(ret))
-                    ret = igd.WANIPConn1.DeletePortMapping(
+                    ret = port_mapper.DeletePortMapping(
                             NewRemoteHost='',
                             NewExternalPort=port,
                             NewProtocol='UDP')
