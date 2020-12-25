@@ -6,6 +6,7 @@ from PIL import ImageFont
 import Adafruit_SSD1306
 
 PWD='/usr/local/pproxy/ui/'
+TEXT_OUT='/tmp/fake_oled'
 
 class OLED:
     def __init__(self):
@@ -23,6 +24,10 @@ class OLED:
 
     def display(self, strs, size):
         if (self.led_present == 0):
+            with open(TEXT_OUT, 'w') as out:
+                for row, current_str, is_icon in strs:
+                    spaces = 20 - len(current_str)
+                    out.write("row=["+ str(row) + "] \tstring=[\t" + current_str + " "*spaces + "]\ticon? [" + str(is_icon) + "]\n");
             return
 
         # Note you can change the I2C address by passing an i2c_address parameter like:
@@ -92,6 +97,8 @@ class OLED:
 
     def show_logo(self):
         if (self.led_present==0):
+            with open(TEXT_OUT, 'w') as out:
+                out.write("[WEPN LOGO]")
             return
         disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.RST, i2c_address=0x3C)
         disp.begin()

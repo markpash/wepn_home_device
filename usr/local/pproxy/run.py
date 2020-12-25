@@ -47,7 +47,7 @@ try:
   logger.error("is_claimed updated to " + str(is_claimed))
   server_checkin_done = True
 except requests.exceptions.RequestException as exception_error:
-  logger.error("Error in connecting to server for claim status")
+    logger.exception("Error in connecting to server for claim status")
 
 
 if 1 == int(status.get('status','claimed')):
@@ -67,7 +67,8 @@ if 1 == int(status.get('status','claimed')):
           try:
              PPROXY_PROCESS = PProxy()
              PPROXY_PROCESS.start()
-          except:
+          except Exception:
+              logger.exception("Exception in main runner thread")
               del(PPROXY_PROCESS) 
               logger.debug("Retrying in 60 seconds ....")
               time.sleep(60)
@@ -83,8 +84,8 @@ else:
                      ONBOARD.set_rand_key(key)
                      ONBOARD.start(True)
              ONBOARD.start()
-          except Exception as e:
-              logger.error("Exception in onboarding:" + str(e))
+          except Exception:
+              logger.exception("Exception in onboarding")
               if ONBOARD:
                   del(ONBOARD) 
               logger.debug("Retrying in 60 seconds ....")

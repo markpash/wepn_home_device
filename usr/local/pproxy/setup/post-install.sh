@@ -228,6 +228,7 @@ modprobe i2c_bcm2708
 
 systemctl restart shadowsocks-libev
 systemctl restart shadowsocks-libev-manager
+systemctl restart wepn-api
 /bin/sh /etc/init.d/pproxy restart
 
 

@@ -22,6 +22,7 @@ except ImportError:
     import configparser
 ERROR_LOG_FILE="/var/local/pproxy/error.log"
 from diag import WPDiag
+from device import Device
 CONFIG_FILE='/etc/pproxy/config.ini'
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
@@ -97,10 +98,10 @@ def run_diag():
       if not valid_token(request.args.get('local_token')):
           return "Not accessible", http_status.HTTP_401_UNAUTHORIZED
       WPD = WPDiag(logger)
-      local_ip = WPD.get_local_ip()
+      local_ip = Device.get_local_ip()
       port = 4091
 
-      print('local ip='+WPD.get_local_ip())
+      print('local ip='+local_ip)
       
       internet = WPD.is_connected_to_internet()
       print('internet: '+str(internet))
@@ -131,8 +132,13 @@ def get_error_log():
     # we can also add a regex based PII scanner like scrubadub here
     if exposed:
         return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
-    if not valid_token(request.args.get('local_token')):
-        return "Not accessible", http_status.HTTP_401_UNAUTHORIZED
+    # if not claimed, then just print the logs out
+    # if claimed, then check credentials
+    status = WStatus(logger)
+    is_claimed = status.get_field('status','claimed')
+    if int(is_claimed) == 1:
+        if not valid_token(request.args.get('local_token')):
+            return "Not accessible", http_status.HTTP_401_UNAUTHORIZED
     contents = ""
     try:
         with open(ERROR_LOG_FILE, 'r') as error_log:

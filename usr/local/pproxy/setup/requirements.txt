@@ -28,3 +28,4 @@ netifaces
 python-json-logger
 simplejson
 getmac
+upnpclient

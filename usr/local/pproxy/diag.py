@@ -57,21 +57,6 @@ class WPDiag:
             self.logger.error("Error details:"+str(error_exception))
             system.exit()
 
-    def get_local_ip(self):
-       try:
-          ip = ni.ifaddresses(self.iface)[ni.AF_INET][0]['addr']
-       except KeyError:
-          pass
-          ip= ""; 
-       return ip
-
-    def get_local_mac(self):
-       try:
-          mac = ni.ifaddresses(self.iface)[ni.AF_LINK][0]['addr']
-       except KeyError:
-          pass
-          mac= ""; 
-       return mac
 
     def open_listener(self, host, port):
         self.logger.debug("listener starting..." + str(port))
@@ -259,7 +244,7 @@ class WPDiag:
         #NOTE: if this is used, make sure there is an extra port listener
         #running. By default, only one connection will be handled.
         try:
-            internal_ip = str(self.get_local_ip())
+            internal_ip = str(self.device.get_local_ip())
             self.logger.debug('Diag connect internet: local ip is '+str(internal_ip))
             s = socket.create_connection((internal_ip, port),10)
             s.sendall(b'test\n')
@@ -283,7 +268,7 @@ class WPDiag:
         self.mqtt_reason = reason
 
     def get_error_code(self,port_no):
-        local_ip = self.get_local_ip()
+        local_ip = self.device.get_local_ip()
         internet = self.is_connected_to_internet()
         service = self.is_connected_to_service()
         self.perform_server_port_check(port_no)
