@@ -2,9 +2,9 @@ export DEBIAN_FRONTEND=noninteractive
 export DEBIAN_PRIORITY=critical
 
 DEST_VERSION_START=5
-uname=`uname -r`
+UNAME=`uname -r`
 
-if [ $uname==DEST_VERSION_START* ]; then
+if [[ $UNAME == $DEST_VERSION_START* ]]; then
 	echo "Already upgraded"
 	exit
 fi
