@@ -33,6 +33,7 @@ time.sleep(1)
 device = Device(logger)
 gateway_vendor = device.get_default_gw_vendor()
 logger.critical("Gateway vendor= " + str(gateway_vendor))
+device.check_port_mapping_igd()
 
 is_claimed = False
 server_checkin_done = False

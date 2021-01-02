@@ -56,20 +56,12 @@ class Device():
         self.logger.info("upnp devices:" + str(devices))
         for d in devices:
             if "InternetGatewayDevice" in d.device_type:
-               try:
-                    self.logger.critical("IGD found: {" + str(d.model_name) +\
-                            ", " + str(d.manufacturer)+ ", "+ str(d.location) + "}")
-               except Exception as err:
-                    self.logger.critical("IGD found, missing attributes")
-                    print(err)
-                    pass
                self.igds.append(d)
                # Here we find the actual service provider that can forward ports
                # the default name is different for different routers
                for service in d.services:
                    for action in service.actions:
                        if "AddPortMapping" in action.name:
-                           self.logger.critical("port mapper found for IGD")
                            self.port_mappers.append(service)
 
     def check_igd_supports_portforward(self, igd):
@@ -85,6 +77,26 @@ class Device():
         if not wanipconn_supported:
             self.logger.error("Error: could not find WANIPConn")
         return (l3forward_supported and wanipconn_supported)
+
+    # this method is just used for checking upnp capabilities
+    # primarily used at boot, to add to the error log
+    def check_port_mapping_igd(self):
+        self.find_igds()
+        if self.igds:
+            for d in self.igds:
+               try:
+                    self.logger.critical("IGD found: {" + str(d.model_name) +\
+                            ", " + str(d.manufacturer)+ ", "+ str(d.location) + "}")
+                    self.check_igd_supports_portforward(d)
+               except Exception as err:
+                    self.logger.critical("IGD found, missing attributes")
+                    print(err)
+                    pass
+        else:
+            self.logger.error("No IGDs found")
+        if not self.port_mappers:
+            self.logger.error("No port mappers found")
+
 
     def correct_port_status_file(self):
         if not self.status.has_section('port-fwd'):
@@ -193,6 +205,10 @@ class Device():
         local_ip = self.get_local_ip()
         if not self.igds:
             self.find_igds()
+        if not self.igds:
+            self.logger.error("No IGDs found in retry")
+        if not self.port_mappers:
+            self.logger.error("No port mappers found in retry")
         for port_mapper in self.port_mappers:
             try:
                 if open_close == "open":

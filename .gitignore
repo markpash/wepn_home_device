@@ -1,0 +1,11 @@
+__pypackages__/
+*.log
+pip-log.txt
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+.bash_history
+.viminfo
+.swp
