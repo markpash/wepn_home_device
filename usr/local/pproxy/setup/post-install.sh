@@ -210,8 +210,10 @@ systemctl enable shadowsocks-libev-manager
 
 
 echo -e "\n enabling i2c"
-if grep -Fq "#dtparam=i2c_arm=on" /boot/config.txt 
+if grep -Fxq "dtparam=i2c_arm=on" /boot/config.txt 
 then
+   echo "i2c aleady enabled"
+else
    echo -e 'dtparam=i2c_arm=on' >> /boot/config.txt
 fi
 
@@ -221,10 +223,18 @@ then
    echo -e 'i2c-dev' >> /etc/modules
 fi
 
+echo -e "\n enabling spi"
+if grep -Fxq "dtparam=spi=on" /boot/config.txt 
+then
+   echo "spi aleady enabled"
+else
+   echo -e 'dtparam=spi=on' >> /boot/config.txt
+fi
 
 echo -e "\n#### Restarting services ####"
 modprobe i2c_dev
 modprobe i2c_bcm2708
+modprobe spi-bcm2835
 
 usermod -a -G spi pproxy
 

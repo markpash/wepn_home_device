@@ -360,8 +360,11 @@ class PProxy():
         self.logger.debug('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LED='+
                 self.config.get('hw','led'))
         if (int(self.config.get('hw','buttons'))):
-            keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
-            keypad.registerKeyPressHandler(self.process_key)
+            try:
+                keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
+                keypad.registerKeyPressHandler(self.process_key)
+            except RuntimeError as er:
+                self.logger.cirtical("setting up keypad failed: " + str(er))
         client.on_connect = self.on_connect
         client.on_message = self.on_message
         client.on_disconnect = self.on_disconnect

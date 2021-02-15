@@ -76,23 +76,17 @@ class OLED:
             height = 128
             image = Image.new('RGB', (width, height))
         else:
-        # Note you can change the I2C address by passing an i2c_address parameter like:
-        disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.RST, i2c_address=0x3C)
-
-
-        # Initialize library.
-        disp.begin()
-
-        # Clear display.
-        disp.clear()
-        disp.display()
-
-
-        # Create blank image for drawing.
-        # Make sure to create image with mode '1' for 1-bit color.
-        width = disp.width
-        height = disp.height
-        image = Image.new('1', (width, height))
+            # Note you can change the I2C address by passing an i2c_address parameter like:
+            disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.RST, i2c_address=0x3C)
+            # Initialize library.
+            disp.begin()
+            # Clear display.
+            disp.clear()
+            disp.display()
+            # Make sure to create image with mode '1' for 1-bit color.
+            width = disp.width
+            height = disp.height
+            image = Image.new('1', (width, height))
 
         # Get drawing object to draw on image.
         draw = ImageDraw.Draw(image)
@@ -130,18 +124,15 @@ class OLED:
                      curr_x+=(len(s)+1)*size
             else:
                   draw.text((x_pad, top), current_str, font=rubik_regular, fill="BLUE")
-                  print(x_pad)
-                  print(top)
-                  print(current_str)
             top = top + size
         # Display image.
         if self.version==2:
-                image = image.rotate(270)
-                self.lcd.LCD_ShowImage(image,0,0)
-                LCD_Config.Driver_Delay_ms(100)
+            image = image.rotate(270)
+            self.lcd.LCD_ShowImage(image,0,0)
+            LCD_Config.Driver_Delay_ms(100)
         else:
-        disp.image(image)
-        disp.display()
+            disp.image(image)
+            disp.display()
 
 
     def set_logo_text(self, text, x, y, color, size):
@@ -170,13 +161,13 @@ class OLED:
         else:
             img=PWD+'wepn_128_64.png'
             image  = Image.open(img).convert('1')
-        disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.RST, i2c_address=0x3C)
-        disp.begin()
-        # Clear display.
-        disp.clear()
-        disp.display()
-        disp.image(image)
-        disp.display()
+            disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.RST, i2c_address=0x3C)
+            disp.begin()
+            # Clear display.
+            disp.clear()
+            disp.display()
+            disp.image(image)
+            disp.display()
 
     def get_status_icons(self, status, is_connected, is_mqtt_connected):
         any_err = False 

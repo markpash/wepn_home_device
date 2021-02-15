@@ -224,8 +224,8 @@ class OnBoard():
                 self.config.get('hw','led'))
         if (int(self.config.get('hw','buttons'))):
             try:
-            keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
-            keypad.registerKeyPressHandler(self.process_key)
+                keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
+                keypad.registerKeyPressHandler(self.process_key)
             except RuntimeError as er:
                 self.logger.cirtical("setting up keypad failed: " + str(er))
         self.client.reconnect_delay_set(min_delay=1, max_delay=2)
