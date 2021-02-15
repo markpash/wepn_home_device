@@ -65,7 +65,7 @@ class WPDiag:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(30)
         try:
-            s.bind((host,port))
+            s.bind((host,int(port)))
         except OSError as err:
             self.logger.error("OSError in openning diag listener: "+str(err))
             return
@@ -145,9 +145,11 @@ class WPDiag:
             response = requests.post(url, data=data_json, headers=headers)
             self.logger.debug("Response to port check request" + str(response.status_code))
             resp = response.json()
+            self.logger.error("response: \r\n\t" + str(resp))
             experiment_num = resp['id']
         except requests.exceptions.RequestException as exception_error:
             self.logger.error("Error in sending portcheck request: \r\n\t" + str(exception_error))
+            self.logger.error("response: \r\n\t" + str(resp))
         return experiment_num
 
     def fetch_port_check_results(self, experiment_number):

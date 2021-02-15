@@ -109,8 +109,10 @@ class HeartBeat:
             led.set_led_present(self.config.get('hw','led'))
             if (status == 2):
                icon = "O"
+               color = "green"
             else:
                icon = "!X"
+               color= "red"
             icon = led.get_status_icons(status, self.is_connected(), self.mqtt_connected)
-            display_str = [(1, "PIN: ",0), (2, str(self.pin), 0), (3,icon,1)]
+            display_str = [(1, "PIN: ",0,"blue"), (2, str(self.pin), 0,"blue"), (3,icon,1, color)]
             led.display(display_str, 20)

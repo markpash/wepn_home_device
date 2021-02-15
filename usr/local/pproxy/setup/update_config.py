@@ -97,6 +97,9 @@ if not status.has_section('previous_keys'):
 if not config.has_option('hw','iface'):
     config.set('hw','iface', 'eth0')
 
+if not config.has_option('hw','led-version'):
+    config.set('hw','led-version', '1')
+
 if not config.has_section('usage'):
     config.add_section('usage')
     config.set('usage','db-path', "/var/local/pproxy/usage.db")
@@ -114,7 +117,7 @@ if shadowsocks_3:
 else:
     config.set('shadow','method', 'aes-256-cfm')
 
-status.set('status','sw','1.3.3')
+status.set('status','sw','1.3.6')
 
 
 with open(CONFIG_FILE, 'w') as configfile:

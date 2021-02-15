@@ -131,23 +131,33 @@ class OnBoard():
             self.save_state(str(new_state))
         #Run Diagnostics
         elif (key == "2"):
-            led = OLED(self.logger)
+            led = OLED()
             diag = WPDiag(self.logger)
             led.set_led_present(self.config.get('hw','led'))
-            display_str = [(1, "Starting Diagnostics",0), (2, "please wait ...",0) ]
+            display_str = [(1, "G", 1, "green"), (2, "Local information loading",0,"green"), (3, "please wait ...",0,"green") ]
             led.display(display_str, 15)
-            diag.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
-            display_str = [(1, "Status Code",0), (2, str(diag.get_error_code( self.config.get('openvpn','port') )),0) ]
-            led.display(display_str, 20)
+            # diagnostics is not really valid during onboarding
+            #diag.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
+            #display_str = [(1, "Status Code",0), (2, str(diag.get_error_code( self.config.get('openvpn','port') )),0) ]
+            #led.display(display_str, 20)
             time.sleep(2)
             serial_number = self.config.get('django','serial_number')
-            display_str = [(1, "Serial #",0), (2, serial_number,0), ]
-            led.display(display_str, 19)
+            display_str = [(1, "Serial #",0,"blue"), (2, serial_number,0,"white"), ]
+            led.display(display_str, 15)
             time.sleep(5)
-            heart_beat = HeartBeat(self.logger)
-            heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
-            heart_beat.send_heartbeat(0)
-            display_str = [(1, "Device Key:", 0), (2,'',0), (3, str(self.rand_key), 0),]
+            display_str = [(1, "Local IP",0,"blue"), (2, self.device.get_local_ip(),0,"white"),
+            (5, "M", 1, "green"), (4, "MAC Address",0,"blue"), (5, self.device.get_local_mac(),0,"white"), ]
+            self.logger.info(display_str)
+            led.display(display_str, 15)
+            time.sleep(15)
+            #display_str = [(1, "MAC Address",0,"blue"), (2, self.device.get_local_mac(),0,"white"), ]
+            #self.logger.debug(display_str)
+            #led.display(display_str, 12)
+            # sending heartbeat in onboarding is meaningless
+            #heart_beat = HeartBeat(self.logger)
+            #heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
+            #heart_beat.send_heartbeat(0)
+            display_str = [(1, "Device Key:", 0,"blue"), (2,'',0,"black"), (3, str(self.rand_key), 0,"WHITE"),]
             led.display(display_str, 18)
 
         #Power off   
@@ -155,12 +165,12 @@ class OnBoard():
             services.stop()
             led = OLED()
             led.set_led_present(self.config.get('hw','led'))
-            display_str = [(1, "Powering down",0), ]
+            display_str = [(1, "Powering down",0,"red"), ]
             led.display(display_str, 15)
             time.sleep(2)
             self.save_state("0",0)
             led.show_logo()
-            display_str = [(1, "",0), ]
+            display_str = [(1, "",0,"black"), ]
             time.sleep(2)
             led.display(display_str, 20)
             self.device.turn_off()
@@ -199,9 +209,11 @@ class OnBoard():
             self.save_temp_key()
         oled = OLED()
         oled.set_led_present(self.config.get('hw','led'))
+        oled.set_logo_text("loading ...", 35, 100, "red", 12)
         oled.show_logo()
+        time.sleep(10)
         #icons, if needed to add later: (1, chr(110)+ chr(43)+chr(75) , 1), 
-        display_str = [(1, "Device Key:", 0), (2,'',0), (3, str(self.rand_key), 0),]
+        display_str = [(1, "Device Key:", 0,"blue"), (2,'',0,"white"), (3, str(self.rand_key), 0,"white"),]
         oled.display(display_str, 18)
         self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
         # TODO: to log this effectively for error logs,
@@ -211,8 +223,11 @@ class OnBoard():
         self.logger.debug('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LED='+
                 self.config.get('hw','led'))
         if (int(self.config.get('hw','buttons'))):
+            try:
             keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
             keypad.registerKeyPressHandler(self.process_key)
+            except RuntimeError as er:
+                self.logger.cirtical("setting up keypad failed: " + str(er))
         self.client.reconnect_delay_set(min_delay=1, max_delay=2)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -232,8 +247,8 @@ class OnBoard():
                   self.client.loop_stop()
             except Exception as error:
                 self.logger.error("MQTT connect failed")
-                display_str = [(1, chr(33)+'     '+chr(33),1), (2, "Network error,",0), (3, "check cable...", 0) ]
-                oled.display(display_str, 15)
+                display_str = [(1, chr(33)+'     '+chr(33),1,"red"), (2, "Network error,",0,"RED"), (3, "check cable...", 0,"RED") ]
+                oled.display(display_str, 18)
                 if (int(self.config.get('hw','buttons'))):
                     keypad.cleanup()
 

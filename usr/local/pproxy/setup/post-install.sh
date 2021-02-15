@@ -226,6 +226,8 @@ echo -e "\n#### Restarting services ####"
 modprobe i2c_dev
 modprobe i2c_bcm2708
 
+usermod -a -G spi pproxy
+
 systemctl restart shadowsocks-libev
 systemctl restart shadowsocks-libev-manager
 systemctl restart wepn-api

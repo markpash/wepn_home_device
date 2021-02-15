@@ -37,6 +37,11 @@ ROW_PINS = [19,13,6] # BCM numbering
 KEYPAD = [
         ["1",],["2",],["3"],
 ]
+ROW_PINS = [13] # BCM numbering
+COL_PINS = [13] # BCM numbering
+KEYPAD = [
+        ["2",]
+]
 CONFIG_FILE='/etc/pproxy/config.ini'
 STATUS_FILE='/var/local/pproxy/status.ini'
 LOG_CONFIG="/etc/pproxy/logging.ini"
@@ -107,25 +112,25 @@ class PProxy():
             led = OLED()
             diag = WPDiag(self.loggers['diag'])
             led.set_led_present(self.config.get('hw','led'))
-            display_str = [(1, "Starting Diagnostics",0), (2, "please wait ...",0) ]
+            display_str = [(1, "Starting Diagnostics",0,"green"), (2, "please wait ...",0,"green") ]
             led.display(display_str, 15)
             diag.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
             test_port=int(self.config.get('openvpn','port')) + 1
             if int(self.config.get('shadow','enabled'))==1:
                 shadow = Shadow(self.loggers['shadow'])
                 test_port=int( shadow.get_max_port() ) + 2
-            display_str = [(1, "Status Code",0), (2, str(diag.get_error_code( test_port )),0) ]
+            display_str = [(1, "Status Code",0,"blue"), (2, str(diag.get_error_code( test_port )),0,"blue") ]
             led.display(display_str, 20)
             time.sleep(3)
             serial_number = self.config.get('django','serial_number')
-            display_str = [(1, "Serial #",0), (2, serial_number,0), ]
+            display_str = [(1, "Serial #",0,"blue"), (2, serial_number,0,"white"), ]
             led.display(display_str, 19)
             time.sleep(5)
-            display_str = [(1, "Local IP",0), (2, self.device.get_local_ip(),0), ]
+            display_str = [(1, "Local IP",0,"blue"), (2, self.device.get_local_ip(),0,"white"), ]
             self.logger.info(display_str)
             led.display(display_str, 19)
             time.sleep(5)
-            display_str = [(1, "MAC Address",0), (2, self.device.get_local_mac(),0), ]
+            display_str = [(1, "MAC Address",0,"blue"), (2, self.device.get_local_mac(),0,"white"), ]
             self.logger.debug(display_str)
             led.display(display_str, 19)
             time.sleep(5)
@@ -138,12 +143,12 @@ class PProxy():
             services.stop()
             led = OLED()
             led.set_led_present(self.config.get('hw','led'))
-            display_str = [(1, "Powering down",0), ]
+            display_str = [(1, "Powering down",0,"red"), ]
             led.display(display_str, 15)
             time.sleep(2)
             self.save_state("0",0)
             led.show_logo()
-            display_str = [(1, "",0), ]
+            display_str = [(1, "",0,"black"), ]
             time.sleep(2)
             led.display(display_str, 20)
             self.device.turn_off()
@@ -371,7 +376,7 @@ class PProxy():
 
         except Exception as error:
             self.logger.error("MQTT connect failed")
-            display_str = [(1, chr(33)+'     '+chr(33),1), (2, "Network error,",0), (3, "check cable...", 0) ]
+            display_str = [(1, chr(33)+'     '+chr(33),1,"red"), (2, "Network error,",0,"red"), (3, "check cable...", 0,"red") ]
             oled.display(display_str, 15)
             if (int(self.config.get('hw','buttons'))):
                 keypad.cleanup()
