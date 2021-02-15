@@ -107,12 +107,13 @@ class HeartBeat:
         if (led_print):
             led = OLED()
             led.set_led_present(self.config.get('hw','led'))
-            if (status == 2):
-               icon = "O"
-               color = "green"
+            icons, any_err = led.get_status_icons(status, self.is_connected(), self.mqtt_connected)
+            if any_err:
+                color = "red"
             else:
-               icon = "!X"
-               color= "red"
-            icon = led.get_status_icons(status, self.is_connected(), self.mqtt_connected)
-            display_str = [(1, "PIN: ",0,"blue"), (2, str(self.pin), 0,"blue"), (3,icon,1, color)]
+                color = "green"
+            if led.version == 2:
+                display_str = [(1, "PIN: ",0,"blue"),(2, "", 0,"black"), (3, str(self.pin), 0,"white"), (4, "", 0,"black"),(5, "", 0,"black"),(6,icons,1, color)]
+            else:
+                display_str = [(1, "PIN: ",0,"blue"), (2, str(self.pin), 0,"blue"), (3,icons,1, color)]
             led.display(display_str, 20)

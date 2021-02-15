@@ -116,9 +116,6 @@ class PProxy():
             led.display(display_str, 15)
             diag.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
             test_port=int(self.config.get('openvpn','port')) + 1
-            if int(self.config.get('shadow','enabled'))==1:
-                shadow = Shadow(self.loggers['shadow'])
-                test_port=int( shadow.get_max_port() ) + 2
             display_str = [(1, "Status Code",0,"blue"), (2, str(diag.get_error_code( test_port )),0,"blue") ]
             led.display(display_str, 20)
             time.sleep(3)

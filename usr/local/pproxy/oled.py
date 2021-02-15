@@ -115,7 +115,6 @@ class OLED:
         # Write lines of text/icon/qr code.
         for row, current_str, vtype, color in strs:
             vtype = int(vtype)
-            print("type : "  + str(vtype))
             if not self.version==2:
                 color = 255
             LCD_Config.Driver_Delay_ms(500)
@@ -124,9 +123,9 @@ class OLED:
                    curr_x=x_pad
                    for s in current_str.split(" "):
                      draw.text((curr_x, top), s, font=font_icon, fill=color)
-                     draw.text((curr_x+len(s)*size, top), " ", font=rubik_regular, fill=255)
+                     #draw.text((curr_x+len(s)*size, top), " ", font=rubik_regular, fill=255)
                      curr_x+=(len(s)+1)*size
-            if vtype == 2:
+            elif vtype == 2:
                 # qr code
                 # it is implied that QR codes are either the ending row, or only one
                 if self.version==2:
@@ -145,7 +144,6 @@ class OLED:
                     #pos = (image.size[0] - img_qr.size[0]-5, image.size[1] - img_qr.size[1]-5)
                     pos = (int(width/2 + 2 - img_qr.size[1]/2), top + 2,)
                     image.paste(img_qr, pos)
-                    image.save("/tmp/screen.png")
             else:
                 # normal text
                   draw.text((x_pad, top), current_str, font=rubik_regular, fill=color)
@@ -158,6 +156,7 @@ class OLED:
         else:
             disp.image(image)
             disp.display()
+        image.save("/tmp/screen.png")
 
 
     def set_logo_text(self, text, x, y, color, size):
@@ -230,5 +229,5 @@ class OLED:
         else:
            err = chr(56)  #thumb down
         ret=str(err)+"   "+str(net)+str(service)
-        return ret
+        return (ret, any_err)
 
