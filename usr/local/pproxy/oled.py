@@ -7,6 +7,8 @@ import Adafruit_SSD1306
 import LCD_1in44
 import LCD_Config
 import logging.config
+import qrcode
+
 try:
     from self.configparser import configparser
 except ImportError:
@@ -52,7 +54,6 @@ class OLED:
     def set_led_present(self, is_led_present):
         self.led_present = int(is_led_present)
 
-
     def display(self, strs, size):
         if (self.led_present == 0):
             with open(TEXT_OUT, 'w') as out:
@@ -74,7 +75,7 @@ class OLED:
             #self.lcd.LCD_Clear()
             width = 128 
             height = 128
-            image = Image.new('RGB', (width, height))
+            image = Image.new("RGB", (width, height), "BLACK")
         else:
             # Note you can change the I2C address by passing an i2c_address parameter like:
             disp = Adafruit_SSD1306.SSD1306_128_64(rst=self.RST, i2c_address=0x3C)
@@ -106,24 +107,48 @@ class OLED:
         font_icon = ImageFont.truetype(PWD+'heydings_icons.ttf', size)
 
         # Alternatively load a TTF font.  Make sure the .ttf font file
-	      #is in the same directory as the python script!
+        #is in the same directory as the python script!
         # Some other nice fonts to try: http://www.dafont.com/bitmap.php
 
 
         #sort array based on 'row' field
-        # Write two lines of text.
-        for row, current_str, is_icon, color in strs:
+        # Write lines of text/icon/qr code.
+        for row, current_str, vtype, color in strs:
+            vtype = int(vtype)
+            print("type : "  + str(vtype))
             if not self.version==2:
                 color = 255
             LCD_Config.Driver_Delay_ms(500)
-            if is_icon:
+            if vtype == 1:
+                   # icon
                    curr_x=x_pad
                    for s in current_str.split(" "):
                      draw.text((curr_x, top), s, font=font_icon, fill=color)
                      draw.text((curr_x+len(s)*size, top), " ", font=rubik_regular, fill=255)
                      curr_x+=(len(s)+1)*size
+            if vtype == 2:
+                # qr code
+                # it is implied that QR codes are either the ending row, or only one
+                if self.version==2:
+                    # if screen is not big, skip QR codes
+                    qr = qrcode.QRCode(
+                            version=1,
+                            error_correction=qrcode.constants.ERROR_CORRECT_L,
+                            box_size=10,
+                            border=1,
+                            )
+                    qr.add_data(current_str)
+                    qr.make(fit=True)
+                    img_qr = qr.make_image()
+                    max_size = width - top - 5
+                    img_qr = img_qr.resize((max_size, max_size))
+                    #pos = (image.size[0] - img_qr.size[0]-5, image.size[1] - img_qr.size[1]-5)
+                    pos = (int(width/2 + 2 - img_qr.size[1]/2), top + 2,)
+                    image.paste(img_qr, pos)
+                    image.save("/tmp/screen.png")
             else:
-                  draw.text((x_pad, top), current_str, font=rubik_regular, fill="BLUE")
+                # normal text
+                  draw.text((x_pad, top), current_str, font=rubik_regular, fill=color)
             top = top + size
         # Display image.
         if self.version==2:

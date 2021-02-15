@@ -30,3 +30,4 @@ simplejson
 getmac
 upnpclient
 numpy
+qrcode

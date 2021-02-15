@@ -157,7 +157,7 @@ class OnBoard():
             #heart_beat = HeartBeat(self.logger)
             #heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
             #heart_beat.send_heartbeat(0)
-            display_str = [(1, "Device Key:", 0,"blue"), (2,'',0,"black"), (3, str(self.rand_key), 0,"WHITE"),]
+            display_str = [(1, "Device Key:", 0,"blue"), (2,'',0,"black"), (3, str(self.rand_key), 0,"white"), (4, "https://youtu.be/jYgeDSG9G0A", 2, "white")]
             led.display(display_str, 18)
 
         #Power off   
@@ -213,7 +213,8 @@ class OnBoard():
         oled.show_logo()
         time.sleep(10)
         #icons, if needed to add later: (1, chr(110)+ chr(43)+chr(75) , 1), 
-        display_str = [(1, "Device Key:", 0,"blue"), (2,'',0,"white"), (3, str(self.rand_key), 0,"white"),]
+        #display_str = [(1, "Device Key:", 0,"blue"), (2,'',0,"white"), (3, str(self.rand_key), 0,"white"),]
+        display_str = [(1, "Device Key:", 0,"blue"), (2, str(self.rand_key), 0,"white"), (3, "https://youtu.be/jYgeDSG9G0A", 2, "white")]
         oled.display(display_str, 18)
         self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
         # TODO: to log this effectively for error logs,
@@ -227,7 +228,7 @@ class OnBoard():
                 keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
                 keypad.registerKeyPressHandler(self.process_key)
             except RuntimeError as er:
-                self.logger.cirtical("setting up keypad failed: " + str(er))
+                self.logger.critical("setting up keypad failed: " + str(er))
         self.client.reconnect_delay_set(min_delay=1, max_delay=2)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
