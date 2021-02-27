@@ -14,6 +14,9 @@ import hashlib
 import random #just for testing
 import json
 import atexit
+from datetime import datetime
+
+import logging
 
 try:
     from self.configparser import configparser
@@ -36,6 +39,7 @@ class Shadow:
         self.config = configparser.ConfigParser()
         self.config.read('/etc/pproxy/config.ini')
         self.logger = logger
+
         atexit.register(self.cleanup)
         fd, self.socket_path = tempfile.mkstemp()
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
@@ -47,7 +51,10 @@ class Shadow:
             self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.sock.bind(self.socket_path)
-        self.sock.connect(self.config.get('shadow','server-socket'))
+        try:
+            self.sock.connect(self.config.get('shadow','server-socket'))
+        except Exception as err:
+            print("Caught exception socket.error : %s" % err)
 
 
     def cleanup(self):
@@ -220,7 +227,33 @@ class Shadow:
             creds [server['certname']] = hashlib.sha256(uri64.encode()).hexdigest()[:10]
         return creds
 
+    def get_usage_json(self):
+        local_db = dataset.connect('sqlite:///'+self.config.get('usage', 'db-path'))
+        servers = local_db['servers']
+        if not servers or not self.is_enabled():
+            self.logger.debug("No servers found for usage")
+            return {}
+        for server in local_db['servers']:
+            self.logger.debug("creds for " + server['certname'])
+            uri = str(self.config.get('shadow','method')) + ':' + str(server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
+            uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')+"#WEPN-"+str(server['certname'])
+            creds [server['certname']] = hashlib.sha256(uri64.encode()).hexdigest()[:10]
+        return creds
+
     def get_usage_status_summary(self):
+        self.logger = logging.getLogger(__name__)
+        # create console handler and set level to debug
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
+
+        # create formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        # add formatter to ch
+        ch.setFormatter(formatter)
+        # add ch to logger
+        self.logger.addHandler(ch)
+
+        self.logger.debug("---summary -----")
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
         device = Device(self.logger)
@@ -237,39 +270,74 @@ class Shadow:
         self.logger.debug(raw_str)
         response = json.loads(raw_str)
         usage_db = dataset.connect('sqlite:///'+self.config.get('usage', 'db-path'))
-        usage_servers = local_db['servers']
+
+        usage_servers = usage_db['servers']
+        usage_daily = usage_db['daily']
         usage_status = -1
-        for i in response:
-            print(str(i) + " = " + str(response[i]))
-        for server in local_db['servers']:
-            self.logger.debug("usage for " + server['certname'])
+        for server in servers:
+            self.logger.debug("current server name is " + server['certname'])
+            print("current server name is " + server['certname'])
             try:
                 usage_value = -1
+                usage_server = None
                 usage_status = -1
-                current_usage = response[str(server['server_port'])]
-                self.logger.debug("port="+str(server['server_port']) +\
+                delta = 0
+                server_name = str(server['server_port'])
+                if server_name in response:
+                    current_usage = response[server_name]
+                    self.logger.debug("port="+str(server['server_port']) +\
                         " usage=" + str(response[str(server['server_port'])]))
-                usage_server = usage_servers.find_one(certname = server['certname'])
+                    usage_server = usage_servers.find_one(certname = server['certname'])
                 if usage_server is None or usage_server['usage'] is None or 'usage' not in usage_server:
                     # not yet in the database
                     usage_value = current_usage
+                    delta = current_usage
                     self.logger.debug("Usage not in db yet. value=" + str(usage_value))
+                    print("Usage not in db yet. value=" + str(usage_value))
                 else:
                     self.logger.debug("Current usage in db = " + str(usage_server['usage']))
+                    print("usage_ser:") 
+                    print(usage_server['usage'])
+                    print("Current usage in db = " + str(usage_server['usage']))
                     # already has some value in usage db
                     if usage_server['usage'] > current_usage:
-                            # wrap around, device recently rebooted?
+                        # wrap around, device recently rebooted?
                         usage_value = current_usage + usage_server['usage']
+                        # some of the data usage is lost, but we get the estimate
+                        delta = current_usage
                     else:
-                            # not a wrap around, just replace
-                            usage_value = current_usage
+                        # not a wrap around, just replace
+                        print(usage_server)
+                        usage_value = current_usage
+                        # how many bytes used since last update
+                        delta = current_usage - usage_server['usage']
                 self.logger.debug("usage value = " + str(usage_value))
+                print("usage value = " + str(usage_value))
+                print("delta = " + str(delta))
                 if usage_value > 0:
                     usage_status = 1
                 self.logger.debug('certname:'+server['certname']+
                         ' server_port:'+str(server['server_port'])+
                         ' usage:'+str(usage_value)+
                         ' status:'+str(usage_status))
+                today = datetime.today().strftime('%Y-%m-%d')
+                print("today =" + str(today))
+                usage_today = usage_daily.find_one(certname = server['certname'], date = today)
+                if usage_today is None:
+                    print("New day")
+                    usage_daily.upsert({'certname':server['certname'],
+                        'date':today,
+                        'start_usage':usage_value,
+                        'server_port':server['server_port'],
+                        'type': 'shadow',
+                        'end_usage':usage_value},['certname','date'])
+                else:
+                    usage_daily.upsert({'certname':server['certname'],
+                        'date':today,
+                        'server_port':server['server_port'],
+                        'type': 'shadow',
+                        'end_usage':usage_value},['certname','date'])
+                # this one is for the overall usage, used for "usage status"
                 usage_servers.upsert({'certname':server['certname'],
                     'server_port':server['server_port'],
                     'usage':usage_value,

@@ -11,6 +11,7 @@ import base64
 import sys
 import flask
 from flask import request
+from flask import send_file
 from flask_api import status as http_status
 import hashlib
 import logging.config
@@ -23,6 +24,7 @@ except ImportError:
 ERROR_LOG_FILE="/var/local/pproxy/error.log"
 from diag import WPDiag
 from device import Device
+from services import Services
 CONFIG_FILE='/etc/pproxy/config.ini'
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
@@ -66,6 +68,12 @@ app.config["DEBUG"] = False
 @app.route('/', methods=['GET'])
 def home():
         return "Hello world"
+
+@app.route('/usage', methods=['GET'])
+def usage():
+    services = Services(logger)
+    usage_status = services.get_usage_status_summary()
+    return usage_status
 
 @app.route('/api/v1/friends/access_links/', methods=['GET', 'POST'])
 def api_all():

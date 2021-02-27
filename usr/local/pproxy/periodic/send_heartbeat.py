@@ -7,7 +7,7 @@ import dateutil.parser
 import logging.config
 up_dir = os.path.dirname(os.path.abspath(__file__))+'/../'
 sys.path.append(up_dir)
-LOG_CONFIG="/etc/pproxy/logging.ini"
+LOG_CONFIG="/etc/pproxy/logging-debug.ini"
 logging.config.fileConfig(LOG_CONFIG,
             disable_existing_loggers=False)
 logger = logging.getLogger("heartbeat")

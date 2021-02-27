@@ -57,7 +57,7 @@ class OLED:
     def display(self, strs, size):
         if (self.led_present == 0):
             with open(TEXT_OUT, 'w') as out:
-                for row, current_str, is_icon in strs:
+                for row, current_str, is_icon, color in strs:
                     spaces = 20 - len(current_str)
                     out.write("row=["+ str(row) + "] \tstring=[\t" + current_str + " "*spaces + "]\ticon? [" + str(is_icon) + "]\n");
             return
