@@ -304,10 +304,3 @@ class Device():
             return '0.0.0.0'
     def get_default_gw_vendor(self):
         return self.get_default_gw_mac()[:8]
-
-
-    def generate_stats_image(self):
-        # WARNING: do not take image path from parameters
-        # that opens the door to some security exploit
-        self.execute_cmd("vnstati -d -m -o /tmp/usage.png")
-        

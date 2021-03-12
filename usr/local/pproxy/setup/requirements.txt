@@ -1,3 +1,4 @@
+Adafruit_BBIO
 Adafruit-GPIO>=1.0.3
 Adafruit-PureIO>=0.2.1
 Adafruit-SSD1306>=1.6.1

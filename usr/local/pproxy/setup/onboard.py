@@ -142,7 +142,7 @@ class OnBoard():
             #led.display(display_str, 20)
             time.sleep(2)
             serial_number = self.config.get('django','serial_number')
-            display_str = [(1, "Serial #",0,"blue"), (2, serial_number,0,"white"), ]
+            display_str = [(1, "Device Key:", 0,"blue"), (2,'',str(self.rand_key),"white"), (3, "Serial #",0,"blue"), (4, serial_number,0,"white"), ]
             led.display(display_str, 15)
             time.sleep(5)
             display_str = [(1, "Local IP",0,"blue"), (2, self.device.get_local_ip(),0,"white"),
@@ -209,12 +209,15 @@ class OnBoard():
             self.save_temp_key()
         oled = OLED()
         oled.set_led_present(self.config.get('hw','led'))
-        oled.set_logo_text("loading ...", 35, 100, "red", 12)
+        oled.set_logo_text("loading ...", 35, 200, "red", 25)
         oled.show_logo()
         time.sleep(10)
         #icons, if needed to add later: (1, chr(110)+ chr(43)+chr(75) , 1), 
-        #display_str = [(1, "Device Key:", 0,"blue"), (2,'',0,"white"), (3, str(self.rand_key), 0,"white"),]
-        display_str = [(1, "Device Key:", 0,"blue"), (2, str(self.rand_key), 0,"white"), (3, "https://youtu.be/jYgeDSG9G0A", 2, "white")]
+        if int(self.config.get("hw","led-version")) == 2:
+            display_str = [(3, "market://com.wepn", 2, "white")]
+        else:
+            display_str = [(1, "Device Key:", 0,"blue"), (2,'',0,"white"), (3, str(self.rand_key), 0,"white"),]
+        #display_str = [(1, "Device Key:", 0,"blue"), (2, str(self.rand_key), 0,"white"), (3, "https://youtu.be/jYgeDSG9G0A wepn://s=SERIAL&k=JEY", 2, "white")]
         oled.display(display_str, 18)
         self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
         # TODO: to log this effectively for error logs,
