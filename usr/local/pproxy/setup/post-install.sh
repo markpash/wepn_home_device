@@ -238,9 +238,11 @@ modprobe spi-bcm2835
 
 usermod -a -G spi pproxy
 
+systemctl daemon-reload 
 systemctl restart shadowsocks-libev
 systemctl restart shadowsocks-libev-manager
 systemctl restart wepn-api
+systemctl restart wepn-keypad &
 /bin/sh /etc/init.d/pproxy restart
 
 

@@ -1,0 +1,17 @@
+[Unit]
+Description=WEPN Keypad Service
+After=network.target 
+
+[Service]
+User=pproxy
+ExecStart=/usr/bin/python3 /usr/local/pproxy/keypad.py
+KillMode=process
+Restart=on-failure
+RestartPreventExitStatus=255
+Type=notify
+RuntimeDirectory=/usr/local/pproxy/
+WorkingDirectory=/usr/local/pproxy/
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target

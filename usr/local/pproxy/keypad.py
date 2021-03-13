@@ -104,7 +104,6 @@ class KEYPAD:
         out = Image.alpha_composite(base, txt)
         out.paste(overlay,(0,0),overlay)
         out = out.rotate(270)
-        out.save("out.png")
         self.lcd.show_image(out)
 
     def get(self, current):
@@ -141,6 +140,13 @@ class KEYPAD:
             time.sleep(15)
             self.render(0)
 
+    def show_claim_info_qrcode(self):
+            current_key = self.status.get('status', 'temporary_key')
+            serial_number = self.config.get('django','serial_number')
+            display_str = [(1, "https://red.we-pn.com/?s="+
+                str(serial_number) + "&k="+str(current_key), 2, "white")]
+            self.lcd.display(display_str, 20)
+
     def restart(self):
         self.device.reboot()
         pass
@@ -170,13 +176,15 @@ class KEYPAD:
         self.diag_shown = True
 
     def signal_main_wepn(self):
+        print("starting")
         with open("/var/run/pproxy.pid", "r") as f:
             wepn_pid = int(f.readline())
             self.logger.debug("Signaling main process at: "+ str(wepn_pid))
+            print("Signaling main process at: "+ str(wepn_pid))
             try:
                 os.kill(wepn_pid, signal.SIGUSR1)
             except ProcessLookupError as process_error:
-                self.logger.error("Could not find the process for main wepn: "+wepn_pid+":" + str(process_error))
+                self.logger.error("Could not find the process for main wepn: "+str(wepn_pid)+":" + str(process_error))
 
 def main():
     status = configparser.ConfigParser()
@@ -186,7 +194,7 @@ def main():
     items = [{"text":"Restart", "action":keypad.restart},
             {"text":"Power off", "action":keypad.power_off},
                 {"text":"Diagnostics", "action":keypad.run_diagnostics},
-                {"text":"Exit", "action":keypad.signal_main_wepn}]
+                {"text":"Exit", "action":keypad.show_claim_info_qrcode}]
     if 0 == int(status.get('status','claimed')):
         items.insert(0,{"text":"Claim Info", "action":keypad.show_claim_info})
 
