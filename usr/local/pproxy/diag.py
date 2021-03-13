@@ -150,6 +150,9 @@ class WPDiag:
         except requests.exceptions.RequestException as exception_error:
             self.logger.error("Error in sending portcheck request: \r\n\t" + str(exception_error))
             self.logger.error("response: \r\n\t" + str(resp))
+        except KeyError as key_missing_err:
+            self.logger.error("Error in gettin the resonse: \r\n\t" + str(key_missing_err))
+            self.logger.error("response: \r\n\t" + str(resp))
         return experiment_num
 
     def fetch_port_check_results(self, experiment_number):
@@ -175,22 +178,26 @@ class WPDiag:
     # False: got it done
     def get_results_from_server(self, port):
            result =  self.fetch_port_check_results(self.status.get_field("port_check","experiment_number"))
-           if result['finished_time'] != None:
-                   self.logger.info("test results are in")
-                   self.close_test_port(port)
-                   self.status.set_field("port_check","pending", False)
-                   try:
-                       self.status.set_field("port_check","result", result['result']['experiment_result'])
-                       self.status.set_field("port_check","last_check", str(result['finished_time']))
-                   except:
-                       self.logger.error("result from server did not contain actual results")
-                       self.status.set_field("port_check","result", False)
-                       pass
-                   self.status.save()
-                   return False
-           else:
-                self.logger.info("still waiting for test results")
-                return True 
+           try:
+               if result['finished_time'] != None:
+                       self.logger.info("test results are in")
+                       self.close_test_port(port)
+                       self.status.set_field("port_check","pending", False)
+                       try:
+                           self.status.set_field("port_check","result", result['result']['experiment_result'])
+                           self.status.set_field("port_check","last_check", str(result['finished_time']))
+                       except:
+                           self.logger.error("result from server did not contain actual results")
+                           self.status.set_field("port_check","result", False)
+                           pass
+                       self.status.save()
+                       return False
+               else:
+                    self.logger.info("still waiting for test results")
+                    return True 
+           except KeyError as key_err:
+                self.logger.error("Error in the results parsing: \t\r\n" + str(key_err))
+                return False
 
     # This method is a big wrapper to take care of all port testing aspects
     # If a recent result is available, just skips doing anything

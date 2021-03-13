@@ -4,6 +4,7 @@ from collections import deque
 import time
 import ssl
 import random
+import signal
 try:
     from self.configparser import configparser
 except ImportError:
@@ -38,6 +39,7 @@ KEYPAD = [
 CONFIG_FILE='/etc/pproxy/config.ini'
 STATUS_FILE='/var/local/pproxy/status.ini'
 LOG_CONFIG="/etc/pproxy/logging-debug.ini"
+RETRIES_BETWEEN_SCREEN_CHANGE = 100
 logging.config.fileConfig(LOG_CONFIG,
             disable_existing_loggers=False)
 
@@ -60,8 +62,17 @@ class OnBoard():
         self.mqtt_reason = 0
         self.factory = rpi_gpio.KeypadFactory()
         self.rand_key = None
+        self.retries_so_far_screen = 0
+        self.oled = OLED()
+        self.oled.set_led_present(self.config.get('hw','led'))
+        signal.signal(signal.SIGUSR1, self.signal_handler)
         return
 
+    def signal_handler(self,signum, frame):
+        print("Signal "+ str(signum)+" is received with frame: " + str(frame))
+        signal.signal(signal.SIGUSR1, self.signal_handler)
+        self.display_claim_info()
+        
 
     def generate_rand_key(self):
         choose_from = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -201,24 +212,27 @@ class OnBoard():
     def on_message(self, client, userdata, msg):
         self.logger.debug(">>>on_message: "+msg.topic+" "+str(msg.payload))
 
+    def display_claim_info(self):
+        if int(self.config.get("hw","led-version")) == 2:
+            serial_number = self.config.get('django','serial_number')
+            # if no app is installed, QR code will redirect to iOS/Android App store automaticall
+            # if app is installed, the camera in app can extract serial and keys and ignore the URL
+            display_str = [(1, "https://red.we-pn.com/?s="+str(serial_number) + "&k="+str(self.rand_key), 2, "white")]
+        else:
+            display_str = [(1, "Device Key:", 0,"blue"),
+                    (2,'',0,"white"), (3, str(self.rand_key), 0,"white"),]
+        self.oled.display(display_str, 18)
     def start(self, run_once = False):
         run_once_done = False
         self.logger.debug("run_once= " + str(run_once))
         if not run_once:
             self.generate_rand_key()
             self.save_temp_key()
-        oled = OLED()
-        oled.set_led_present(self.config.get('hw','led'))
-        oled.set_logo_text("loading ...", 35, 200, "red", 25)
-        oled.show_logo()
+        self.oled.set_logo_text("loading ...", 45, 200, "red", 25)
+        self.oled.show_logo()
         time.sleep(10)
-        #icons, if needed to add later: (1, chr(110)+ chr(43)+chr(75) , 1), 
-        if int(self.config.get("hw","led-version")) == 2:
-            display_str = [(3, "market://com.wepn", 2, "white")]
-        else:
-            display_str = [(1, "Device Key:", 0,"blue"), (2,'',0,"white"), (3, str(self.rand_key), 0,"white"),]
+        self.display_claim_info()
         #display_str = [(1, "Device Key:", 0,"blue"), (2, str(self.rand_key), 0,"white"), (3, "https://youtu.be/jYgeDSG9G0A wepn://s=SERIAL&k=JEY", 2, "white")]
-        oled.display(display_str, 18)
         self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
         # TODO: to log this effectively for error logs,
         # instead of actual key save a hash of it to the log file. This way WEPN staff can
@@ -227,11 +241,12 @@ class OnBoard():
         self.logger.debug('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LED='+
                 self.config.get('hw','led'))
         if (int(self.config.get('hw','buttons'))):
-            try:
-                keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
-                keypad.registerKeyPressHandler(self.process_key)
-            except RuntimeError as er:
-                self.logger.critical("setting up keypad failed: " + str(er))
+            if int(self.config.get("hw","led-version")) == 1:
+                try:
+                    keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
+                    keypad.registerKeyPressHandler(self.process_key)
+                except RuntimeError as er:
+                    self.logger.critical("setting up keypad failed: " + str(er))
         self.client.reconnect_delay_set(min_delay=1, max_delay=2)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -243,6 +258,8 @@ class OnBoard():
         while self.unclaimed and not run_once_done :
             try:
                   self.logger.debug("password for mqtt= "+ self.rand_key)
+                  self.retries_so_far_screen += 1
+
                   rc=self.client.connect(str(self.config.get('mqtt', 'host')),
                            int(self.config.get('mqtt', 'port')),
                            int(self.config.get('mqtt', 'timeout')))
@@ -251,10 +268,12 @@ class OnBoard():
                   self.client.loop_stop()
             except Exception as error:
                 self.logger.error("MQTT connect failed")
-                display_str = [(1, chr(33)+'     '+chr(33),1,"red"), (2, "Network error,",0,"RED"), (3, "check cable...", 0,"RED") ]
-                oled.display(display_str, 18)
+                display_str = [(1, chr(33)+'     '+chr(33),1,"red"),
+                        (2, "Network error,",0,"red"), (3, "check cable...", 0,"red") ]
+                self.oled.display(display_str, 18)
                 if (int(self.config.get('hw','buttons'))):
                     keypad.cleanup()
+                    GPIO.cleanup()
 
                 time.sleep(int(self.config.get('mqtt', 'onboard-timeout')))
                 self.client.loop_stop()
@@ -265,3 +284,4 @@ class OnBoard():
 
         if (int(self.config.get('hw','buttons'))):
             keypad.cleanup()
+            GPIO.cleanup()

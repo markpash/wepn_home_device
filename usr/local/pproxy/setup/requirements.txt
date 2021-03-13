@@ -32,3 +32,8 @@ getmac
 upnpclient
 numpy
 qrcode
+adafruit-circuitpython-rgb-display
+RPi.GPIO
+spidev
+qrcode
+adafruit-circuitpython-busdevice

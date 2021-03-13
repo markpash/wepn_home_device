@@ -77,7 +77,7 @@ class PProxy():
 
     def cleanup(self):
         self.logger.debug("PProxy shutting down.")
-        self.factory.cleanup()
+        GPIO.cleanup()
 
 
     def set_logger(self, logger):

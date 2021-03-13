@@ -181,6 +181,9 @@ class OLED:
         self.logo_text_color = color
         self.logo_text_size = size
 
+    def show_image(self, image):
+        self.lcd.image(image,0,0)
+
     def show_logo(self):
         if (self.led_present==0):
             with open(TEXT_OUT, 'w') as out:

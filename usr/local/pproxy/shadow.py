@@ -54,6 +54,7 @@ class Shadow:
         try:
             self.sock.connect(self.config.get('shadow','server-socket'))
         except Exception as err:
+            self.logger.error("Caught exception socket.error : %s" % err)
             print("Caught exception socket.error : %s" % err)
 
 
@@ -296,8 +297,6 @@ class Shadow:
                     print("Usage not in db yet. value=" + str(usage_value))
                 else:
                     self.logger.debug("Current usage in db = " + str(usage_server['usage']))
-                    print("usage_ser:") 
-                    print(usage_server['usage'])
                     print("Current usage in db = " + str(usage_server['usage']))
                     # already has some value in usage db
                     if usage_server['usage'] > current_usage:
@@ -307,13 +306,10 @@ class Shadow:
                         delta = current_usage
                     else:
                         # not a wrap around, just replace
-                        print(usage_server)
                         usage_value = current_usage
                         # how many bytes used since last update
                         delta = current_usage - usage_server['usage']
                 self.logger.debug("usage value = " + str(usage_value))
-                print("usage value = " + str(usage_value))
-                print("delta = " + str(delta))
                 if usage_value > 0:
                     usage_status = 1
                 self.logger.debug('certname:'+server['certname']+
@@ -321,10 +317,9 @@ class Shadow:
                         ' usage:'+str(usage_value)+
                         ' status:'+str(usage_status))
                 today = datetime.today().strftime('%Y-%m-%d')
-                print("today =" + str(today))
                 usage_today = usage_daily.find_one(certname = server['certname'], date = today)
                 if usage_today is None:
-                    print("New day")
+                    self.logger.info("New day")
                     usage_daily.upsert({'certname':server['certname'],
                         'date':today,
                         'start_usage':usage_value,
