@@ -280,10 +280,12 @@ class WPDiag:
         local_ip = self.device.get_local_ip()
         internet = self.is_connected_to_internet()
         service = self.is_connected_to_service()
-        self.perform_server_port_check(port_no)
         shadow = self.can_shadow_to_self(port_no)
         mqtt = int(self.status.get('mqtt'))
         claimed = int(self.status.get('claimed'))
+        # port check doesn't work when not claimed
+        if claimed == 1:
+            self.perform_server_port_check(port_no)
         port = 0
         if self.status.get_field('port_check', 'result')=="True":
             port = 1
