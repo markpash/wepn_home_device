@@ -1,4 +1,5 @@
 from pproxy import PProxy
+import os
 import time
 from oled import OLED as OLED
 from setup.onboard import OnBoard
@@ -15,6 +16,7 @@ except ImportError:
 CONFIG_FILE='/etc/pproxy/config.ini'
 STATUS_FILE='/var/local/pproxy/status.ini'
 LOG_CONFIG="/etc/pproxy/logging.ini"
+SHOW_LOGO_AUDIO_FILE = "/usr/local/pproxy/ui/show_logo_stereo.wav"
 logging.config.fileConfig(LOG_CONFIG,
             disable_existing_loggers=False)
 logger = logging.getLogger("startup")
@@ -28,7 +30,8 @@ status = configparser.ConfigParser()
 status.read(STATUS_FILE)
 oled.set_led_present(config.get('hw','led'))
 oled.show_logo()
-time.sleep(1)
+os.system("aplay -Dhw:1 " + SHOW_LOGO_AUDIO_FILE + "&")
+time.sleep(2)
 
 device = Device(logger)
 gateway_vendor = device.get_default_gw_vendor()
