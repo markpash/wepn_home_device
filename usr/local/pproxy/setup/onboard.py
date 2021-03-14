@@ -1,10 +1,10 @@
 import json
-import os
 from time import gmtime, strftime
 from collections import deque
 import time
 import ssl
 import random
+import signal
 try:
     from self.configparser import configparser
 except ImportError:
@@ -39,10 +39,6 @@ KEYPAD = [
 CONFIG_FILE='/etc/pproxy/config.ini'
 STATUS_FILE='/var/local/pproxy/status.ini'
 LOG_CONFIG="/etc/pproxy/logging-debug.ini"
-SHOW_LOGO_AUDIO_FILE = "/usr/local/pproxy/ui/show_logo_stereo.wav"
-SCAN_AUDIO_FILE = "/usr/local/pproxy/ui/scan_barcode.wav"
-CLAIM_SUCCESS_AUDIO_FILE = "/usr/local/pproxy/ui/claim_success.wav"
-
 RETRIES_BETWEEN_SCREEN_CHANGE = 100
 logging.config.fileConfig(LOG_CONFIG,
             disable_existing_loggers=False)
@@ -69,7 +65,14 @@ class OnBoard():
         self.retries_so_far_screen = 0
         self.oled = OLED()
         self.oled.set_led_present(self.config.get('hw','led'))
+        signal.signal(signal.SIGUSR1, self.signal_handler)
         return
+
+    def signal_handler(self,signum, frame):
+        print("Signal "+ str(signum)+" is received with frame: " + str(frame))
+        signal.signal(signal.SIGUSR1, self.signal_handler)
+        self.display_claim_info()
+        
 
     def generate_rand_key(self):
         choose_from = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -178,7 +181,6 @@ class OnBoard():
             time.sleep(2)
             self.save_state("0",0)
             led.show_logo()
-            os.system("aplay -Dhw:1 " + SHOW_LOGO_AUDIO_FILE + " &")
             display_str = [(1, "",0,"black"), ]
             time.sleep(2)
             led.display(display_str, 20)
@@ -205,7 +207,6 @@ class OnBoard():
              self.client.loop_stop()
              self.unclaimed = False
              device = Device(self.logger)
-             os.system("aplay -Dhw:1 " + CLAIM_SUCCESS_AUDIO_FILE + "&")
              device.restart_pproxy_service()
 
     def on_message(self, client, userdata, msg):
@@ -228,8 +229,6 @@ class OnBoard():
             self.generate_rand_key()
             self.save_temp_key()
         self.oled.set_logo_text("loading ...", 45, 200, "red", 25)
-        time.sleep(1)
-        os.system("aplay -Dhw:1 " + SCAN_AUDIO_FILE + "&")
         self.oled.show_logo()
         time.sleep(10)
         self.display_claim_info()
