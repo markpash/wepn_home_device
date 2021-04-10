@@ -50,13 +50,13 @@ class OpenVPN:
         cmd = "sudo /etc/init.d/openvpn reload"
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
-        return 
+        return
 
     def is_enabled(self):
-        return (int(self.config.get('openvpn','enabled')) is 1 ) 
+        return (int(self.config.get('openvpn','enabled')) == 1 )
 
     def can_email(self):
-        return (int(self.config.get('openvpn','email')) is 1)
+        return (int(self.config.get('openvpn','email')) == 1)
 
     def get_service_creds_summary(self, ip_address):
         return {}
@@ -71,12 +71,11 @@ class OpenVPN:
             txt  = "To use OpenVPN ("+ip_address+") \n\n1. download the attached certificate, \n 2.install OpenVPN for Android Client. \n 3. Import the certificate you downloaded in step 1."
             html  = "To use OpenVPN ("+ip_address+") \n\n1. download the attached certificate, \n 2.install OpenVPN for Android Client. \n 3. Import the certificate you downloaded in step 1."
         return txt, html
-                
 
     def get_removal_email_text(self, certname, ip_address):
         txt = ''
         html = ''
-        if self.config.get('openvpn','enabled') is 1 and self.config.get('openvpn','email') is 1:
+        if self.config.get('openvpn','enabled') == 1 and self.config.get('openvpn','email') == 1:
             txt  = "Access to VPN server IP address " +  ip_address + " is revoked.",
             html = "Access to VPN server IP address " +  ip_address + " is revoked.",
 

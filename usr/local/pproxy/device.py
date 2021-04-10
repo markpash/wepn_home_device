@@ -26,7 +26,10 @@ import shlex
 #import ipw
 import ipw
 import paho.mqtt.client as mqtt
-from pad4pi import rpi_gpio
+try:
+    from pad4pi import rpi_gpio
+except RuntimeError as err:
+    print("Error in pad4pi: "+str(err))
 #from oled import OLED as OLED
 from wstatus import WStatus as WStatus
 

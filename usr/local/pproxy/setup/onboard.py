@@ -24,7 +24,13 @@ import logging.config
 from ipw import IPW
 import paho.mqtt.client as mqtt
 from heartbeat import HeartBeat
-from pad4pi import rpi_gpio
+try:
+    import RPi.GPIO as GPIO
+    from pad4pi import rpi_gpio
+    gpio_up = True
+except Exception as err:
+    print("Error in GPIO: "+str(err))
+    gpio_up = False
 from oled import OLED as OLED
 from diag import WPDiag
 from services import Services
@@ -60,7 +66,8 @@ class OnBoard():
         self.device = Device(self.logger)
         self.mqtt_connected = 0
         self.mqtt_reason = 0
-        self.factory = rpi_gpio.KeypadFactory()
+        if gpio_up:
+            self.factory = rpi_gpio.KeypadFactory()
         self.rand_key = None
         self.retries_so_far_screen = 0
         self.oled = OLED()
@@ -72,7 +79,6 @@ class OnBoard():
         print("Signal "+ str(signum)+" is received with frame: " + str(frame))
         signal.signal(signal.SIGUSR1, self.signal_handler)
         self.display_claim_info()
-        
 
     def generate_rand_key(self):
         choose_from = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -103,7 +109,7 @@ class OnBoard():
         self.logger.debug(saved_keys)
         # remove the oldest key
         try:
-            # making the list longer was not 
+            # making the list longer was not
             if saved_keys and (len(saved_keys) == 5):
                 saved_keys.popleft()
         except Exception as e:
@@ -171,7 +177,7 @@ class OnBoard():
             display_str = [(1, "Device Key:", 0,"blue"), (2,'',0,"black"), (3, str(self.rand_key), 0,"white"), (4, "https://youtu.be/jYgeDSG9G0A", 2, "white")]
             led.display(display_str, 18)
 
-        #Power off   
+        #Power off
         elif (key == "3"):
             services.stop()
             led = OLED()
@@ -273,7 +279,8 @@ class OnBoard():
                 self.oled.display(display_str, 18)
                 if (int(self.config.get('hw','buttons'))):
                     keypad.cleanup()
-                    GPIO.cleanup()
+                    if gpio_up:
+                        GPIO.cleanup()
 
                 time.sleep(int(self.config.get('mqtt', 'onboard-timeout')))
                 self.client.loop_stop()
@@ -284,4 +291,5 @@ class OnBoard():
 
         if (int(self.config.get('hw','buttons'))):
             keypad.cleanup()
-            GPIO.cleanup()
+            if gpio_up:
+                GPIO.cleanup()

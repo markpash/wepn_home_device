@@ -5,8 +5,8 @@ try:
 except ImportError:
     import configparser
 
-TEST_CONFIG = 'dev_config.ini'
-#TEST_CONFIG = 'prod_config.ini'
+#TEST_CONFIG = 'dev_config.ini'
+TEST_CONFIG = 'prod_config.ini'
 STATUS_FILE = '/var/local/pproxy/status.ini'
 
 PPROXY_CONFIG='/etc/pproxy/config.ini'
@@ -47,15 +47,15 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
     extra = getattr(report, 'extra', [])
+    extra.append(pytest_html.extras.url('https://www.we-pn.com/'))
+    extra.append(pytest_html.extras.image('https://we-pn.com/img/logo.png'))
     if report.when == 'call':
         # always add url to report
-        extra.append(pytest_html.extras.url('https://www.we-pn.com/'))
-        extra.append(pytest_html.extras.image('https://we-pn.com/img/logo.png'))
         xfail = hasattr(report, 'wasxfail')
         if (report.skipped and xfail) or (report.failed and not xfail):
             # only add additional html on failure
             extra.append(pytest_html.extras.html('<div>Failed Instance</div>'))
-        report.extra = extra
+    report.extra = extra
 
 
 @pytest.mark.dependency()
@@ -72,6 +72,7 @@ def test_login():
     response = requests.post(authorization_base_url, json=payload, headers=headers)
     jresponse = response.json()
     #print(response.status_code)
+    #print(jresponse)
     #print(jresponse['access_token'])
     auth_token = "Bearer " + jresponse['access_token']
     assert(response.status_code == 200)
@@ -111,10 +112,10 @@ def test_claim():
             }
     payload = {"device_key":key, "serial_number":serial, "device_name":"Regression Device"}
     response = requests.post(url + '/device/claim/', json=payload, headers=headers)
-    print(payload)
-    print(response)
+    #print(payload)
+    #print(response)
     jresponse = response.json()
-    print (jresponse)
+    #print (jresponse)
     #print(response.status_code)
     #print(payload)
     assert(response.status_code == 200)
@@ -164,7 +165,7 @@ def test_list_friends():
     response = requests.get(url + '/friend/', headers=headers)
     jresponse = response.json()
     assert(response.status_code == 200)
-    print (jresponse)
+    #print (jresponse)
     assert(jresponse == expected)
 
 @pytest.mark.dependency(depends=["test_login","test_claim", "test_heartbeat", "test_list_friends"])	
@@ -182,7 +183,7 @@ def test_heartbeat_change_usage_status():
     response = requests.get(url + '/friend/', headers=headers)
     jresponse = response.json()
     assert(response.status_code == 200)
-    print (jresponse)
+    #print (jresponse)
     assert(jresponse == expected)
     # reset the usge to -1
     payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {"1n.b4":-1}}
@@ -199,7 +200,7 @@ def test_add_friend():
             }
     payload = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'cn'}
     response = requests.post(url + '/friend/', json=payload, headers=headers)
-    print (response.content)
+    #print (response.content)
     assert(response.status_code == 201)
     jresponse = response.json()
     #print (jresponse)

@@ -287,7 +287,7 @@ class WPDiag:
         port = 0
         if self.status.get_field('port_check', 'result')=="True":
             port = 1
-        error_code = (local_ip is not "") + (internet << 1) +  (service<< 2) + (port << 3) + (mqtt << 4) + (shadow << 5) + (claimed << 6)
+        error_code = (local_ip != "") + (internet << 1) +  (service<< 2) + (port << 3) + (mqtt << 4) + (shadow << 5) + (claimed << 6)
         return error_code
 
 

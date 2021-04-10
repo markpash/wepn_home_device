@@ -25,8 +25,14 @@ import shlex
 from ipw import IPW
 import paho.mqtt.client as mqtt
 from heartbeat import HeartBeat
-from pad4pi import rpi_gpio
-import RPi.GPIO as GPIO
+try:
+    import RPi.GPIO as GPIO
+    from pad4pi import rpi_gpio
+    gpio_up = True
+except Exception as err:
+    print("Error in GPIO: "+str(err))
+    gpio_up = False
+
 from oled import OLED as OLED
 from diag import WPDiag
 from services import Services
@@ -57,10 +63,13 @@ class PProxy():
         self.config.read(CONFIG_FILE)
         self.mqtt_connected = 0
         self.mqtt_reason = 0
-        GPIO.setmode(GPIO.BCM)
-        GPIO.cleanup()
-        self.factory = rpi_gpio.KeypadFactory()
-        self.loggers = {} 
+        if gpio_up:
+            GPIO.setmode(GPIO.BCM)
+            GPIO.cleanup()
+            self.factory = rpi_gpio.KeypadFactory()
+        else:
+            self.factory = None
+        self.loggers = {}
         self.loggers["heartbeat"] = logging.getLogger("heartbeat")
         self.loggers["diag"] = logging.getLogger("diag")
         self.loggers["services"] = logging.getLogger("services")
@@ -77,7 +86,8 @@ class PProxy():
 
     def cleanup(self):
         self.logger.debug("PProxy shutting down.")
-        GPIO.cleanup()
+        if gpio_up:
+            GPIO.cleanup()
 
 
     def set_logger(self, logger):
@@ -138,7 +148,7 @@ class PProxy():
             heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
             self.logger.debug('heartbeat from process_key 2')
             heart_beat.send_heartbeat()
-        #Power off   
+        #Power off
         elif (key == "3"):
             services.stop()
             led = OLED()
@@ -288,7 +298,7 @@ class PProxy():
                            'The familiar phrase you have arranged with your friend is: '+ data['passcode'] + '\n' + txt,
                            '<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+ html,
                            manuals)
- 
+
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])
             self.logger.debug("Removing user: "+username)
@@ -296,7 +306,7 @@ class PProxy():
             services.delete_user(username)
             self.send_mail(self.config.get('email', 'email'), data['email'],
                            "Your VPN details",
-                           #'Familiar phrase is '+ data['passcode'] + 
+                           #'Familiar phrase is '+ data['passcode'] +
                                 '\nAccess to VPN server IP address ' +  ip_address + ' is revoked.',
                            #'<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+
                                 "<p>Access to VPN server IP address <b>" +  ip_address + "</b> is revoked.</p>",
@@ -365,7 +375,8 @@ class PProxy():
                 keypad.registerKeyPressHandler(self.process_key)
             except RuntimeError as er:
                 self.logger.cirtical("setting up keypad failed: " + str(er))
-                GPIO.cleanup()
+                if gpio_up:
+                    GPIO.cleanup()
         client.on_connect = self.on_connect
         client.on_message = self.on_message
         client.on_disconnect = self.on_disconnect
@@ -384,7 +395,8 @@ class PProxy():
             oled.display(display_str, 15)
             if (int(self.config.get('hw','buttons'))):
                 keypad.cleanup()
-                GPIO.cleanup()
+                if gpio_up:
+                    GPIO.cleanup()
             raise
         # Blocking call that processes network traffic, dispatches callbacks and
         # handles reconnecting.

@@ -208,10 +208,10 @@ class Shadow:
 
 
     def is_enabled(self):
-        return (int(self.config.get('shadow','enabled')) is 1 ) 
+        return (int(self.config.get('shadow','enabled')) == 1 ) 
 
     def can_email(self):
-        return (int(self.config.get('shadow','email')) is 1)
+        return (int(self.config.get('shadow','email')) == 1)
 
     def get_service_creds_summary(self, ip_address):
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))

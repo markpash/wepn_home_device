@@ -1,12 +1,16 @@
 # for font reference: https://www.dafont.com/heydings-icons.font
 
-import board
-import digitalio
+try:
+    import board
+    import digitalio
+    import adafruit_rgb_display.st7789 as st7789  # pylint: disable=unused-import
+    import Adafruit_SSD1306
+except Exception as err:
+    print("Possibly unsupported board: " + str(err))
+
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
-import adafruit_rgb_display.st7789 as st7789  # pylint: disable=unused-import
-import Adafruit_SSD1306
 import logging.config
 import qrcode
 
@@ -28,6 +32,12 @@ class OLED:
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
+        self.logo_text = None
+        self.logo_text_x = None
+        self.logo_text_y = None
+        self.logo_text_color = None
+        self.led_present = self.config.getint('hw','led')
+        print(self.led_present)
         # LED version:
         # 1 is the original b&w SSD1306,
         # 2 is 1.54 Adafruit ST7789
@@ -35,6 +45,8 @@ class OLED:
             self.version = self.config.getint('hw','led-version')
         except configparser.NoOptionError as e:
             self.version = 1
+        if (self.led_present == 0):
+            return
 
         # Raspberry Pi pin configuration:
         self.RST = 24
@@ -43,7 +55,6 @@ class OLED:
         self.CS = 9
         self.SPI_PORT = 0
         self.SPI_DEVICE = 0
-        self.led_present = 0
         if self.version==2:
             # Config for display baudrate (default max is 24mhz):
             BAUDRATE = 24000000
@@ -63,10 +74,6 @@ class OLED:
                 rst=reset_pin,
                 baudrate=BAUDRATE,
             )
-        self.logo_text = None
-        self.logo_text_x = None
-        self.logo_text_y = None
-        self.logo_text_color = None
         return
     def set_led_present(self, is_led_present):
         self.led_present = int(is_led_present)
@@ -74,9 +81,9 @@ class OLED:
     def display(self, strs, size):
         if (self.led_present == 0):
             with open(TEXT_OUT, 'w') as out:
-                for row, current_str, is_icon in strs:
+                for row, current_str, vtype, color in strs:
                     spaces = 20 - len(current_str)
-                    out.write("row=["+ str(row) + "] \tstring=[\t" + current_str + " "*spaces + "]\ticon? [" + str(is_icon) + "]\n");
+                    out.write("row:["+ str(row) + "] \tstring:[\t" + current_str + " "*spaces + "]\ttype:[" + str(vtype) + "]  color:["+str(color)+"]\n");
             return
 
         # Draw some shapes.
