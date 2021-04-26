@@ -2,3 +2,5 @@
 __pycache__
 prod_config.ini
 dev_config.ini
+local_test_config.ini
+*.ini

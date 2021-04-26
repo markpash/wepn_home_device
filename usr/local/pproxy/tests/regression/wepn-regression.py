@@ -1,5 +1,7 @@
 import pytest
 import time
+import sqlite3
+
 try:
     from self.configparser import configparser
 except ImportError:
@@ -210,6 +212,14 @@ def test_add_friend():
     #print(payload)
     assert(jresponse == payload)
     time.sleep(5)
+    conn = sqlite3.connect(shadow_db)
+    cursor = conn.cursor()
+    cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "cn"''')
+    conn.close()
+    result = cursor.fetchall()
+    print(result)
+    assert(len(result)==1)
+
 
 
 @pytest.mark.dependency(depends=["test_add_friend"])
