@@ -29,6 +29,7 @@ url=config.get('device', 'url')
 key=config.get('device', 'key')
 #serial=config.get('device', 'serial')
 serial=pproxy_config.get('django', 'serial_number')
+shadow_db=pproxy_config.get('shadow', 'db-path')
 
 static_friend_id=config.get('friend','static_id')
 
@@ -141,7 +142,6 @@ def test_check_device_connected():
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
     assert(status.get('status','claimed') == '1')
-
 
 @pytest.mark.dependency(depends=["test_login","test_claim"])	
 def test_heartbeat():

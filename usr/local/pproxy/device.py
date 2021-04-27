@@ -158,6 +158,10 @@ class Device():
 
     def reboot(self):
         cmd = "sudo /sbin/reboot"
+        if config.has_option('hw','disable-reboot'):
+            if self.config.getint('hw','disable-reboot') == 1:
+                # used for hardware that reboot is not realistic
+                cmd = "sudo /usr/local/sbin/restart-pproxy.sh"
         self.execute_cmd(cmd)
 
     def update(self):
