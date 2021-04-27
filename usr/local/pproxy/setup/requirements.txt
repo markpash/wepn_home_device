@@ -37,3 +37,4 @@ RPi.GPIO
 spidev
 qrcode
 adafruit-circuitpython-busdevice
+matplotlib

@@ -63,6 +63,7 @@ def valid_token(incoming):
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = False 
+#app.config["DEBUG"] = True
 
 
 @app.route('/', methods=['GET'])
@@ -71,9 +72,45 @@ def home():
 
 @app.route('/usage', methods=['GET'])
 def usage():
+    import matplotlib.pyplot as plt
+    import io
+    import pylab
+    from flask import Flask, make_response
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    from matplotlib.figure import Figure
+
     services = Services(logger)
-    usage_status = services.get_usage_status_summary()
-    return usage_status
+    usage_status = services.get_usage_daily()
+    fig = plt.figure()
+    uses = []
+    dates = []
+    print("<-----")
+    print(usage_status)
+    print("----->")
+    for row in usage_status:
+        try:
+            print("row=" + str(row))
+            for day in usage_status[row]:
+                print("day = " + str(day))
+                uses.append(day['usage'])
+                dates.append(day['date'])
+        except:
+            pass
+    print("+++++")
+    print(uses)
+    print(dates)
+    print("+++++")
+    ax = fig.add_axes([1,1,1,1], title="Usage Data", xlabel ="Date", ylabel="Bytes")
+    ax.bar(dates,uses)
+    canvas = FigureCanvas(fig)
+    output = io.BytesIO()
+    canvas.print_png(output)
+    #output = io.BytesIO()
+    #plt.savefig(output, dpi=75)
+    #output.seek(0)
+    response = make_response(output.getvalue())
+    response.mimetype = 'image/png'
+    return response
 
 @app.route('/api/v1/friends/access_links/', methods=['GET', 'POST'])
 def api_all():
