@@ -283,6 +283,7 @@ class Shadow:
                 usage_server = None
                 usage_status = -1
                 delta = 0
+                current_usage = 0
                 server_name = str(server['server_port'])
                 if server_name in response:
                     current_usage = response[server_name]
@@ -320,6 +321,7 @@ class Shadow:
                 usage_today = usage_daily.find_one(certname = server['certname'], date = today)
                 if usage_today is None:
                     self.logger.info("New day")
+                    # this is a new day, start is 0
                     usage_daily.upsert({'certname':server['certname'],
                         'date':today,
                         'start_usage':usage_value,
@@ -327,11 +329,28 @@ class Shadow:
                         'type': 'shadow',
                         'end_usage':usage_value},['certname','date'])
                 else:
-                    usage_daily.upsert({'certname':server['certname'],
-                        'date':today,
-                        'server_port':server['server_port'],
-                        'type': 'shadow',
-                        'end_usage':usage_value},['certname','date'])
+                    # wrap around/restart has happened
+                    if usage_today['end_usage'] < usage_value:
+                        # we have lost some data probably, don't overwrite
+                        # the last end with this one.
+                        # set start to 0, end to a fake adjustment
+                        past_delta = usage_today['end_usage'] - usage_today['start_usage']
+                        fake_start = usage_value - past_delta
+                        usage_daily.upsert({'certname':server['certname'],
+                            'date':today,
+                            'server_port':server['server_port'],
+                            'start_usage':fake_start,
+                            'type': 'shadow',
+                            'end_usage':usage_value},['certname','date'])
+                        print("wrap around: " + str(fake_start))
+                    else:
+                        # all is normal, just update the end
+                        print("normal update")
+                        usage_daily.upsert({'certname':server['certname'],
+                            'date':today,
+                            'server_port':server['server_port'],
+                            'type': 'shadow',
+                            'end_usage':usage_value},['certname','date'])
                 # this one is for the overall usage, used for "usage status"
                 usage_servers.upsert({'certname':server['certname'],
                     'server_port':server['server_port'],
@@ -342,6 +361,41 @@ class Shadow:
             except KeyError as e:
                 self.logger.error("Port not found in ping stats: " + str(e))
         return usage_results
+
+    def get_usage_daily(self):
+        print("getting shadow socks daily")
+        local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
+        servers = local_db['servers']
+        usage_db = dataset.connect('sqlite:///'+self.config.get('usage', 'db-path'))
+        usage_servers = usage_db['servers']
+        usage_daily = usage_db['daily']
+        print(usage_daily)
+        days = {}
+        for server in servers:
+            usage_days = usage_daily.find(certname = server['certname'])
+            #print(json.dumps( [dict(ix) for ix in usage_days] ))
+            for day in usage_days:
+                print("thiss a day")
+                try:
+                    if day['end_usage'] < day['start_usage']:
+                        #some information is lost here, better than negative
+                        if day['end_usage']==0:
+                            #we lost the ending data
+                            use = day['start_usage']
+                        else:
+                            use = day['end_usage']
+                    else:
+                        use = day["end_usage"] - day["start_usage"]
+                except:
+                    use  = 0
+                    pass
+                if day['certname'] not in days:
+                    days[day['certname']] = []
+                days[day['certname']].append({#"certname":day["certname"],
+                    "date": day["date"],
+                    "usage": use})
+        local_db.close()
+        return days
 
     def get_add_email_text(self, cname, ip_address, lang):
         txt = ''

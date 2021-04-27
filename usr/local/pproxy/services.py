@@ -97,4 +97,21 @@ class Services:
                     usage.update(res)
         return usage
 
+    def get_usage_daily(self):
+        usage = {}
+        for service in self.services:
+            res=service['obj'].get_usage_daily()
+            print("res is = " + str(res))
+            if bool(res):   # check if there are any friends
+                    self.logger.debug(res)
+                    for server in res:
+                        if server not in usage:
+                            # first service that has this server (certname)
+                            usage[server] = res[server]
+                        else:
+                            #multiple services have the same server
+                            user[server].update(res[server])
+        print("usage is = " + str(usage))
+        return usage
+
 
