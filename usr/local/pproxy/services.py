@@ -108,7 +108,7 @@ class Services:
         usage = {}
         for service in self.services:
             res=service['obj'].get_usage_daily()
-            print("res is = " + str(res))
+            #print("res is = " + str(res))
             if bool(res):   # check if there are any friends
                     self.logger.debug(res)
                     for server in res:
@@ -118,7 +118,7 @@ class Services:
                         else:
                             #multiple services have the same server
                             user[server].update(res[server])
-        print("usage is = " + str(usage))
+        #print("usage is = " + str(usage))
         return usage
 
 

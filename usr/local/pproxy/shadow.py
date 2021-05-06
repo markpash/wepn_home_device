@@ -365,19 +365,17 @@ class Shadow:
         return usage_results
 
     def get_usage_daily(self):
-        print("getting shadow socks daily")
+        #print("getting shadow socks daily")
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
         usage_db = dataset.connect('sqlite:///'+self.config.get('usage', 'db-path'))
         usage_servers = usage_db['servers']
         usage_daily = usage_db['daily']
-        print(usage_daily)
         days = {}
         for server in servers:
             usage_days = usage_daily.find(certname = server['certname'])
             #print(json.dumps( [dict(ix) for ix in usage_days] ))
             for day in usage_days:
-                print("thiss a day")
                 try:
                     if day['end_usage'] < day['start_usage']:
                         #some information is lost here, better than negative
