@@ -215,8 +215,8 @@ def test_add_friend():
     conn = sqlite3.connect(shadow_db)
     cursor = conn.cursor()
     cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "cn"''')
-    conn.close()
     result = cursor.fetchall()
+    conn.close()
     print(result)
     assert(len(result)==1)
 
