@@ -70,46 +70,30 @@ app.config["DEBUG"] = False
 def home():
         return "Hello world"
 
-@app.route('/usage', methods=['GET'])
+@app.route('/api/v1/friends/usage/', methods=['GET', 'POST'])
 def usage():
-    import matplotlib.pyplot as plt
-    import io
-    import pylab
+    if exposed:
+        return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
+    status = WStatus(logger)
+    if not valid_token(request.args.get('local_token')):
+        return "Not allowed", http_status.HTTP_401_UNAUTHORIZED
     from flask import Flask, make_response
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-    from matplotlib.figure import Figure
+    from flask import jsonify
 
     services = Services(logger)
     usage_status = services.get_usage_daily()
-    fig = plt.figure()
-    uses = []
-    dates = []
-    print("<-----")
-    print(usage_status)
-    print("----->")
-    for row in usage_status:
+    if request.args.get('certname'):
         try:
-            print("row=" + str(row))
-            for day in usage_status[row]:
-                print("day = " + str(day))
-                uses.append(day['usage'])
-                dates.append(day['date'])
+            usage_status = usage_status[request.args.get('certname')]
         except:
+            usage_status = {}
             pass
-    print("+++++")
-    print(uses)
-    print(dates)
-    print("+++++")
-    ax = fig.add_axes([1,1,1,1], title="Usage Data", xlabel ="Date", ylabel="Bytes")
-    ax.bar(dates,uses)
-    canvas = FigureCanvas(fig)
-    output = io.BytesIO()
-    canvas.print_png(output)
-    #output = io.BytesIO()
-    #plt.savefig(output, dpi=75)
-    #output.seek(0)
-    response = make_response(output.getvalue())
-    response.mimetype = 'image/png'
+    #print(usage_status)
+    response = make_response(
+                jsonify( usage_status),
+                200,
+    )
+    response.headers["Content-Type"] = "application/json"
     return response
 
 @app.route('/api/v1/friends/access_links/', methods=['GET', 'POST'])
