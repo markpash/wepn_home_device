@@ -68,6 +68,7 @@ class Shadow:
             os.remove(self.socket_path)
 
     def add_user(self, cname, ip_address, password, unused_port, lang):
+        is_new_user = False
         local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
         # get max of assigned ports, new port is 1+ that. 
         # if no entry in DB, copy from config default port start
@@ -87,6 +88,7 @@ class Shadow:
             self.logger.info("New port assigned is " + str(max_port+1) + " was " + str(unused_port))
             port=max_port + 1 
         else:
+            is_new_user = True
             port = server['server_port']
             # also reuse the same password, making it easier for end user
             # to update the app manually if needed
@@ -108,7 +110,7 @@ class Shadow:
         #retrun success or failure if file doesn't exist
         for a in local_db['servers']:
             self.logger.debug("server: " + str(a))
-        return
+        return is_new_user
 
 
     def delete_user(self, cname):
@@ -395,10 +397,15 @@ class Shadow:
         local_db.close()
         return days
 
-    def get_add_email_text(self, cname, ip_address, lang):
+    def get_add_email_text(self, cname, ip_address, lang, is_new_user = False):
         txt = ''
         html = ''
+        manuals = []
+        subject = ''
         if self.is_enabled() and self.can_email() :
+            manuals = [ '/usr/local/pproxy/ui/'+lang+'/outline.png',
+                        '/usr/local/pproxy/ui/'+lang+'/potatso.png']
+            subject = "Your New VPN Access Details"
             local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
             servers = local_db['servers']
             server = servers.find_one(certname = cname)
@@ -406,19 +413,29 @@ class Shadow:
                 uri = str(self.config.get('shadow','method')) + ':' + str(server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
                 uri64 = 'ss://'+ base64.urlsafe_b64encode(str.encode(uri)).decode('utf-8')+"#WEPN-"+str(cname)
 
-                txt = "You have been granted access to a private VPN server. "
-                txt += 'This VPN server uses Shadowsocks server. To start using this service:'
+                if not is_new_user:
+                    txt = "You have been granted access to a private VPN server. "
+                    txt += 'This VPN server uses Shadowsocks server. To start using this service:'
+                    html= "<h2>You have been granted access to a private VPN server.</h2>"
+                    html += 'This VPN server uses Shadowsocks server. To start using this service, '
+                else:
+                    txt = "Your access link to the private VPN server is updated."
+                    txt += "This might be due to an IP change, among other reasons."
+                    html = "<h2>Your access link to the private VPN server is updated.</h2>"
+                    html += "This might be due to an IP change, among other reasons."
+                    subject = "Update to  Your VPN Access Details"
                 txt += '\n\n1. Copy the below text, \n2. Open Outline or ShadowSocks apps on your phone \n3. Import this link as a new server. \n\n'
                 txt += uri64
-                txt += '\n\n You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). We recommend using Potatso if Outline does not correctly work.'
+                txt += '\n\n You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). These apps are independent and not affiliated with WEPN team.'
                 txt += '\nGraphical manuals are attached to this email.'
-                html= "<h2>You have been granted access to a private VPN server.</h2>"
-                html += 'This VPN server uses Shadowsocks server. To start using this service, '
                 html += '<ul> <li>Copy the below text, </li><li> Open Outline or ShadowSocks apps on your phone </li><li> Import this link as a new server. </li></ul><br /><br/>'
                 html += "<center><b>" + uri64  +"</b></center>"
-                html += '<p>You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). We recommend using Potatso if Outline does not correctly work.<br/>'
+                html += '<p>You can use either the Outline app (Android/iPhone/Windows) or Potatso (iPhone). These apps are independent and not affiliated with WEPN team.<br/>'
                 html += 'Graphical manuals are attached to this email.</p>'
-        return txt, html
+            else:
+                txt = "Error: User not found?"
+                html = txt
+        return txt, html, manuals, subject
 
     def get_removal_email_text(self, certname, ip_address, lang):
         txt = ''

@@ -1,5 +1,6 @@
 import sys
 import os
+import logging
 up_dir = os.path.dirname(os.path.abspath(__file__))+'/../'
 sys.path.append(up_dir)
 
@@ -9,15 +10,16 @@ from openvpn import OpenVPN
 from services import Services
 from device import Device
 
+l = logging.getLogger()
 ipw = IPW()
-s   = Shadow()
-o   = OpenVPN()
-a   = Services()
-device = Device()
+s   = Shadow(l)
+o   = OpenVPN(l)
+a   = Services(l)
+device = Device(l)
 
 ##s.stop_all()
 
-#s.add_user("mycertname51","0","mypass", 5134)
+#s.add_user("mycertname51","0","mypass", 5134, 'en')
 #a.add_user("mycertname51","127.0.0.1","mypass", 5134)
 #s.add_user("mycertname21","mypass", 2134)
 #s.add_user("mycertname31","mypass", 3134)#
@@ -25,11 +27,12 @@ device = Device()
 
 ip_address = ipw.myip()
 print(">>>>>>>>>>>> adding user ue.mp")
-s.add_user("ue.mp", ip_address ,"9628834282", 4000)#
+s.add_user("ue.mp", ip_address ,"9628834282", 4000, 'en')#
+print(s.get_add_email_text("ue.mp",ip_address,"en"))
 print(">>>>>>>>>>>> looking at list ")
 #device.execute_cmd('/usr/bin/upnpc -l > /tmp/a')
 #print(">>>>>>>>>>>> deleting test users")
-#s.delete_user("mycertname11")
+s.delete_user("mycertname11")
 #s.delete_user("mycertname51")
 #s.delete_user("mycertname21")
 #o.delete_user("mycertname51")
@@ -38,8 +41,8 @@ s.stop()
 
 print(">>>>>>>>>>getting email text for test user")
 
-txt, html = a.get_add_email_text("mycertname51",ip_address) 
-print (txt)
+txt, html, attachments, subject = a.get_add_email_text("mycertname51",ip_address, 'en') 
+print ("text is = " +txt)
 print("deleting user ue.mp")
 s.delete_user("ue.mp")#
 #device.execute_cmd('/usr/bin/upnpc -l > /tmp/b')
