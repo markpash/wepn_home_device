@@ -64,6 +64,9 @@ class OpenVPN:
     def get_usage_status_summary(self):
         return {}
 
+    def get_usage_daily(self):
+        return {}
+
     def get_add_email_text(self, certname, ip_address, lang):
         txt = ''
         html = ''

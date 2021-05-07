@@ -63,17 +63,38 @@ def valid_token(incoming):
 
 app = flask.Flask(__name__)
 app.config["DEBUG"] = False 
+#app.config["DEBUG"] = True
 
 
 @app.route('/', methods=['GET'])
 def home():
         return "Hello world"
 
-@app.route('/usage', methods=['GET'])
+@app.route('/api/v1/friends/usage/', methods=['GET', 'POST'])
 def usage():
+    if exposed:
+        return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
+    status = WStatus(logger)
+    if not valid_token(request.args.get('local_token')):
+        return "Not allowed", http_status.HTTP_401_UNAUTHORIZED
+    from flask import Flask, make_response
+    from flask import jsonify
+
     services = Services(logger)
-    usage_status = services.get_usage_status_summary()
-    return usage_status
+    usage_status = services.get_usage_daily()
+    if request.args.get('certname'):
+        try:
+            usage_status = usage_status[request.args.get('certname')]
+        except:
+            usage_status = {}
+            pass
+    #print(usage_status)
+    response = make_response(
+                jsonify( usage_status),
+                200,
+    )
+    response.headers["Content-Type"] = "application/json"
+    return response
 
 @app.route('/api/v1/friends/access_links/', methods=['GET', 'POST'])
 def api_all():
