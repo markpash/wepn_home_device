@@ -61,23 +61,30 @@ class Services:
     def add_user(self, certname, ip_address, suggested_password, suggested_port, lang='en'):
         # Note: services may use another port (based on used ports) or password 
         # (if user already exists.
+        is_new_user = False
         for service in self.services:
-            service['obj'].add_user(certname, ip_address, suggested_password,
+            is_new_user |= service['obj'].add_user(certname, ip_address, suggested_password,
                                     suggested_port, lang)
-        return
+        return is_new_user
 
     def delete_user(self,certname):
         for service in self.services:
             service['obj'].delete_user(certname)
         return
-    def get_add_email_text(self, certname, ip_address, lang):
+    def get_add_email_text(self, certname, ip_address, lang, is_new_user = False):
         txt = '\n'
         html = ''
+        attachments = []
+        subject = ''
         for service in self.services:
-            ttxt, thtml = service['obj'].get_add_email_text(certname, ip_address, lang)
+            ttxt, thtml, tattachments, tsubject = service['obj'].get_add_email_text(certname, ip_address, lang, is_new_user)
             txt += ttxt + '\n'
             html += thtml + '<br />'
-        return txt, html
+            attachments.extend(tattachments)
+            # this would assume only one service has a subject
+            subject += tsubject
+        print(txt + "|a="+str(attachments) + "|s="+subject)
+        return txt, html, attachments, subject
 
     def get_service_creds_summary(self, ip_address):
         creds = {}

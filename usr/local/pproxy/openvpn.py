@@ -19,7 +19,7 @@ class OpenVPN:
         cmd = '/bin/sh ./add_user.sh '+ certname + ' '+ ip_address + ' ' + str(self.config.get('openvpn', 'port'))
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
-        return
+        return False
 
     def delete_user(self, certname):
         cmd = '/bin/sh ./delete_user.sh '+ certname
@@ -64,22 +64,26 @@ class OpenVPN:
     def get_usage_status_summary(self):
         return {}
 
-    def get_add_email_text(self, certname, ip_address, lang):
+    def get_add_email_text(self, certname, ip_address, lang, is_new_user=False):
         txt = ''
         html = ''
+        subject = ''
+        attachments = []
         if self.is_enabled() and self.can_email() :
-            txt  = "To use OpenVPN ("+ip_address+") \n\n1. download the attached certificate, \n 2.install OpenVPN for Android Client. \n 3. Import the certificate you downloaded in step 1."
-            html  = "To use OpenVPN ("+ip_address+") \n\n1. download the attached certificate, \n 2.install OpenVPN for Android Client. \n 3. Import the certificate you downloaded in step 1."
-        return txt, html
+            txt  = "To use OpenVPN ("+ip_address+") \n\n1. download the attached certificate, \n 2. install OpenVPN for Android Client. \n 3. Import the certificate you downloaded in step 1."
+            html  = "To use OpenVPN ("+ip_address+")<ul><li>download the attached certificate, \n <li>install OpenVPN for Android Client. <li> Import the certificate you downloaded in step 1.</ul>"
+        return txt, html, attachments, subject
 
     def get_removal_email_text(self, certname, ip_address):
         txt = ''
         html = ''
+        subjcet = ''
+        attachments = []
         if self.config.get('openvpn','enabled') == 1 and self.config.get('openvpn','email') == 1:
             txt  = "Access to VPN server IP address " +  ip_address + " is revoked.",
             html = "Access to VPN server IP address " +  ip_address + " is revoked.",
 
-        return txt, html
+        return txt, html, attachments, subject
 
     def execute_cmd(self, cmd):
         try:

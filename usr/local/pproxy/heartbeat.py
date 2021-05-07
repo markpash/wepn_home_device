@@ -60,11 +60,11 @@ class HeartBeat:
        self.mqtt_reason = reason
        pass
 
-
     #send heartbeat. if led_print==1, update LED
     def send_heartbeat(self, led_print=1):
         headers = {"Content-Type": "application/json"}
         external_ip = str(ipw.myip())
+
         ni.ifaddresses(self.config.get('hw','iface'))
         local_ip = ni.ifaddresses(self.config.get('hw','iface'))[ni.AF_INET][0]['addr']
         test_port=int(self.config.get('openvpn','port')) + 1

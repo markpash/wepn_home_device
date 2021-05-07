@@ -9,6 +9,7 @@ import logging.config
 import netifaces
 import atexit
 import upnpclient as upnp
+import requests
 try:
     from self.configparser import configparser
 except ImportError:
@@ -23,7 +24,6 @@ from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 from subprocess import call
 import shlex
-#import ipw
 import ipw
 import paho.mqtt.client as mqtt
 try:
@@ -311,3 +311,27 @@ class Device():
             return '0.0.0.0'
     def get_default_gw_vendor(self):
         return self.get_default_gw_mac()[:8]
+
+    def update_dns(self, ip_address):
+        # NOIP code from https://github.com/quleuber/no-ip-updater/blob/master/no_ip_updater/noip.py
+        messages = {
+                "good":    "[SUCCESS] Host updated sucsessfully.",
+                "nochg":   "[SUCCESS] No update needed to host.",
+                "nohost":  "[ERROR] Host doesn't exist.",
+                "badauth": "[ERROR] Username or password is invalid.",
+                "badagent":"[ERROR] Client disabled. Client should exit and not perform any more updates without user intervention.",
+                "!donator":"[ERROR] An update request was sent including a feature that is not available to that particular user such as offline options.",
+                "abuse":   "[ERROR] Username is blocked due to abuse.",
+                "911":     "[ERROR] A fatal error on our side such as a database outage. Retry the update no sooner than 30 minutes"
+                }
+        r = requests.get("http://{}:{}@dynupdate.no-ip.com/nic/update?hostname={}&myip={}".format(
+            self.config.get('dyndns','username'),
+            self.config.get('dyndns','password'),
+            self.config.get('dyndns','hostname'), ip_address))
+        if r.status_code != requests.codes.ok:
+            self.logger.debug(r.content)
+            for key in messages.keys():
+                message = messages[key]
+                if response.find(key.encode('utf-8')) == 0:
+                    self.logger.error(message)
+

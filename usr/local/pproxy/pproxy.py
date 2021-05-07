@@ -7,6 +7,8 @@ import os
 import re
 import atexit
 import logging.config
+import noipy
+
 try:
     from self.configparser import configparser
 except ImportError:
@@ -278,26 +280,27 @@ class PProxy():
             #TODO why re cannot remove \ even with escape?
             data['passcode'] = re.sub(r'[\\\\/*?:"<>|.]',"",data['passcode'][:25].replace("\n",''))
             port = self.config.get('shadow','start-port')
-            services.add_user(username, ip_address, password, int(port), lang)
-            txt, html = services.get_add_email_text(username, ip_address, lang)
+            try:
+                is_new_user = services.add_user(username, ip_address, password, int(port), lang)
+                if not is_new_user:
+                    # getting an add for existing user? should be an ip change
+                    self.logger.debug("Update IP")
+                    self.device.update_dns(ip_address)
+                txt, html, attachments, subject = services.get_add_email_text(username, ip_address, lang, is_new_user)
+            except:
+                logging.exception("Error occured with adding user")
             self.logger.debug("add_user: "+txt)
             # TODO: this is not general enough, improve to assess if each service is enabled
             #       without naming OpenVPN explicitly
-            if self.config.get('openvpn','email') == '1':
-                vpn_file = self.get_safe_path(username)
-                self.send_mail(self.config.get('email', 'email'), data['email'],
-                           "Your VPN details",
-                           'The familiar phrase you have arranged with your friend is: '+ data['passcode'] + '\n' + txt,
-                           '<p>The familiar phrase you have arranged with your friend is: <b>'+ data['passcode'] + '</b></p>'+ html,
-                           vpn_file)
-            else:
-                manuals = [ '/usr/local/pproxy/ui/'+lang+'/outline.png',
-                            '/usr/local/pproxy/ui/'+lang+'/potatso.png']
-                self.send_mail(self.config.get('email', 'email'), data['email'],
-                           "Your VPN details",
-                           'The familiar phrase you have arranged with your friend is: '+ data['passcode'] + '\n' + txt,
-                           '<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+ html,
-                           manuals)
+                #vpn_file = self.get_safe_path(username)
+            self.send_mail(self.config.get('email', 'email'),
+                           data['email'],
+                           subject,
+                           'The familiar phrase you have arranged with your friend is: '+
+                           data['passcode'] + '\n' + txt,
+                           '<p>The familiar phrase you have arranged with your friend is: <b>'+
+                           data['passcode'] + '</b></p>'+ html,
+                           attachments)
 
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])
