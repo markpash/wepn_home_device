@@ -61,7 +61,6 @@ class WPDiag:
     def open_listener(self, host, port):
         self.logger.debug("listener starting..." + str(port))
         start = int(time.time())
-        print(start)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(30)
         try:
@@ -102,16 +101,17 @@ class WPDiag:
             socket.create_connection(("www.google.com", 80),10)
             return True
         except OSError:
-            pass
+            self.logger.exception("Could not connect to the internet")
             return False
+            pass
 
     def is_connected_to_service(self):
         try:
             socket.create_connection(("www.we-pn.com", 443),10)
             return True
         except OSError:
-            pass
             return False
+            pass
 
     # DEPRECATED
     # Getting to the extrenal port from the device itself is not reliable,
@@ -262,25 +262,30 @@ class WPDiag:
             pass
             return False
 
-    def can_shadow_to_self(self,port):
+    # Each service runs its own selft test, this is true (=pass) if all services pass
+    # for VPN services, it means connecting
+    # to itself using the internal port and fetching a webpage
+    def services_self_test(self):
         try:
-            #cmd = "/usr/bin/python shadow_diag.py -c aes-ctr.json"
-            #r = self.execute_cmd(cmd)
-            #print("return values is ")
-            return True
-        except OSError:
-            pass
+            from services import Services
+            services = Services(self.logger)
+            return services.self_test()
+        except:
+            self.logger.exception("services self test error")
             return False
 
     def set_mqtt_state(self,is_connected, reason):
         self.mqtt_connected = is_connected
         self.mqtt_reason = reason
 
+    # if you make changes here to the order of the flags, please
+    # make sure the server side is also updated to reflect that
     def get_error_code(self,port_no):
         local_ip = self.device.get_local_ip()
+        # print("local_ip=" + local_ip)
         internet = self.is_connected_to_internet()
-        service = self.is_connected_to_service()
-        shadow = self.can_shadow_to_self(port_no)
+        service_connected = self.is_connected_to_service()
+        service_test = self.services_self_test()
         mqtt = int(self.status.get('mqtt'))
         claimed = int(self.status.get('claimed'))
         # port check doesn't work when not claimed
@@ -289,7 +294,8 @@ class WPDiag:
         port = 0
         if self.status.get_field('port_check', 'result')=="True":
             port = 1
-        error_code = (local_ip != "") + (internet << 1) +  (service<< 2) + (port << 3) + (mqtt << 4) + (shadow << 5) + (claimed << 6)
+        error_code = (local_ip != "") + (internet << 1) +  (service_connected<< 2) + (port << 3) + (mqtt << 4) + (service_test << 5) + (claimed << 6)
+        # print(error_code)
         return error_code
 
 

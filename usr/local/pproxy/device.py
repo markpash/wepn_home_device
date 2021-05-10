@@ -119,33 +119,33 @@ class Device():
         return (shlex.quote(str_in))
 
     def execute_cmd(self, cmd):
+        out, err, failed, pid = self.execute_cmd_output(cmd)
+        return failed
+
+    def execute_cmd_output(self, cmd, detached=False):
         try:
             failed = 0
             args = shlex.split(cmd)
-            process = subprocess.Popen(args)
-            sp = subprocess.Popen(args, 
-                    stdout=subprocess.PIPE, 
-                    stderr=subprocess.PIPE)
-            out, err = sp.communicate()
-            process.wait()
-            #if out:
-            #    print ("standard output of subprocess:")
-            #    print (out)
-            if err:
-                failed+=1
-                #print ("standard error of subprocess:")
-                #print (err)
-                #print ("returncode of subprocess:")
-                #print ("returncode="+str(sp.returncode))
-            # Does not work: return sp.returncode
-            return failed
+            out = ""
+            err = ""
+            if detached:
+                sp = subprocess.Popen(args)
+            else:
+                sp = subprocess.Popen(args,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE)
+                out, err = sp.communicate()
+                sp.wait()
+                if err:
+                    time.sleep(3)
+                    failed+=1
+            return out, err, failed, sp
         except Exception as error_exception:
             self.logger.error(args)
             self.logger.error("Error happened in running command:" + cmd)
             self.logger.error("Error details:\n"+str(error_exception))
-            process.kill()
-            return 99 
-
+            sp.kill()
+            return "","running failed", 99, None
 
 
     def turn_off(self):
@@ -313,6 +313,10 @@ class Device():
         return self.get_default_gw_mac()[:8]
 
     def update_dns(self, ip_address):
+        if not self.config.has_section("dyndns"):
+            return
+        if not self.config.getboolean('dyndns','enabled'):
+            return
         # NOIP code from https://github.com/quleuber/no-ip-updater/blob/master/no_ip_updater/noip.py
         messages = {
                 "good":    "[SUCCESS] Host updated sucsessfully.",
@@ -324,7 +328,7 @@ class Device():
                 "abuse":   "[ERROR] Username is blocked due to abuse.",
                 "911":     "[ERROR] A fatal error on our side such as a database outage. Retry the update no sooner than 30 minutes"
                 }
-        r = requests.get("http://{}:{}@dynupdate.no-ip.com/nic/update?hostname={}&myip={}".format(
+        r = requests.get(self.config.get('dyndns','url').format(
             self.config.get('dyndns','username'),
             self.config.get('dyndns','password'),
             self.config.get('dyndns','hostname'), ip_address))

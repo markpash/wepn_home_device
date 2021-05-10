@@ -99,5 +99,8 @@ class OpenVPN:
             self.logger.error("Error details:\n"+str(error_exception))
             system.exit()
 
+    def self_test(self):
+        #not implemented for OpenVPN
+        return True
 
 

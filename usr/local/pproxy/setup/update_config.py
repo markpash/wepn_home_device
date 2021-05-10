@@ -108,6 +108,14 @@ if not config.has_section('usage'):
     config.set('usage','db-path', "/var/local/pproxy/usage.db")
 
 
+if not config.has_section('dyndns'):
+    config.add_section('dyndns')
+    config.set('dyndns','enabled', "0")
+    config.set('dyndns','username', "")
+    config.set('dyndns','password', "")
+    config.set('dyndns','url', "https://{}:{}@domains.google.com/nic/update?hostname={}&myip={}")
+    #config.set('dyndns','url', "http://{}:{}@dynupdate.no-ip.com/nic/update?hostname={}&myip={}")
+
 # GCM is required, but older shadowsocks doesn't support it
 cache = apt.Cache()
 shadowsocks_3 = False

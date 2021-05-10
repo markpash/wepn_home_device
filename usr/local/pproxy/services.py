@@ -121,4 +121,8 @@ class Services:
         #print("usage is = " + str(usage))
         return usage
 
-
+    def self_test(self):
+        result = True
+        for service in self.services:
+            result &= service['obj'].self_test()
+        return result

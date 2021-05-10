@@ -15,6 +15,7 @@ import random #just for testing
 import json
 import atexit
 from datetime import datetime
+import requests
 
 import logging
 
@@ -459,3 +460,48 @@ class Shadow:
         if max_port is None:
             max_port = int(self.config.get('shadow','start-port'))
         return max_port
+
+    def self_test(self):
+        success=True
+        out=""
+        local_port = 10000
+        local_db = dataset.connect('sqlite:///'+self.config.get('shadow', 'db-path'))
+        servers = local_db['servers']
+        if not servers:
+            #if no entry in DB, just return true. No fail is a pass
+            self.logger.info('no servers for self test')
+            return True
+        device = Device(self.logger)
+        try:
+            res = requests.get('https://127.0.0.1:5000/', verify=False)
+            if res.status_code != 200:
+                # the local flask API server is down, so all of these tests will fail
+                #TODO: this is not a real shadowsocks error, so need a way to convey and recover
+                return False
+        except:
+            return False
+        for server in local_db['servers']:
+            self.logger.debug("testing :" + str(server['server_port']))
+            local_port +=1
+            ss_client_cmd = "ss-local -s 127.0.0.1 -p {} -l {} -k {} -m {} ".format(
+                                    server['server_port'],
+                                    str(local_port),
+                                    server['password'],
+                                    self.config.get('shadow','method'))
+            proxies = {'https': "socks5://localhost:"+str(local_port)}
+            try:
+                ss_out, err, failed, ss_process = device.execute_cmd_output(ss_client_cmd,True)
+                time.sleep(3)
+                if int(failed)==0:
+                    # using the local Flask API webserver
+                    # using external websites adds timeout and remote connection limits
+                    r = requests.get('https://127.0.0.1:5000/', proxies=proxies, verify=False)
+                    success &= (r.status_code == 200)
+            except:
+                self.logger.exception("Error in self test:>\t:" + str(server))
+                success = False
+            if ss_process:
+                ss_process.kill()
+        return success
+
+

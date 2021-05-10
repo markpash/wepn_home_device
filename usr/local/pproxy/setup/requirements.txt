@@ -38,3 +38,4 @@ spidev
 qrcode
 adafruit-circuitpython-busdevice
 matplotlib
+pysock
