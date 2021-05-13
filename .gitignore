@@ -22,3 +22,4 @@ __pycache__/
 
 local_test_config.ini
 .sqlite_history
+.cache

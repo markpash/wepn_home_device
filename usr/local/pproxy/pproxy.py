@@ -7,7 +7,6 @@ import os
 import re
 import atexit
 import logging.config
-import noipy
 
 try:
     from self.configparser import configparser
