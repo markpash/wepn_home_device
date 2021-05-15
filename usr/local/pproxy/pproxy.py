@@ -45,11 +45,6 @@ ROW_PINS = [19,13,6] # BCM numbering
 KEYPAD = [
         ["1",],["2",],["3"],
 ]
-ROW_PINS = [13] # BCM numbering
-COL_PINS = [13] # BCM numbering
-KEYPAD = [
-        ["2",]
-]
 CONFIG_FILE='/etc/pproxy/config.ini'
 STATUS_FILE='/var/local/pproxy/status.ini'
 LOG_CONFIG="/etc/pproxy/logging.ini"

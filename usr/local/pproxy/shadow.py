@@ -78,6 +78,7 @@ class Shadow:
         #if already exists, use same port
         #else assign a new port, 1+laargest existing
         if server is None:
+            is_new_user = True
             try:
                 results = local_db.query('select max(server_port) from servers')
                 row = list(results)[0]
@@ -89,7 +90,6 @@ class Shadow:
             self.logger.info("New port assigned is " + str(max_port+1) + " was " + str(unused_port))
             port=max_port + 1 
         else:
-            is_new_user = True
             port = server['server_port']
             # also reuse the same password, making it easier for end user
             # to update the app manually if needed

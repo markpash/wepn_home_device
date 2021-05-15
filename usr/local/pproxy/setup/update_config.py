@@ -100,6 +100,9 @@ if not config.has_option('hw','iface'):
 if not config.has_option('hw','led-version'):
     config.set('hw','led-version', '1')
 
+if not config.has_option('hw','button-version'):
+    config.set('hw','button-version', '1')
+
 if not config.has_option('hw','disable-reboot'):
     config.set('hw','disable-reboot', '1')
 
@@ -113,6 +116,7 @@ if not config.has_section('dyndns'):
     config.set('dyndns','enabled', "0")
     config.set('dyndns','username', "")
     config.set('dyndns','password', "")
+    config.set('dyndns','hostname', "")
     config.set('dyndns','url', "https://{}:{}@domains.google.com/nic/update?hostname={}&myip={}")
     #config.set('dyndns','url', "http://{}:{}@dynupdate.no-ip.com/nic/update?hostname={}&myip={}")
 

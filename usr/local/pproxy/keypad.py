@@ -39,6 +39,12 @@ class KEYPAD:
         self.status.read(STATUS_FILE)
         self.logger = logging.getLogger("keypad")
         self.device = Device(self.logger)
+        if (int(self.config.get('hw','button-version'))) == 1:
+            # this is an old model, no need for the keypad service
+            self.enabled = False
+            return
+        else:
+            self.enabled = True
         self.diag_shown = False
         self.buttons = [BUTTON_PIN, JOYUP_PIN, JOYDOWN_PIN,
                         JOYLEFT_PIN, JOYRIGHT_PIN, JOYSELECT_PIN]
@@ -191,6 +197,8 @@ def main():
     status.read(STATUS_FILE)
 
     keypad = KEYPAD()
+    if keypad.enabled == False:
+        return
     items = [{"text":"Restart", "action":keypad.restart},
             {"text":"Power off", "action":keypad.power_off},
                 {"text":"Diagnostics", "action":keypad.run_diagnostics},
