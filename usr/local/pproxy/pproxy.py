@@ -96,14 +96,15 @@ class PProxy():
         return (shlex.quote(str_in))
 
 
-    def save_state(self, new_state, led_print=1):
+    def save_state(self, new_state, led_print=1, hb_send=True):
         self.status.reload()
         self.status.set('state', new_state)
         self.status.save()
-        self.logger.debug('heartbeat from save_state '+new_state)
-        heart_beat = HeartBeat(self.loggers["heartbeat"])
-        heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
-        heart_beat.send_heartbeat(led_print)
+        if hb_send:
+            self.logger.debug('heartbeat from save_state '+new_state)
+            heart_beat = HeartBeat(self.loggers["heartbeat"])
+            heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
+            heart_beat.send_heartbeat(led_print)
 
     def process_key(self, key):
         services = Services(self.loggers['services'])
@@ -225,6 +226,8 @@ class PProxy():
             self.logger.error("failed to send mail: "+ str(error_exception))
 
     # The callback for when the client receives a CONNACK response from the server.
+    # if save_state takes too long, MQTT will disconnect so keep this function fast
+    # and not blocking too long
     def on_connect(self, client, userdata, flags, result_code):
         self.logger.info("Connected with result code "+str(result_code))
         self.mqtt_connected = 1
@@ -241,7 +244,10 @@ class PProxy():
         self.logger.info('subscribing to: '+topic)
         client.subscribe(topic,qos=1)
         self.logger.info('connected to service MQTT, saving state')
-        self.save_state("2")
+        # if device has too many friends,
+        # sending heartbeat might take too long and make MQTT fail
+        # hence the False parameter for hb_send
+        self.save_state("2", 1, False)
 
 
     #prevent directory traversal attacks by checking final path

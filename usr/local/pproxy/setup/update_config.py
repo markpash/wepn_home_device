@@ -132,7 +132,7 @@ if shadowsocks_3:
 else:
     config.set('shadow','method', 'aes-256-cfm')
 
-status.set('status','sw','1.3.6')
+status.set('status','sw','1.3.7')
 
 
 with open(CONFIG_FILE, 'w') as configfile:
