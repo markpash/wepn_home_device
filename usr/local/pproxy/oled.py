@@ -55,7 +55,7 @@ class OLED:
         self.CS = 9
         self.SPI_PORT = 0
         self.SPI_DEVICE = 0
-        if self.version==2:
+        if self.version==2  or  self.version==3:
             # Config for display baudrate (default max is 24mhz):
             BAUDRATE = 24000000
 
@@ -95,7 +95,7 @@ class OLED:
         # Move left to right keeping track of the current x position for drawing shapes.
         x_pad = padding
 
-        if self.version==2:
+        if self.version==2  or  self.version==3:
             width = 240 
             height = 240
             size = int(size*1.5)
@@ -139,7 +139,7 @@ class OLED:
         # Write lines of text/icon/qr code.
         for row, current_str, vtype, color in strs:
             vtype = int(vtype)
-            if not self.version==2:
+            if not (self.version==2  or  self.version==3):
                 color = 255
             if vtype == 1:
                    # icon
@@ -151,7 +151,7 @@ class OLED:
             elif vtype == 2:
                 # qr code
                 # it is implied that QR codes are either the ending row, or only one
-                if self.version==2:
+                if self.version==2  or  self.version==3:
                     # if screen is not big, skip QR codes
                     qr = qrcode.QRCode(
                             version=1,
@@ -172,7 +172,9 @@ class OLED:
                   draw.text((x_pad, top), current_str, font=rubik_regular, fill=color)
             top = top + size
         # Display image.
-        if self.version==2:
+        if  self.version==3:
+            self.lcd.image(image,0,0)
+        elif self.version==2:
             image = image.rotate(270)
             self.lcd.image(image,0,0)
         else:
@@ -196,7 +198,7 @@ class OLED:
             with open(TEXT_OUT, 'w') as out:
                 out.write("[WEPN LOGO]")
             return
-        if self.version==2:
+        if self.version==2  or  self.version==3:
                 img=PWD+'wepn_240_240.png'
                 image = Image.open(img)
                 if self.logo_text is not None:
