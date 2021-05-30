@@ -41,9 +41,11 @@ class KEYPAD:
         self.device = Device(self.logger)
         if (int(self.config.get('hw','button-version'))) == 1:
             # this is an old model, no need for the keypad service
+            print("old keypad")
             self.enabled = False
             return
         else:
+            print("new keypad")
             self.enabled = True
         self.diag_shown = False
         self.buttons = [BUTTON_PIN, JOYUP_PIN, JOYDOWN_PIN,
