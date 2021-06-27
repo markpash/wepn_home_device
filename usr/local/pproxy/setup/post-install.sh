@@ -237,6 +237,7 @@ modprobe i2c_bcm2708
 modprobe spi-bcm2835
 
 usermod -a -G spi pproxy
+usermod -a -G audio pproxy
 
 systemctl daemon-reload 
 systemctl restart shadowsocks-libev

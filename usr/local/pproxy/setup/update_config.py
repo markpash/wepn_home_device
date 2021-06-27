@@ -104,7 +104,7 @@ if not config.has_option('hw','button-version'):
     config.set('hw','button-version', '1')
 
 if not config.has_option('hw','disable-reboot'):
-    config.set('hw','disable-reboot', '1')
+    config.set('hw','disable-reboot', '0')
 
 if not config.has_section('usage'):
     config.add_section('usage')

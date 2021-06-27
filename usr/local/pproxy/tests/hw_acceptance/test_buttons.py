@@ -9,6 +9,7 @@ up_dir = os.path.dirname(os.path.abspath(__file__))+'/../../'
 sys.path.append(up_dir)
 import time
 import oled
+import math
 
 from adafruit_bus_device import i2c_device
 
@@ -32,16 +33,25 @@ aw = adafruit_aw9523.AW9523(i2c)
 new_i2c = i2c_device.I2CDevice(i2c, 0x58)
 print("Found it")
 
-aw.directions = 0x0000
+#aw.reset()
+#aw.interrupts_enables = 0x00
+time.sleep(1)
+#aw.directions = 0x0000
 # manually enable interrupts
+new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+print(buffer)
 buffer[0] = 0x06
 buffer[1] = 0x00
 new_i2c.write(buffer)
+#print(buffer)
+new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+print(buffer)
 
 
 # keep track which button is pressed
 pressed = [False]*7
 buttons = ["1","2","3","ok","home","up","down"]
+
 
 
 
@@ -51,11 +61,15 @@ def my_callback(channel):
     #time.sleep(0.5)
     print("CALLBACK is called")
     inputs = aw.inputs
-    print("Inputs: {:016b}".format(inputs))
+    #print("Inputs: {:016b}".format(inputs))
     print(inputs)
-    return
+    inputs = 127 - inputs & 0x7F
+    #print(inputs)
+    index = (int)(math.log2(inputs+1))
+    #print(index)
+    #return
     if inputs>0:
-        pressed[inputs-1]=True
+        pressed[index]=True
     pressed_ones = ""
     not_pressed_ones =""
     i=0
