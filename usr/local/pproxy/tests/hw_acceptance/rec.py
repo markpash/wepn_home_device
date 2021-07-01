@@ -1,15 +1,30 @@
 import pyaudio
 import wave
 import numpy as np
+import pylab
+import os
+import sys
+up_dir = os.path.dirname(os.path.abspath(__file__))+'/../../'
+sys.path.append(up_dir)
+from oled import OLED as OLED
+from PIL import Image
+from PIL import ImageDraw
+import time
+import matplotlib.pyplot as plt
+LED = OLED()
+LED.set_led_present(1)
+
 
 
 channels = 2
 def record(side):
 
     chunk = 1024  # Record in chunks of 1024 samples
+    chunk = 4*2048  # Record in chunks of 1024 samples
     sample_format = pyaudio.paInt16  # 16 bits per sample
     fs = 44100  # Record at 44100 samples per second
-    seconds = 2
+    fs = 16000  # Record at 44100 samples per second
+    seconds = 5
     filename = "output_"+side+".wav"
 
     p = pyaudio.PyAudio()  # Create an interface to PortAudio
@@ -37,6 +52,7 @@ def record(side):
     stream.close()
     # Terminate the PortAudio interface
     p.terminate()
+    soundplot(data)
 
     print('Finished recording '+ side)
     print("*"*25)
@@ -51,6 +67,35 @@ def record(side):
     wf.writeframes(frame_bytes)
     wf.close()
     return depth, fs, frame_bytes
+
+def soundplot(chunk):
+    data = np.fromstring(chunk,dtype=np.int16)
+
+    times = np.linspace(
+        0, # start
+        len(data) / 44100,
+        num = len(data)
+    )
+    fig = plt.figure(1, figsize=(240,240), dpi=10)
+      
+    # title of the plot
+    plt.title("Sound Wave")
+      
+    # label of x-axis
+    plt.xlabel("Time")
+     
+    # actual ploting
+    plt.plot(times, data)
+      
+    # you can also save
+    # the plot using
+    #plt.savefig("filename.png")
+    #img = Image.open("filename.png")
+    fig.canvas.draw()
+    img = Image.frombytes('RGB',
+        fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
+    im1 = img.resize((240,240))
+    LED.show_image(im1)
 
 def save_wav_channel(fn, depth, fs, sdata, channel):
     '''

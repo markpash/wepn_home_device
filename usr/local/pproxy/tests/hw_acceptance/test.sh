@@ -30,8 +30,13 @@ echo -e "\n\n========= Starting LED Test ============"
 python3 test_led.py
 led=$?
 
+#read -p "Press any key for light sensor test" -n1 -s
+echo -e "\n\n========= Starting Light Sensor Test ============"
+python3 test_ambient.py
+ambient=$?
+
 echo -e "\n\n========= Starting speaker Test ============"
-#/usr/bin/play stereo-test.wav
+/usr/bin/play stereo-test.wav
 speaker=5
 echo -e "Did you hear left and right sounds? [y/n]\n"
 read speaker_test
@@ -90,4 +95,4 @@ print_result "Temperature" $temp
 print_result "Buttons    " $buttons
 print_result "Speaker    " $speaker
 print_result "Microhpne  " $mic 
-#light
+print_result "Light Sensor  " $ambient 

@@ -50,7 +50,7 @@ print(buffer)
 
 # keep track which button is pressed
 pressed = [False]*7
-buttons = ["1","2","3","ok","home","up","down"]
+buttons = ["1","2","3","up","down","ok","home"]
 
 
 
@@ -61,12 +61,15 @@ def my_callback(channel):
     #time.sleep(0.5)
     print("CALLBACK is called")
     inputs = aw.inputs
-    #print("Inputs: {:016b}".format(inputs))
+    print("Inputs: {:016b}".format(inputs))
     print(inputs)
     inputs = 127 - inputs & 0x7F
-    #print(inputs)
-    index = (int)(math.log2(inputs+1))
-    #print(index)
+    print(inputs)
+    if inputs < 0:
+        return
+    index = (int)(math.log2(inputs))
+    print("index is")
+    print(index)
     #return
     if inputs>0:
         pressed[index]=True
@@ -83,6 +86,8 @@ def my_callback(channel):
     print(not_pressed_ones)
     if display:
         LED.display([(1,"Press all buttons",0, "white"), (2,pressed_ones,0, "green"), (3,not_pressed_ones,0,"red")], 15)
+    if len(not_pressed_ones) == 0:
+        sys.exit(0)
 
 if display:
     LED.display([(1,"Press all buttons",0, "white"), (2,"",0, "Green"), (3,"1,2,3,ok,home,up, down",0,"red")], 15)
