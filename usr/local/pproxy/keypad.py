@@ -1,6 +1,7 @@
 import time
 import signal
 import os
+import math
 try:
     from self.configparser import configparser
 except ImportError:
@@ -10,13 +11,11 @@ import logging
 from digitalio import DigitalInOut, Direction, Pull
 from PIL import Image, ImageDraw, ImageFont
 import sys,tty,termios
-
-BUTTON_PIN = board.D17
-JOYDOWN_PIN = board.D27
-JOYLEFT_PIN = board.D22
-JOYUP_PIN = board.D23
-JOYRIGHT_PIN = board.D24
-JOYSELECT_PIN = board.D16
+import adafruit_aw9523
+from adafruit_bus_device import i2c_device
+display = True
+import RPi.GPIO as GPIO
+from adafruit_bus_device import i2c_device
 
 from oled import OLED as OLED
 from diag import WPDiag
@@ -28,6 +27,8 @@ STATUS_FILE='/var/local/pproxy/status.ini'
 LOG_CONFIG="/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG,
             disable_existing_loggers=False)
+INT_EXPANDER = 5
+BUTTONS = ["1","2","3","up","down","ok","home"]
 
 
 class KEYPAD:
@@ -46,23 +47,66 @@ class KEYPAD:
             return
         else:
             print("new keypad")
+            self.aw = None
+            self.init_i2c()
             self.enabled = True
         self.diag_shown = False
-        self.buttons = [BUTTON_PIN, JOYUP_PIN, JOYDOWN_PIN,
-                        JOYLEFT_PIN, JOYRIGHT_PIN, JOYSELECT_PIN]
-        for i,pin in enumerate(self.buttons):
-            self.buttons[i] = DigitalInOut(pin)
-            self.buttons[i].direction = Direction.INPUT
-            self.buttons[i].pull = Pull.UP
-        self.button, self.joyup, self.joydown, self.joyleft, self.joyright, self.joyselect = self.buttons
-
-
         self.lcd = OLED()
         self.lcd.set_led_present(self.config.get('hw','led'))
+        self.lcd.display([(1,"Press all buttons",0, "white"), ], 15)
         self.width = 240 
         self.height = 240
         self.menu_row_y_size = 40
         self.menu_items= menu_items
+        self.current = 0
+
+
+    def init_i2c(self):
+        GPIO.setmode(GPIO.BCM)
+        i2c = board.I2C()
+        # Set this to the GPIO of the interrupt:
+        GPIO.setup(INT_EXPANDER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        self.aw = adafruit_aw9523.AW9523(i2c)
+        new_i2c = i2c_device.I2CDevice(i2c, 0x58)
+        time.sleep(1)
+        buffer = bytearray(2)
+        new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+        buffer[0] = 0x06
+        buffer[1] = 0x00
+        new_i2c.write(buffer)
+        #print(buffer)
+        new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+        GPIO.add_event_detect(INT_EXPANDER, GPIO.FALLING, callback=self.key_press_cb)
+
+    def key_press_cb(self, channel):
+        print("CALLBACK is called")
+        inputs = self.aw.inputs
+        print("Inputs: {:016b}".format(inputs))
+        print(inputs)
+        inputs = 127 - inputs & 0x7F
+        print(inputs)
+        if inputs < 1:
+            return
+        index = (int)(math.log2(inputs))
+        print("index is")
+        print(index)
+        #return
+        if inputs>-1:
+            button= BUTTONS[index]
+            if BUTTONS[index]  == "up":
+              print("Key up on " + str(self.current))
+              if self.current > 0:
+                  self.current -= 1
+            if BUTTONS[index]=="down":
+              print("Key down on " + str(self.current))
+              if self.current < len(self.menu_items)-1:
+                  self.current += 1
+            if BUTTONS[index]=="ok":
+              print("Key select on " + str(self.current))
+              self.menu_items[self.current]["action"]()
+              if self.diag_shown == True:
+                self.diag_shown = False
+            self.render(self.current) 
 
     def set_menu(self, menu_items):
         self.menu_items= menu_items
@@ -111,33 +155,8 @@ class KEYPAD:
             i = i +1
         out = Image.alpha_composite(base, txt)
         out.paste(overlay,(0,0),overlay)
-        out = out.rotate(270)
+        out = out.rotate(0)
         self.lcd.show_image(out)
-
-    def get(self, current):
-          if not self.button.value:
-            print("Button pressed")
-          if not self.joyup.value:
-            print("Joystick left")
-          if not self.joydown.value:
-            print("Joystick right")
-          if not self.joyleft.value:
-            print("Joystick up")
-            if current > 0:
-                current -= 1
-          if not self.joyright.value:
-            print("Joystick down")
-            if current < len(self.menu_items)-1:
-                current += 1
-          if not self.joyselect.value:
-            print("Joystick select on" + str(current))
-            self.menu_items[current]["action"]()
-            if self.diag_shown == True:
-                self.diag_shown = False
-                self.render(current)
-
-          time.sleep(0.1)
-          return current
 
     def show_claim_info(self):
             current_key = self.status.get('status', 'temporary_key')
@@ -209,12 +228,10 @@ def main():
         items.insert(0,{"text":"Claim Info", "action":keypad.show_claim_info})
 
     keypad.set_menu(items)
-    current = 0
+    keypad.current = 0
+    keypad.render(0)
     while True:
-        prev_current=current
-        current = keypad.get(current)
-        if current != prev_current:
-            keypad.render(current)
+        time.sleep(100)
 
 if __name__=='__main__':
     main()

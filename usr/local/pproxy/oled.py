@@ -206,7 +206,8 @@ class OLED:
                     draw = ImageDraw.Draw(image)
                     draw.text((self.logo_text_x, self.logo_text_y), self.logo_text, font = rubik_regular, fill = self.logo_text_color)
                     self.logo_text = None
-                image = image.rotate(270)
+                if self.version==2: 
+                    image = image.rotate(270)
                 self.lcd.image(image,0,0)
         else:
             img=PWD+'wepn_128_64.png'
