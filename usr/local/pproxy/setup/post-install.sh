@@ -251,6 +251,7 @@ systemctl restart shadowsocks-libev-manager
 systemctl enable wepn-api
 systemctl restart wepn-api
 systemctl disable wepn-keypad
+systemctl disable wepn-leds
 #systemctl restart wepn-keypad
 /bin/sh /etc/init.d/pproxy restart
 

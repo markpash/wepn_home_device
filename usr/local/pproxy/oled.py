@@ -11,6 +11,7 @@ except Exception as err:
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
+import RPi.GPIO as GPIO
 import logging.config
 import qrcode
 
@@ -26,6 +27,7 @@ logging.config.fileConfig(LOG_CONFIG,
             disable_existing_loggers=False)
 PWD='/usr/local/pproxy/ui/'
 TEXT_OUT='/tmp/fake_oled'
+GPIO.setmode(GPIO.BCM)
 
 
 class OLED:

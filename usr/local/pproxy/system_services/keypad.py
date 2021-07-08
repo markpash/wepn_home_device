@@ -1,6 +1,9 @@
 import time
 import signal
 import os
+import sys
+up_dir = os.path.dirname(os.path.abspath(__file__))+'/../'
+sys.path.append(up_dir)
 import math
 try:
     from self.configparser import configparser

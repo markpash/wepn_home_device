@@ -1,11 +1,10 @@
 [Unit]
 Description=WEPN Keypad Service
 After=network.target 
-Conflicts=getty@tty1.service
 
 [Service]
 User=pproxy
-ExecStart=/usr/bin/python3 /usr/local/pproxy/keypad.py
+ExecStart=/usr/bin/python3 /usr/local/pproxy/system_services/keypad.py
 KillMode=process
 Restart=on-failure
 RestartPreventExitStatus=255
@@ -13,8 +12,6 @@ Type=simple
 RuntimeDirectory=/usr/local/pproxy/
 WorkingDirectory=/usr/local/pproxy/
 RuntimeDirectoryMode=0755
-StandardInput=tty-force
-
 
 [Install]
 WantedBy=multi-user.target

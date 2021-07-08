@@ -24,6 +24,7 @@ import logging.config
 from ipw import IPW
 import paho.mqtt.client as mqtt
 from heartbeat import HeartBeat
+from led_client import LEDClient
 try:
     import RPi.GPIO as GPIO
     from pad4pi import rpi_gpio
@@ -71,6 +72,7 @@ class OnBoard():
         self.rand_key = None
         self.retries_so_far_screen = 0
         self.oled = OLED()
+        self.leds = LEDClient()
         self.oled.set_led_present(self.config.get('hw','led'))
         signal.signal(signal.SIGUSR1, self.signal_handler)
         return
@@ -200,6 +202,7 @@ class OnBoard():
         self.logger.debug("Connected with result code "+str(result_code))
         if (result_code == 0):
              self.logger.critical("* setting device to claimed")
+             self.leds.set_all(0, 255, 0)
              #save the randomly generated devkey
              self.config.set('mqtt','password',self.rand_key)
              self.config.set('django','device_key',self.rand_key)
@@ -224,7 +227,7 @@ class OnBoard():
             # if no app is installed, QR code will redirect to iOS/Android App store automaticall
             # if app is installed, the camera in app can extract serial and keys and ignore the URL
             display_str = [(1, "https://red.we-pn.com/?s="+
-                str(serial_number) + "&k="+str(current_key), 2, "white")]
+                str(serial_number) + "&k="+str(self.rand_key), 2, "white")]
         else:
             display_str = [(1, "Device Key:", 0,"blue"),
                     (2,'',0,"white"), (3, str(self.rand_key), 0,"white"),]
@@ -232,6 +235,7 @@ class OnBoard():
 
     def start(self, run_once = False):
         run_once_done = False
+        keypad = None
         self.logger.debug("run_once= " + str(run_once))
         if not run_once:
             self.generate_rand_key()
@@ -263,6 +267,7 @@ class OnBoard():
                                password=self.rand_key)
         self.logger.debug("mqtt host:" +str(self.config.get('mqtt','host')))
         while self.unclaimed and not run_once_done :
+            self.leds.progress_wheel_step(0,0,255)
             try:
                   self.logger.debug("password for mqtt= "+ self.rand_key)
                   self.retries_so_far_screen += 1
@@ -279,7 +284,8 @@ class OnBoard():
                         (2, "Network error,",0,"red"), (3, "check cable...", 0,"red") ]
                 self.oled.display(display_str, 18)
                 if (int(self.config.get('hw','buttons'))):
-                    keypad.cleanup()
+                    if keypad is not None:
+                        keypad.cleanup()
                     if gpio_up:
                         GPIO.cleanup()
 
@@ -291,6 +297,7 @@ class OnBoard():
                     run_once_done = True
 
         if (int(self.config.get('hw','buttons'))):
-            keypad.cleanup()
+            if keypad is not None:
+                keypad.cleanup()
             if gpio_up:
                 GPIO.cleanup()

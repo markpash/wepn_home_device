@@ -26,6 +26,7 @@ import shlex
 from ipw import IPW
 import paho.mqtt.client as mqtt
 from heartbeat import HeartBeat
+from led_client import LEDClient
 try:
     import RPi.GPIO as GPIO
     from pad4pi import rpi_gpio
@@ -71,6 +72,7 @@ class PProxy():
         self.loggers["services"] = logging.getLogger("services")
         self.loggers["wstatus"] = logging.getLogger("wstatus")
         self.loggers["device"] = logging.getLogger("device")
+        self.leds = LEDClient()
         atexit.register(self.cleanup)
         if logger is not None:
             self.logger=logger
@@ -82,6 +84,7 @@ class PProxy():
 
     def cleanup(self):
         self.logger.debug("PProxy shutting down.")
+        self.leds.blank()
         if gpio_up:
             GPIO.cleanup()
 
@@ -244,6 +247,7 @@ class PProxy():
         self.logger.info('subscribing to: '+topic)
         client.subscribe(topic,qos=1)
         self.logger.info('connected to service MQTT, saving state')
+        self.leds.blank()
         # if device has too many friends,
         # sending heartbeat might take too long and make MQTT fail
         # hence the False parameter for hb_send
@@ -355,6 +359,7 @@ class PProxy():
     #callback for diconnection of MQTT from server
     def on_disconnect(self,client, userdata, reason_code):
         self.logger.info("MQTT disconnected")
+        self.leds.set_all(255, 145, 0)
         self.status.reload()
         self.mqtt_connected = 0
         self.mqtt_reason = reason_code
@@ -367,6 +372,7 @@ class PProxy():
         oled = OLED()
         oled.set_led_present(self.config.get('hw','led'))
         oled.show_logo()
+        self.leds.set_all(0, 178, 16)
         services = Services(self.loggers['services'])
         services.start()
         client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=False)
