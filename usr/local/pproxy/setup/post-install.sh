@@ -236,6 +236,12 @@ modprobe i2c_dev
 modprobe i2c_bcm2708
 modprobe spi-bcm2835
 
+#######################################
+# Install SeeedStudio for speakers
+# This is needed for HW2
+######################################
+/bin/bash install_seeedstudio.sh
+
 usermod -a -G spi pproxy
 usermod -a -G audio pproxy
 

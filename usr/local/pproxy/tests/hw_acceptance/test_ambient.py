@@ -16,9 +16,9 @@ i2c = board.I2C()  # uses board.SCL and board.SDA
 veml7700 = adafruit_veml7700.VEML7700(i2c)
 result = True
 
-while True:
-    print("Ambient light:", veml7700.light)
-    time.sleep(0.1)
+#while True:
+#    print("Ambient light:", veml7700.light)
+#    time.sleep(0.1)
 
 LED.display([(1,"Cover the ambient sensor",0,"white"),], 20)
 baseline = int(veml7700.light)

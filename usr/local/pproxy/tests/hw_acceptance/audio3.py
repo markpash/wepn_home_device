@@ -9,7 +9,7 @@ import wave
 chunk = 1024
 
 #open a wav format music
-f = wave.open(r"left.wav","rb")
+f = wave.open(r"leftchannel.wav","rb")
 #instantiate PyAudio
 p = pyaudio.PyAudio()
 #open stream

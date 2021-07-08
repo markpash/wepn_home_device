@@ -36,7 +36,7 @@ python3 test_ambient.py
 ambient=$?
 
 echo -e "\n\n========= Starting speaker Test ============"
-/usr/bin/play stereo-test.wav
+/usr/bin/speaker-test -l 2
 speaker=5
 echo -e "Did you hear left and right sounds? [y/n]\n"
 read speaker_test
@@ -57,8 +57,8 @@ mic_left=5
 mic_right=5
 /usr/bin/play left.wav
 echo -e "Did you hear left? [y/n]\n"
-read speaker_test
-case $speaker_test in
+read mic_test
+case $mic_test in
 	y ) 
 		mic_left=0
 		;;
@@ -69,8 +69,8 @@ esac
 /usr/bin/play right.wav
 
 echo -e "Did you hear right? [y/n]\n"
-read speaker_test
-case $speaker_test in
+read mic_test
+case $mic_test in
 	y ) 
 		mic_right=0
 		;;
