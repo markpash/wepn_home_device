@@ -1,3 +1,3 @@
 /bin/systemctl restart pproxy
-/bin/systemctl restart wep-api
-/bin/systemctl restart wep-keypad
+/bin/systemctl restart wepn-api
+/bin/systemctl restart wepn-keypad

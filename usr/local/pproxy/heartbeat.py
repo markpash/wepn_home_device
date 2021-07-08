@@ -55,6 +55,24 @@ class HeartBeat:
             pass
             return False
 
+    def get_display_string_status(self, lcd):
+        icons, any_err = lcd.get_status_icons(status,
+                self.is_connected(), self.mqtt_connected)
+        if any_err:
+            color = "red"
+        else:
+            color = "green"
+        if lcd.version > 1:
+            display_str = [(1, "PIN: ",0,"blue"),
+                    (2, "", 0,"black"),
+                    (3, str(self.pin), 0,"white"),
+                    (4, "", 0,"black"),(5, "", 0,"black"),
+                    (6,icons,1, color)]
+        else:
+            display_str = [(1, "PIN: ",0,"blue"),
+                    (2, str(self.pin), 0,"blue"),
+                    (3,icons,1, color)]
+
     def set_mqtt_state(self,is_connected, reason):
        self.mqtt_connected = is_connected
        self.mqtt_reason = reason
@@ -106,14 +124,6 @@ class HeartBeat:
             self.logger.error("Error in sending heartbeat: \r\n\t" + str(exception_error))
         if (led_print):
             led = OLED()
-            led.set_led_present(self.config.get('hw','led'))
-            icons, any_err = led.get_status_icons(status, self.is_connected(), self.mqtt_connected)
-            if any_err:
-                color = "red"
-            else:
-                color = "green"
-            if led.version == 2:
-                display_str = [(1, "PIN: ",0,"blue"),(2, "", 0,"black"), (3, str(self.pin), 0,"white"), (4, "", 0,"black"),(5, "", 0,"black"),(6,icons,1, color)]
-            else:
-                display_str = [(1, "PIN: ",0,"blue"), (2, str(self.pin), 0,"blue"), (3,icons,1, color)]
+            led.set_led_present(self.config.get('hw','led'), status)
+            self.get_display_string_status(led)
             led.display(display_str, 20)

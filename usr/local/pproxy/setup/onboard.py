@@ -219,15 +219,17 @@ class OnBoard():
         self.logger.debug(">>>on_message: "+msg.topic+" "+str(msg.payload))
 
     def display_claim_info(self):
-        if int(self.config.get("hw","led-version")) == 2:
+        if int(self.config.get("hw","led-version")) > 1:
             serial_number = self.config.get('django','serial_number')
             # if no app is installed, QR code will redirect to iOS/Android App store automaticall
             # if app is installed, the camera in app can extract serial and keys and ignore the URL
-            display_str = [(1, "https://red.we-pn.com/?s="+str(serial_number) + "&k="+str(self.rand_key), 2, "white")]
+            display_str = [(1, "https://red.we-pn.com/?s="+
+                str(serial_number) + "&k="+str(current_key), 2, "white")]
         else:
             display_str = [(1, "Device Key:", 0,"blue"),
                     (2,'',0,"white"), (3, str(self.rand_key), 0,"white"),]
         self.oled.display(display_str, 18)
+
     def start(self, run_once = False):
         run_once_done = False
         self.logger.debug("run_once= " + str(run_once))
@@ -238,7 +240,6 @@ class OnBoard():
         self.oled.show_logo()
         time.sleep(10)
         self.display_claim_info()
-        #display_str = [(1, "Device Key:", 0,"blue"), (2, str(self.rand_key), 0,"white"), (3, "https://youtu.be/jYgeDSG9G0A wepn://s=SERIAL&k=JEY", 2, "white")]
         self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
         # TODO: to log this effectively for error logs,
         # instead of actual key save a hash of it to the log file. This way WEPN staff can

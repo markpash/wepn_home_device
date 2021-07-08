@@ -372,7 +372,7 @@ class PProxy():
         client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=False)
         self.logger.debug('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LED='+
                 self.config.get('hw','led'))
-        if (int(self.config.get('hw','buttons'))):
+        if (int(self.config.get('hw','buttons'))==1):
             try:
                 keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
                 keypad.registerKeyPressHandler(self.process_key)
@@ -396,15 +396,13 @@ class PProxy():
             self.logger.error("MQTT connect failed")
             display_str = [(1, chr(33)+'     '+chr(33),1,"red"), (2, "Network error,",0,"red"), (3, "check cable...", 0,"red") ]
             oled.display(display_str, 15)
-            if (int(self.config.get('hw','buttons'))):
+            if (int(self.config.get('hw','buttons'))==1):
                 keypad.cleanup()
                 if gpio_up:
                     GPIO.cleanup()
             raise
         # Blocking call that processes network traffic, dispatches callbacks and
         # handles reconnecting.
-        # Other loop*() functions are available that give a threaded interface and a
-        # manual interface.
         client.loop_forever()
         if (int(self.config.get('hw','buttons'))):
             keypad.cleanup()

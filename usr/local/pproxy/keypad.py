@@ -20,6 +20,7 @@ from adafruit_bus_device import i2c_device
 from oled import OLED as OLED
 from diag import WPDiag
 from device import Device
+from heartbeat import HeartBeat
 
 PWD='/usr/local/pproxy/ui/'
 CONFIG_FILE='/etc/pproxy/config.ini'
@@ -40,6 +41,7 @@ class KEYPAD:
         self.status.read(STATUS_FILE)
         self.logger = logging.getLogger("keypad")
         self.device = Device(self.logger)
+        self.display_active = False
         if (int(self.config.get('hw','button-version'))) == 1:
             # this is an old model, no need for the keypad service
             print("old keypad")
@@ -91,22 +93,31 @@ class KEYPAD:
         print("index is")
         print(index)
         #return
+        exit_menu = False
         if inputs>-1:
             button= BUTTONS[index]
             if BUTTONS[index]  == "up":
               print("Key up on " + str(self.current))
               if self.current > 0:
                   self.current -= 1
+              self.display_active = True
             if BUTTONS[index]=="down":
               print("Key down on " + str(self.current))
               if self.current < len(self.menu_items)-1:
                   self.current += 1
+              self.display_active = True
             if BUTTONS[index]=="ok":
               print("Key select on " + str(self.current))
-              self.menu_items[self.current]["action"]()
-              if self.diag_shown == True:
-                self.diag_shown = False
-            self.render(self.current) 
+              if self.display_active:
+                  exit_menu = self.menu_items[self.current]["action"]()
+                  if self.diag_shown == True:
+                    self.diag_shown = False
+            if BUTTONS[index]  == "home":
+              print("Key home on " + str(self.current))
+              exit_menu = True
+              self.show_home_screen()
+            if exit_menu == False:
+                self.render(self.current) 
 
     def set_menu(self, menu_items):
         self.menu_items= menu_items
@@ -166,6 +177,7 @@ class KEYPAD:
             self.lcd.display(display_str, 20)
             time.sleep(15)
             self.render(0)
+            return True # exit the menu
 
     def show_claim_info_qrcode(self):
             current_key = self.status.get('status', 'temporary_key')
@@ -173,14 +185,15 @@ class KEYPAD:
             display_str = [(1, "https://red.we-pn.com/?s="+
                 str(serial_number) + "&k="+str(current_key), 2, "white")]
             self.lcd.display(display_str, 20)
+            return True # exit the menu
 
     def restart(self):
         self.device.reboot()
-        pass
+        return True # exit the menu
 
     def power_off(self):
         self.device.turn_off()
-        pass
+        return True # exit the menu
 
     def run_diagnostics(self):
         diag = WPDiag(self.logger)
@@ -201,6 +214,7 @@ class KEYPAD:
         self.lcd.display(display_str, 19)
         time.sleep(15)
         self.diag_shown = True
+        return False # stay in the menu
 
     def signal_main_wepn(self):
         print("starting")
@@ -213,23 +227,36 @@ class KEYPAD:
             except ProcessLookupError as process_error:
                 self.logger.error("Could not find the process for main wepn: "+str(wepn_pid)+":" + str(process_error))
 
-def main():
-    status = configparser.ConfigParser()
-    status.read(STATUS_FILE)
+    def show_home_screen(self):
+        self.current = 0
+        self.display_active = False
+        self.status = configparser.ConfigParser()
+        self.status.read(STATUS_FILE)
+        if int(self.status.get("status", "claimed")) == 0:
+            self.show_claim_info_qrcode()
+        else:
+            # show the status info
+            hb = HeartBeat(self.logger)
+            status = int(self.status.get("status", 'state'))
+            display_str = hb.get_display_string_status(self.lcd, status)
+            self.lcd.display(display_str, 20)
 
+
+def main():
     keypad = KEYPAD()
     if keypad.enabled == False:
         return
     items = [{"text":"Restart", "action":keypad.restart},
             {"text":"Power off", "action":keypad.power_off},
                 {"text":"Diagnostics", "action":keypad.run_diagnostics},
-                {"text":"Exit", "action":keypad.show_claim_info_qrcode}]
-    if 0 == int(status.get('status','claimed')):
+                {"text":"Exit", "action":keypad.show_home_screen}]
+    if 0 == int(keypad.status.get('status', 'claimed')):
         items.insert(0,{"text":"Claim Info", "action":keypad.show_claim_info})
 
     keypad.set_menu(items)
     keypad.current = 0
-    keypad.render(0)
+    # default scren is QR Code
+    keypad.show_home_screen()
     while True:
         time.sleep(100)
 
