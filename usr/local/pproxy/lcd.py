@@ -185,7 +185,7 @@ class LCD:
         image.save("/tmp/screen.png")
 
 
-    def set_logo_text(self, text, x, y, color, size):
+    def set_logo_text(self, text, x=60, y=200, color="red", size=15):
         self.logo_text = text
         self.logo_text_x = x
         self.logo_text_y = y
@@ -195,7 +195,7 @@ class LCD:
     def show_image(self, image):
         self.lcd.image(image,0,0)
 
-    def show_logo(self):
+    def show_logo(self, x=0, y=0):
         if (self.lcd_present==0):
             with open(TEXT_OUT, 'w') as out:
                 out.write("[WEPN LOGO]")
@@ -204,13 +204,16 @@ class LCD:
                 img=PWD+'wepn_240_240.png'
                 image = Image.open(img)
                 if self.logo_text is not None:
-                    rubik_regular = ImageFont.truetype(PWD+'rubik/Rubik-Bold.ttf', self.logo_text_size)
+                    rubik_regular = ImageFont.truetype(PWD+'rubik/Rubik-Bold.ttf',
+                            self.logo_text_size)
                     draw = ImageDraw.Draw(image)
-                    draw.text((self.logo_text_x, self.logo_text_y), self.logo_text, font = rubik_regular, fill = self.logo_text_color)
+                    draw.text((self.logo_text_x, self.logo_text_y), self.logo_text,
+                            #font = rubik_regular, fill = self.logo_text_color)
+                            font = rubik_regular, fill=(255,255,255, 255))
                     self.logo_text = None
                 if self.version==2: 
                     image = image.rotate(270)
-                self.lcd.image(image,0,0)
+                self.lcd.image(image, x, y)
         else:
             img=PWD+'wepn_128_64.png'
             image  = Image.open(img).convert('1')

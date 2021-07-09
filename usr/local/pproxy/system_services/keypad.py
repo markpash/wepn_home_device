@@ -32,7 +32,7 @@ LOG_CONFIG="/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG,
             disable_existing_loggers=False)
 INT_EXPANDER = 5
-BUTTONS = ["1","2","3","up","down","ok","home"]
+BUTTONS = ["0","1","2","up","down","back","home"]
 
 
 class KEYPAD:
@@ -45,6 +45,7 @@ class KEYPAD:
         self.logger = logging.getLogger("keypad")
         self.device = Device(self.logger)
         self.display_active = False
+        self.window_stack = []
         if (int(self.config.get('hw','button-version'))) == 1:
             # this is an old model, no need for the keypad service
             print("old keypad")
@@ -61,9 +62,10 @@ class KEYPAD:
         self.lcd.display([(1,"Press all buttons",0, "white"), ], 15)
         self.width = 240 
         self.height = 240
-        self.menu_row_y_size = 40
-        self.menu_items= menu_items
-        self.current = 0
+        self.menu_row_y_size = 37
+        self.menu_row_skip = 22 
+        self.menu = None
+        self.menu_index = 0
 
 
     def init_i2c(self):
@@ -93,37 +95,46 @@ class KEYPAD:
         if inputs < 1:
             return
         index = (int)(math.log2(inputs))
-        print("index is")
-        print(index)
+        print("index is" + str(index))
         #return
         exit_menu = False
+        menu_base_index = 0
         if inputs>-1:
             button= BUTTONS[index]
             if BUTTONS[index]  == "up":
-              print("Key up on " + str(self.current))
-              if self.current > 0:
-                  self.current -= 1
-              self.display_active = True
+              print("Key up on " + str(index))
             if BUTTONS[index]=="down":
-              print("Key down on " + str(self.current))
-              if self.current < len(self.menu_items)-1:
-                  self.current += 1
-              self.display_active = True
-            if BUTTONS[index]=="ok":
-              print("Key select on " + str(self.current))
-              if self.display_active:
-                  exit_menu = self.menu_items[self.current]["action"]()
-                  if self.diag_shown == True:
-                    self.diag_shown = False
+              print("Key down on " + str(index))
+            if BUTTONS[index]=="back":
+              print("Key back on " + str(index))
+              if len(self.window_stack) > 0:
+                  back = self.window_stack.pop()
+                  self.menu_index = back
+                  self.render()
+              elif len(self.window_stack) == 0:
+                  self.set_current_menu(0)
+                  exit_menu = True
+                  self.show_home_screen()
+            if BUTTONS[index] in ["1","2","0"]:
+              print("Key side =" + BUTTONS[index])
+              self.window_stack.append(self.menu_index)
+              exit_menu = self.menu[self.menu_index][int(BUTTONS[index])+menu_base_index]["action"]()
+              print(self.menu[self.menu_index][int(BUTTONS[index])])
+              if self.diag_shown == True:
+                self.diag_shown = False
             if BUTTONS[index]  == "home":
-              print("Key home on " + str(self.current))
+              print("Key home on " + str(index))
               exit_menu = True
               self.show_home_screen()
             if exit_menu == False:
-                self.render(self.current) 
+                self.render() 
 
-    def set_menu(self, menu_items):
-        self.menu_items= menu_items
+    def set_full_menu(self, menu):
+        self.menu = menu
+
+    def set_current_menu(self, index):
+        self.menu_index= index
+        print(self.menu[index])
 
     def round_corner(self, radius, fill):
         """Draw a round corner"""
@@ -144,29 +155,44 @@ class KEYPAD:
         rectangle.paste(corner.rotate(270), (width - radius, 0))
         return rectangle
 
-    def render(self, selected):
+    def half_round_rectangle(self, size, radius, fill):
+        """Draw a rounded rectangle"""
+        width, height = size
+        rectangle = Image.new('RGB', size, fill)
+        corner = self.round_corner(radius, fill)
+        #rectangle.paste(corner, (0, 0))
+        #rectangle.paste(corner.rotate(90), (0, height - radius))  # Rotate the corner and paste it
+        rectangle.paste(corner.rotate(180), (width - radius, height - radius))
+        rectangle.paste(corner.rotate(270), (width - radius, 0))
+        return rectangle
+
+    def render(self):
         # get a font
         base = Image.new("RGBA",(self.width,self.height), (0,0,0))
         fnt = ImageFont.truetype(PWD+'rubik/Rubik-Light.ttf', 30)
+        fnt_title = ImageFont.truetype(PWD+'rubik/Rubik-Light.ttf', 8)
         txt = Image.new("RGBA", base.size, (255,255,255,0))
         d = ImageDraw.Draw(txt)
         overlay= Image.new("RGBA", base.size, (255,255,255,0))
+        title="Main"
+        d.text(((200-len(title)*8)/2,2), title, font=fnt, fill=(255,255,255, 255))
         x=10
         y=0
         i = 0
         corner = None
-        for item in self.menu_items:
-            y = y + self.menu_row_y_size
+        for item in self.menu[self.menu_index]:
+            y = y + int(self.menu_row_y_size/2) + self.menu_row_skip 
             opacity = 128
-            if i == selected:
+            if True:
                 opacity = 255
-                corner = self.round_rectangle((220,40), int(self.menu_row_y_size/2),
+                corner = self.half_round_rectangle((200,self.menu_row_y_size), int(self.menu_row_y_size/2),
                         (255,255,255,128))
-                corner.putalpha(128)
-                cornery = y - int(self.menu_row_y_size/4) + 5
-                overlay.paste(corner, (5,cornery))
+                corner.putalpha(18)
+                cornery = y
+                overlay.paste(corner, (x, cornery))
             d.text((x,y), "  "+item['text'], font=fnt, fill=(255,255,255, opacity))
             i = i +1
+            y = y + int(self.menu_row_y_size/2) 
         out = Image.alpha_composite(base, txt)
         out.paste(overlay,(0,0),overlay)
         out = out.rotate(0)
@@ -179,7 +205,7 @@ class KEYPAD:
                     (3, "Serial #",0,"blue"), (4, serial_number,0,"white"), ]
             self.lcd.display(display_str, 20)
             time.sleep(15)
-            self.render(0)
+            self.render()
             return True # exit the menu
 
     def show_claim_info_qrcode(self):
@@ -191,11 +217,15 @@ class KEYPAD:
             return True # exit the menu
 
     def restart(self):
-        self.device.reboot()
+        self.lcd.set_logo_text("Restarting ...")
+        self.lcd.show_logo()
+        #self.device.reboot()
         return True # exit the menu
 
     def power_off(self):
-        self.device.turn_off()
+        self.lcd.set_logo_text("Powering off ...")
+        self.lcd.show_logo()
+        #self.device.turn_off()
         return True # exit the menu
 
     def run_diagnostics(self):
@@ -231,7 +261,8 @@ class KEYPAD:
                 self.logger.error("Could not find the process for main wepn: "+str(wepn_pid)+":" + str(process_error))
 
     def show_home_screen(self):
-        self.current = 0
+        #self.render()
+        #return
         self.display_active = False
         self.status = configparser.ConfigParser()
         self.status.read(STATUS_FILE)
@@ -245,23 +276,40 @@ class KEYPAD:
             self.lcd.display(display_str, 20)
 
 
+    def show_power_menu(self):
+        self.display_active = True
+        self.set_current_menu(1)
+        self.render()
+
+
+
 def main():
     keypad = KEYPAD()
     if keypad.enabled == False:
         return
-    items = [{"text":"Restart", "action":keypad.restart},
-            {"text":"Power off", "action":keypad.power_off},
-                {"text":"Diagnostics", "action":keypad.run_diagnostics},
-                {"text":"Exit", "action":keypad.show_home_screen}]
-    if 0 == int(keypad.status.get('status', 'claimed')):
-        items.insert(0,{"text":"Claim Info", "action":keypad.show_claim_info})
+    items = [
+               [ {"text":"Power", "action":keypad.show_power_menu},
+                    {"text":"Diagnostics", "action":keypad.run_diagnostics},],
+               [ {"text":"Restart", "action":keypad.restart},
+                   {"text":"Power off", "action":keypad.power_off},]
+            ]
 
-    keypad.set_menu(items)
-    keypad.current = 0
+    if 0 == int(keypad.status.get('status', 'claimed')):
+        items[0].insert(0,{"text":"Claim Info", "action":keypad.show_claim_info})
+
+    keypad.set_full_menu(items)
+    keypad.set_current_menu(0)
     # default scren is QR Code
     keypad.show_home_screen()
     while True:
         time.sleep(100)
 
 if __name__=='__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('Interrupted')
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)

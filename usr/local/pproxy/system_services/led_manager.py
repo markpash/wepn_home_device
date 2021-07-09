@@ -72,26 +72,34 @@ if __name__=='__main__':
 
     print("LED Manager Listening...")
     while True:
-        datagram = server.recv(1024)
-        if not datagram:
-            break
-        else:
-            print("-" * 20)
-            incoming_str = datagram.decode('utf-8')
-            print(incoming_str)
-            incoming = incoming_str.split()
-            if len(incoming)==0 or "DONE" == incoming_str:
+        try:
+            datagram = server.recv(1024)
+            if not datagram:
                 break
-            if incoming[0] == "progress_wheel_step":
-                if len(incoming) == 4:
-                    lm.progress_wheel_step((int(incoming[1]),
-                        int(incoming[2]), int(incoming[3])))
-            if incoming[0] == "set_all":
-                if len(incoming) == 4:
-                    lm.set_all((int(incoming[1]),
-                        int(incoming[2]), int(incoming[3])))
-            if incoming[0] == "blank":
-                lm.blank()
+            else:
+                print("-" * 20)
+                incoming_str = datagram.decode('utf-8')
+                print(incoming_str)
+                incoming = incoming_str.split()
+                if len(incoming)==0 or "DONE" == incoming_str:
+                    break
+                if incoming[0] == "progress_wheel_step":
+                    if len(incoming) == 4:
+                        lm.progress_wheel_step((int(incoming[1]),
+                            int(incoming[2]), int(incoming[3])))
+                if incoming[0] == "set_all":
+                    if len(incoming) == 4:
+                        lm.set_all((int(incoming[1]),
+                            int(incoming[2]), int(incoming[3])))
+                if incoming[0] == "blank":
+                    lm.blank()
+        except KeyboardInterrupt:
+            print('Interrupted')
+            server.close()
+            try:
+                sys.exit(0)
+            except SystemExit:
+                os._exit(0)
     print("-" * 20)
     print("Shutting down...")
     server.close()
