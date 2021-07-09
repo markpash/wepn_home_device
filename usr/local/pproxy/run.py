@@ -1,6 +1,6 @@
 from pproxy import PProxy
 import time
-from oled import OLED as OLED
+from lcd import LCD as LCD
 from setup.onboard import OnBoard
 import requests, json
 import logging.config
@@ -20,14 +20,14 @@ logging.config.fileConfig(LOG_CONFIG,
 logger = logging.getLogger("startup")
 logger.critical("Starting WEPN")
 
-oled = OLED()
+lcd = LCD()
 
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
 status = configparser.ConfigParser()
 status.read(STATUS_FILE)
-oled.set_led_present(config.get('hw','led'))
-oled.show_logo()
+lcd.set_lcd_present(config.get('hw','lcd'))
+lcd.show_logo()
 time.sleep(1)
 
 device = Device(logger)

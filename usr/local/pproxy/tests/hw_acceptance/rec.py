@@ -6,13 +6,13 @@ import os
 import sys
 up_dir = os.path.dirname(os.path.abspath(__file__))+'/../../'
 sys.path.append(up_dir)
-from oled import OLED as OLED
+from lcd import LCD as LCD
 from PIL import Image
 from PIL import ImageDraw
 import time
 import matplotlib.pyplot as plt
-LED = OLED()
-LED.set_led_present(1)
+lcd = LCD()
+lcd.set_lcd_present(1)
 
 
 
@@ -95,7 +95,7 @@ def soundplot(chunk):
     img = Image.frombytes('RGB',
         fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
     im1 = img.resize((240,240))
-    LED.show_image(im1)
+    lcd.show_image(im1)
 
 def save_wav_channel(fn, depth, fs, sdata, channel):
     '''

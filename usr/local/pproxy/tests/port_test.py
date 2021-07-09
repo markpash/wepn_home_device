@@ -7,7 +7,7 @@ sys.path.append(up_dir)
 
 import socket
 import time
-from oled import OLED
+from lcd import LCD
 import threading
 from diag import WPDiag
 try:

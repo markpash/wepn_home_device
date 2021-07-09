@@ -8,7 +8,7 @@ import os
 up_dir = os.path.dirname(os.path.abspath(__file__))+'/../../'
 sys.path.append(up_dir)
 import time
-import oled
+import lcd
 import math
 
 from adafruit_bus_device import i2c_device
@@ -26,8 +26,8 @@ buffer = bytearray(2)
 #buffer[0] = 0x7f
 #buffer[1] = 0x01
 
-LED = oled.OLED()
-LED.set_led_present(1)
+LCD = lcd.LCD()
+LCD.set_lcd_present(1)
 
 aw = adafruit_aw9523.AW9523(i2c)
 new_i2c = i2c_device.I2CDevice(i2c, 0x58)
@@ -85,12 +85,12 @@ def my_callback(channel):
     print(pressed_ones)
     print(not_pressed_ones)
     if display:
-        LED.display([(1,"Press all buttons",0, "white"), (2,pressed_ones,0, "green"), (3,not_pressed_ones,0,"red")], 15)
+        LCD.display([(1,"Press all buttons",0, "white"), (2,pressed_ones,0, "green"), (3,not_pressed_ones,0,"red")], 15)
     if len(not_pressed_ones) == 0:
         sys.exit(0)
 
 if display:
-    LED.display([(1,"Press all buttons",0, "white"), (2,"",0, "Green"), (3,"1,2,3,ok,home,up, down",0,"red")], 15)
+    LCD.display([(1,"Press all buttons",0, "white"), (2,"",0, "Green"), (3,"1,2,3,ok,home,up, down",0,"red")], 15)
 try:
     GPIO.add_event_detect(INT_EXPANDER, GPIO.FALLING, callback=my_callback)
     #GPIO.wait_for_edge(INT_EXPANDER, GPIO.FALLING)

@@ -20,7 +20,7 @@ display = True
 import RPi.GPIO as GPIO
 from adafruit_bus_device import i2c_device
 
-from oled import OLED as OLED
+from lcd import LCD as LCD
 from diag import WPDiag
 from device import Device
 from heartbeat import HeartBeat
@@ -56,8 +56,8 @@ class KEYPAD:
             self.init_i2c()
             self.enabled = True
         self.diag_shown = False
-        self.lcd = OLED()
-        self.lcd.set_led_present(self.config.get('hw','led'))
+        self.lcd = LCD()
+        self.lcd.set_lcd_present(self.config.get('hw','lcd'))
         self.lcd.display([(1,"Press all buttons",0, "white"), ], 15)
         self.width = 240 
         self.height = 240

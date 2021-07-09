@@ -35,7 +35,7 @@ except Exception as err:
     print("Error in GPIO: "+str(err))
     gpio_up = False
 
-from oled import OLED as OLED
+from lcd import LCD as LCD
 from diag import WPDiag
 from services import Services
 from device import Device
@@ -99,7 +99,7 @@ class PProxy():
         return (shlex.quote(str_in))
 
 
-    def save_state(self, new_state, led_print=1, hb_send=True):
+    def save_state(self, new_state, lcd_print=1, hb_send=True):
         self.status.reload()
         self.status.set('state', new_state)
         self.status.save()
@@ -107,7 +107,7 @@ class PProxy():
             self.logger.debug('heartbeat from save_state '+new_state)
             heart_beat = HeartBeat(self.loggers["heartbeat"])
             heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
-            heart_beat.send_heartbeat(led_print)
+            heart_beat.send_heartbeat(lcd_print)
 
     def process_key(self, key):
         services = Services(self.loggers['services'])
@@ -122,27 +122,27 @@ class PProxy():
             self.save_state(str(new_state))
         #Run Diagnostics
         elif (key == "2"):
-            led = OLED()
+            lcd = LCD()
             diag = WPDiag(self.loggers['diag'])
-            led.set_led_present(self.config.get('hw','led'))
+            lcd.set_lcd_present(self.config.get('hw','lcd'))
             display_str = [(1, "Starting Diagnostics",0,"green"), (2, "please wait ...",0,"green") ]
-            led.display(display_str, 15)
+            lcd.display(display_str, 15)
             diag.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
             test_port=int(self.config.get('openvpn','port')) + 1
             display_str = [(1, "Status Code",0,"blue"), (2, str(diag.get_error_code( test_port )),0,"blue") ]
-            led.display(display_str, 20)
+            lcd.display(display_str, 20)
             time.sleep(3)
             serial_number = self.config.get('django','serial_number')
             display_str = [(1, "Serial #",0,"blue"), (2, serial_number,0,"white"), ]
-            led.display(display_str, 19)
+            lcd.display(display_str, 19)
             time.sleep(5)
             display_str = [(1, "Local IP",0,"blue"), (2, self.device.get_local_ip(),0,"white"), ]
             self.logger.info(display_str)
-            led.display(display_str, 19)
+            lcd.display(display_str, 19)
             time.sleep(5)
             display_str = [(1, "MAC Address",0,"blue"), (2, self.device.get_local_mac(),0,"white"), ]
             self.logger.debug(display_str)
-            led.display(display_str, 19)
+            lcd.display(display_str, 19)
             time.sleep(5)
             heart_beat = HeartBeat(self.loggers["heartbeat"])
             heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
@@ -151,16 +151,16 @@ class PProxy():
         #Power off
         elif (key == "3"):
             services.stop()
-            led = OLED()
-            led.set_led_present(self.config.get('hw','led'))
+            lcd = LCD()
+            lcd.set_lcd_present(self.config.get('hw','lcd'))
             display_str = [(1, "Powering down",0,"red"), ]
-            led.display(display_str, 15)
+            lcd.display(display_str, 15)
             time.sleep(2)
             self.save_state("0",0)
-            led.show_logo()
+            lcd.show_logo()
             display_str = [(1, "",0,"black"), ]
             time.sleep(2)
-            led.display(display_str, 20)
+            lcd.display(display_str, 20)
             self.device.turn_off()
 
     def send_mail(self, send_from, send_to,
@@ -369,15 +369,15 @@ class PProxy():
 
 
     def start(self):
-        oled = OLED()
-        oled.set_led_present(self.config.get('hw','led'))
-        oled.show_logo()
+        lcd = LCD()
+        lcd.set_lcd_present(self.config.get('hw','lcd'))
+        lcd.show_logo()
         self.leds.set_all(0, 178, 16)
         services = Services(self.loggers['services'])
         services.start()
         client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=False)
-        self.logger.debug('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LED='+
-                self.config.get('hw','led'))
+        self.logger.debug('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LCD='+
+                self.config.get('hw','lcd'))
         if (int(self.config.get('hw','buttons'))==1):
             try:
                 keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
@@ -401,7 +401,7 @@ class PProxy():
         except Exception as error:
             self.logger.error("MQTT connect failed")
             display_str = [(1, chr(33)+'     '+chr(33),1,"red"), (2, "Network error,",0,"red"), (3, "check cable...", 0,"red") ]
-            oled.display(display_str, 15)
+            lcd.display(display_str, 15)
             if (int(self.config.get('hw','buttons'))==1):
                 keypad.cleanup()
                 if gpio_up:

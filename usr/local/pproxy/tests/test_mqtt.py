@@ -56,7 +56,7 @@ class MQTTTest():
         mqtt.Client.connected_flag=False#create flag in class
         self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
         print('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LED='+
-            self.config.get('hw','led'))
+            self.config.get('hw','lcd'))
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect

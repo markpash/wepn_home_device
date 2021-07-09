@@ -4,7 +4,7 @@ up_dir = os.path.dirname(os.path.abspath(__file__))+'/../'
 sys.path.append(up_dir)
 from diag import WPDiag
 import time
-from oled import OLED
+from lcd import LCD
 
 try:
     from self.configparser import configparser
@@ -13,10 +13,10 @@ except ImportError:
 
 CONFIG_FILE='/etc/pproxy/config.ini'
 
-oled = OLED()
+lcd = LCD()
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
-oled.set_led_present(config.get('hw','led'))
+lcd.set_lcd_present(config.get('hw','lcd'))
 
 while True:
       WPD = WPDiag()
@@ -33,10 +33,10 @@ while True:
       print(port)
       error_code = 1*(local_ip is not "") + internet *2 + 4 * service + 8 * port; 
       display_str = [(1, "internet="+str(internet),0), (2,"service="+str(service) , 0), (3,"port="+str(port),0)]
-      oled.display(display_str, 10)
+      lcd.display(display_str, 10)
       display_str = [(1, "error_code="+str(error_code),0)]
       try:
-          oled.display(display_str, 17)
+          lcd.display(display_str, 17)
       except:
           print("Retrying in 60 seconds ....")
           time.sleep(60)

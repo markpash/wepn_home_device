@@ -1,0 +1,17 @@
+[Unit]
+Description=WEPN LED Service
+After=network.target 
+
+[Service]
+User=root
+ExecStart=/usr/bin/python3 /usr/local/pproxy/system_services/led_manager.py
+KillMode=process
+Restart=on-failure
+RestartPreventExitStatus=255
+Type=simple
+RuntimeDirectory=/usr/local/pproxy/
+WorkingDirectory=/usr/local/pproxy/
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target

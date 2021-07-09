@@ -30,7 +30,6 @@ try:
     from pad4pi import rpi_gpio
 except RuntimeError as err:
     print("Error in pad4pi: "+str(err))
-#from oled import OLED as OLED
 from wstatus import WStatus as WStatus
 
 COL_PINS = [26] # BCM numbering

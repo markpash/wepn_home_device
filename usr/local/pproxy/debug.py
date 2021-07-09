@@ -1,6 +1,6 @@
 from pproxy import PProxy
 import time
-from oled import OLED as OLED
+from lcd import LCD as LCD
 import os
 from setup.onboard import OnBoard
 import logging
@@ -19,14 +19,14 @@ logging.config.fileConfig(LOG_CONFIG,
 
 logger = logging.getLogger("debug-pproxy")
 
-oled = OLED()
+lcd = LCD()
 
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
 status = configparser.ConfigParser()
 status.read(STATUS_FILE)
-oled.set_led_present(config.get('hw','led'))
-oled.show_logo()
+lcd.set_lcd_present(config.get('hw','lcd'))
+lcd.show_logo()
 
 
 try:

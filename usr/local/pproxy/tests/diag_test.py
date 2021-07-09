@@ -7,7 +7,7 @@ sys.path.append(up_dir)
 
 import socket
 import time
-from oled import OLED
+from lcd import LCD
 import threading
 from diag import WPDiag
 try:
@@ -44,10 +44,10 @@ def open_listener(host, port):
             continue
 
 port  = 4091 
-oled = OLED()
+lcd = LCD()
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
-oled.set_led_present(config.get('hw','led'))
+lcd.set_lcd_present(config.get('hw','lcd'))
 listener = threading.Thread(target=open_listener,args=['',port])
 listener.setDaemon(True)
 listener.start()
@@ -80,10 +80,10 @@ while True:
           print(stat + '\t'+i['description'])
       print('*------------------------------------------------------------*')
       display_str = [(1, "internet="+str(internet),0), (2,"service="+str(service) , 0), (3,"port="+str(port),0)]
-      oled.display(display_str, 10)
+      lcd.display(display_str, 10)
       display_str = [(1, "error_code="+str(error_code),0)]
       try:
-          oled.display(display_str, 17)
+          lcd.display(display_str, 17)
       except:
           print("Retrying in 60 seconds ....")
           time.sleep(60)

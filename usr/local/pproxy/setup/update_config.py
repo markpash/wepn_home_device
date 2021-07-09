@@ -18,6 +18,11 @@ port_status.read(PORT_STATUS_FILE)
 if not config.has_option('mqtt','host'):
    config.set('mqtt','host','we-pn.com')
    config.set('mqtt','onboard-timeout','10')
+else:
+   # some configs incorrectly have this
+   # as api.we-pn.com
+   config.set('mqtt','host','we-pn.com')
+
 
 host = config.get('django','host')
 if host == "we-pn.com":
@@ -100,10 +105,24 @@ if not config.has_option('hw','iface'):
 if not config.has_option('hw','led-version'):
     config.set('hw','led-version', '1')
 
+if config.has_option('hw','led-version'):
+    v = config.get('hw','led-version')
+    config.set('hw','lcd-version', v)
+    config.remove_option('hw','led-version')
+
+if config.has_option('hw','led'):
+    v = config.get('hw','led')
+    config.set('hw','lcd', v)
+    config.remove_option('hw','led')
+
 if not config.has_option('hw','button-version'):
     config.set('hw','button-version', '1')
 
-if not config.has_option('hw','disable-reboot'):
+if not config.has_option('hw','disable-reboot') or True:
+    # 7/8/2021: an earlier mistake means all device
+    # have this set to disable
+    # change back once all restored
+    # meant only for development devices
     config.set('hw','disable-reboot', '0')
 
 if not config.has_section('usage'):

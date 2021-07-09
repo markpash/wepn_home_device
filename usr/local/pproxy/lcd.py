@@ -26,11 +26,11 @@ LOG_CONFIG="/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG,
             disable_existing_loggers=False)
 PWD='/usr/local/pproxy/ui/'
-TEXT_OUT='/tmp/fake_oled'
+TEXT_OUT='/tmp/fake_lcd'
 GPIO.setmode(GPIO.BCM)
 
 
-class OLED:
+class LCD:
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
@@ -38,16 +38,16 @@ class OLED:
         self.logo_text_x = None
         self.logo_text_y = None
         self.logo_text_color = None
-        self.led_present = self.config.getint('hw','led')
-        print(self.led_present)
-        # LED version:
+        self.lcd_present = self.config.getint('hw','lcd')
+        print(self.lcd_present)
+        # LCD version:
         # 1 is the original b&w SSD1306,
         # 2 is 1.54 Adafruit ST7789
         try:
-            self.version = self.config.getint('hw','led-version')
+            self.version = self.config.getint('hw','lcd-version')
         except configparser.NoOptionError as e:
             self.version = 1
-        if (self.led_present == 0):
+        if (self.lcd_present == 0):
             return
 
         # Raspberry Pi pin configuration:
@@ -77,11 +77,11 @@ class OLED:
                 baudrate=BAUDRATE,
             )
         return
-    def set_led_present(self, is_led_present):
-        self.led_present = int(is_led_present)
+    def set_lcd_present(self, is_lcd_present):
+        self.lcd_present = int(is_lcd_present)
 
     def display(self, strs, size):
-        if (self.led_present == 0):
+        if (self.lcd_present == 0):
             with open(TEXT_OUT, 'w') as out:
                 for row, current_str, vtype, color in strs:
                     spaces = 20 - len(current_str)
@@ -196,7 +196,7 @@ class OLED:
         self.lcd.image(image,0,0)
 
     def show_logo(self):
-        if (self.led_present==0):
+        if (self.lcd_present==0):
             with open(TEXT_OUT, 'w') as out:
                 out.write("[WEPN LOGO]")
             return

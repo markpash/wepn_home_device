@@ -12,7 +12,7 @@ import logging.config
 from ipw import IPW
 ipw = IPW()
 
-from oled import OLED as OLED
+from lcd import LCD as LCD
 from diag import WPDiag
 from shadow import Shadow
 
@@ -78,8 +78,8 @@ class HeartBeat:
        self.mqtt_reason = reason
        pass
 
-    #send heartbeat. if led_print==1, update LED
-    def send_heartbeat(self, led_print=1):
+    #send heartbeat. if lcd_print==1, update LCD
+    def send_heartbeat(self, lcd_print=1):
         headers = {"Content-Type": "application/json"}
         external_ip = str(ipw.myip())
 
@@ -122,8 +122,8 @@ class HeartBeat:
             self.logger.debug("Response to HB" + str(response.status_code))
         except requests.exceptions.RequestException as exception_error:
             self.logger.error("Error in sending heartbeat: \r\n\t" + str(exception_error))
-        if (led_print):
-            led = OLED()
-            led.set_led_present(self.config.get('hw','led'), status)
-            self.get_display_string_status(led)
-            led.display(display_str, 20)
+        if (lcd_print):
+            lcd = LCD()
+            lcd.set_lcd_present(self.config.get('hw','lcd'), status)
+            self.get_display_string_status(lcd)
+            lcd.display(display_str, 20)
