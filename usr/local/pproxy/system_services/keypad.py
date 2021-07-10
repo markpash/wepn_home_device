@@ -24,6 +24,7 @@ from lcd import LCD as LCD
 from diag import WPDiag
 from device import Device
 from heartbeat import HeartBeat
+from led_client import LEDClient
 
 PWD='/usr/local/pproxy/ui/'
 CONFIG_FILE='/etc/pproxy/config.ini'
@@ -46,6 +47,8 @@ class KEYPAD:
         self.device = Device(self.logger)
         self.display_active = False
         self.window_stack = []
+        self.led_enabled = True
+        self.led_client = LEDClient()
         if (int(self.config.get('hw','button-version'))) == 1:
             # this is an old model, no need for the keypad service
             print("old keypad")
@@ -86,12 +89,12 @@ class KEYPAD:
         GPIO.add_event_detect(INT_EXPANDER, GPIO.FALLING, callback=self.key_press_cb)
 
     def key_press_cb(self, channel):
-        print("CALLBACK is called")
+        #print("CALLBACK is called")
         inputs = self.aw.inputs
-        print("Inputs: {:016b}".format(inputs))
-        print(inputs)
+        #print("Inputs: {:016b}".format(inputs))
+        #print(inputs)
         inputs = 127 - inputs & 0x7F
-        print(inputs)
+        #print(inputs)
         if inputs < 1:
             return
         index = (int)(math.log2(inputs))
@@ -99,6 +102,7 @@ class KEYPAD:
         #return
         exit_menu = False
         menu_base_index = 0
+        window_size = len(self.window_stack)
         if inputs>-1:
             button= BUTTONS[index]
             if BUTTONS[index]  == "up":
@@ -107,17 +111,18 @@ class KEYPAD:
               print("Key down on " + str(index))
             if BUTTONS[index]=="back":
               print("Key back on " + str(index))
-              if len(self.window_stack) > 0:
+              if window_size > 0:
                   back = self.window_stack.pop()
                   self.menu_index = back
                   self.render()
-              elif len(self.window_stack) == 0:
+              elif window_size == 0:
                   self.set_current_menu(0)
                   exit_menu = True
                   self.show_home_screen()
             if BUTTONS[index] in ["1","2","0"]:
               print("Key side =" + BUTTONS[index])
-              self.window_stack.append(self.menu_index)
+              if window_size ==0 or self.menu_index != self.window_stack[window_size-1]:
+                  self.window_stack.append(self.menu_index)
               exit_menu = self.menu[self.menu_index][int(BUTTONS[index])+menu_base_index]["action"]()
               print(self.menu[self.menu_index][int(BUTTONS[index])])
               if self.diag_shown == True:
@@ -280,22 +285,48 @@ class KEYPAD:
         self.display_active = True
         self.set_current_menu(1)
         self.render()
+    
+    def show_settings_menu(self):
+        self.display_active = True
+        self.set_current_menu(3)
+        self.render()
+    
+    def show_about_menu(self):
+        self.display_active = True
+        self.set_current_menu(2)
+        self.render()
 
+    def toggle_led_setting(self):
+        self.display_active = True
+        self.led_enabled = not self.led_enabled
+        self.led_client.set_enabled(self.led_enabled)
+        self.led_client.set_all(255,255,0)
+        s = "OFF"
+        if self.led_enabled:
+            s= "ON"
+        self.menu[3][0]["text"]= "LED Ring: " + s
+        self.render()
 
 
 def main():
     keypad = KEYPAD()
     if keypad.enabled == False:
         return
+    s = "OFF"
+    if keypad.led_enabled:
+        s= "ON"
     items = [
-               [ {"text":"Power", "action":keypad.show_power_menu},
-                    {"text":"Diagnostics", "action":keypad.run_diagnostics},],
+               [ {"text":"Settings", "action":keypad.show_settings_menu},
+                   {"text":"Power", "action":keypad.show_power_menu},
+                    {"text":"About", "action":keypad.show_about_menu},],
                [ {"text":"Restart", "action":keypad.restart},
-                   {"text":"Power off", "action":keypad.power_off},]
+                   {"text":"Power off", "action":keypad.power_off},],
+               [ {"text":"Diagnostics", "action":keypad.run_diagnostics},],
+               [ {"text":"LED Ring: " + s, "action":keypad.toggle_led_setting},],
             ]
 
     if 0 == int(keypad.status.get('status', 'claimed')):
-        items[0].insert(0,{"text":"Claim Info", "action":keypad.show_claim_info})
+        items[2].insert(0,{"text":"Claim Info", "action":keypad.show_claim_info})
 
     keypad.set_full_menu(items)
     keypad.set_current_menu(0)

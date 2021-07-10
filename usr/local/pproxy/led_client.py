@@ -27,6 +27,12 @@ class LEDClient:
         if self.client is not None:
             self.client.close()
 
+    def set_enabled(self, enabled=True):
+        if self.client is None:
+            return
+        self.send("set_enabled " + str(int(enabled)))
+
+
     def send(self, cmd):
         self.client.send(cmd.encode('utf-8'))
 

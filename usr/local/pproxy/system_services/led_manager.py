@@ -21,6 +21,12 @@ class LEDManager:
                     n=NUM_LED, brightness=1, bpp=3)
         pass
 
+    def set_enabled(self, enabled=1):
+        if enabled == 0:
+            self.blank()
+        self.led_ring_present = enabled
+
+
     def set_all(self, color):
         if not self.led_ring_present:
             return
@@ -91,6 +97,9 @@ if __name__=='__main__':
                     if len(incoming) == 4:
                         lm.set_all((int(incoming[1]),
                             int(incoming[2]), int(incoming[3])))
+                if incoming[0] == "set_enabled":
+                    if len(incoming) == 2:
+                        lm.set_enabled(int(incoming[1]))
                 if incoming[0] == "blank":
                     lm.blank()
         except KeyboardInterrupt:
