@@ -1,6 +1,6 @@
 [Unit]
 Description=WEPN Keypad Service
-After=network.target 
+After=network.target, wepn-leds.service
 
 [Service]
 User=pproxy

@@ -224,13 +224,13 @@ class KEYPAD:
     def restart(self):
         self.lcd.set_logo_text("Restarting ...")
         self.lcd.show_logo()
-        #self.device.reboot()
+        self.device.reboot()
         return True # exit the menu
 
     def power_off(self):
         self.lcd.set_logo_text("Powering off ...")
         self.lcd.show_logo()
-        #self.device.turn_off()
+        self.device.turn_off()
         return True # exit the menu
 
     def run_diagnostics(self):

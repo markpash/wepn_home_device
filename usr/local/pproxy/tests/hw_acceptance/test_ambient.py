@@ -8,7 +8,7 @@ from PIL import Image
 from PIL import ImageDraw
 up_dir = os.path.dirname(os.path.abspath(__file__))+'/../../'
 sys.path.append(up_dir)
-from lcd import lcd as lcd
+from lcd import LCD as lcd
 lcd = lcd()
 lcd.set_lcd_present(1)
 
@@ -16,9 +16,9 @@ i2c = board.I2C()  # uses board.SCL and board.SDA
 veml7700 = adafruit_veml7700.VEML7700(i2c)
 result = True
 
-while True:
-    print("Ambient light:", veml7700.light)
-    time.sleep(0.1)
+#while True:
+#    print("Ambient light:", veml7700.light)
+#    time.sleep(0.1)
 
 lcd.display([(1,"Cover the ambient sensor",0,"white"),], 20)
 baseline = int(veml7700.light)
