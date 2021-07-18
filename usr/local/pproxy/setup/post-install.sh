@@ -108,11 +108,13 @@ chmod g+rwx /etc/openvpn
 chown pproxy.pproxy /etc/openvpn/easy-rsa/pki/.rnd
 chmod 600 /etc/openvpn/easy-rsa/pki/.rnd
 
-#empty crontab
-#add heartbeat to crontab
-#add apt-get update && apt-get install pproxy-rpi to weekly crontab
-/usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
-/usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
+# temporarily disable for UX upgrade rollout
+##empty crontab
+##add heartbeat to crontab
+##add apt-get update && apt-get install pproxy-rpi to weekly crontab
+#/usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
+#/usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
+
 #install iptables, configure iptables for port forwarding and blocking
 /bin/bash $PPROXY_HOME/openvpn-iptables.sh
 chown root.root /usr/local/sbin/ip-shadow.sh
@@ -178,7 +180,11 @@ chmod g+r .
 cp $PPROXY_HOME/setup/wepn-api.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable wepn-api
+systemctl enable wepn-keypad
+systemctl enable wepn-leds
 systemctl start wepn-api
+systemctl start wepn-keypad
+systemctl start wepn-leds
 cd $PPROXY_HOME/setup/
 
 ##################################
@@ -250,8 +256,10 @@ systemctl restart shadowsocks-libev
 systemctl restart shadowsocks-libev-manager
 systemctl enable wepn-api
 systemctl restart wepn-api
-systemctl disable wepn-keypad
-systemctl disable wepn-leds
+systemctl enable wepn-keypad
+systemctl restart wepn-keypad
+systemctl enable wepn-leds
+systemctl restart wepn-leds
 #systemctl restart wepn-keypad
 /bin/sh /etc/init.d/pproxy restart
 

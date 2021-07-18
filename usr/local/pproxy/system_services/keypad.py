@@ -69,6 +69,7 @@ class KEYPAD:
         self.menu_row_skip = 22 
         self.menu = None
         self.menu_index = 0
+        self.current_title = "Main"
 
 
     def init_i2c(self):
@@ -121,7 +122,7 @@ class KEYPAD:
                   self.show_home_screen()
             if BUTTONS[index] in ["1","2","0"]:
               print("Key side =" + BUTTONS[index])
-              if window_size ==0 or self.menu_index != self.window_stack[window_size-1]:
+              if window_size ==0 or (self.menu_index != self.window_stack[window_size-1]):
                   self.window_stack.append(self.menu_index)
               exit_menu = self.menu[self.menu_index][int(BUTTONS[index])+menu_base_index]["action"]()
               print(self.menu[self.menu_index][int(BUTTONS[index])])
@@ -134,8 +135,9 @@ class KEYPAD:
             if exit_menu == False:
                 self.render() 
 
-    def set_full_menu(self, menu):
+    def set_full_menu(self, menu, titles):
         self.menu = menu
+        self.titles = titles
 
     def set_current_menu(self, index):
         self.menu_index= index
@@ -179,7 +181,7 @@ class KEYPAD:
         txt = Image.new("RGBA", base.size, (255,255,255,0))
         d = ImageDraw.Draw(txt)
         overlay= Image.new("RGBA", base.size, (255,255,255,0))
-        title="Main"
+        title = self.titles[self.menu_index]
         d.text(((200-len(title)*8)/2,2), title, font=fnt, fill=(255,255,255, 255))
         x=10
         y=0
@@ -209,8 +211,7 @@ class KEYPAD:
             display_str = [(1, "Device Key:", 0,"blue"), (2,str(current_key),0,"white"), 
                     (3, "Serial #",0,"blue"), (4, serial_number,0,"white"), ]
             self.lcd.display(display_str, 20)
-            time.sleep(15)
-            self.render()
+            #self.render()
             return True # exit the menu
 
     def show_claim_info_qrcode(self):
@@ -283,16 +284,19 @@ class KEYPAD:
 
     def show_power_menu(self):
         self.display_active = True
+        self.current_title = "Power"
         self.set_current_menu(1)
         self.render()
     
     def show_settings_menu(self):
         self.display_active = True
+        self.current_title = "Settings"
         self.set_current_menu(3)
         self.render()
     
     def show_about_menu(self):
         self.display_active = True
+        self.current_title = "About"
         self.set_current_menu(2)
         self.render()
 
@@ -306,6 +310,37 @@ class KEYPAD:
             s= "ON"
         self.menu[3][0]["text"]= "LED Ring: " + s
         self.render()
+
+    def show_git_version(self):
+        self.display_active = True
+        self.set_current_menu(4)
+        # ONLY FOR UX DEVELOPMENT, show the git hash
+        import subprocess
+        label = "production"
+        git_cmd = "git log -1 --format=format:\"%H\""
+        try:
+            label = subprocess.check_output(git_cmd.split()).strip()
+            label = label.decode("utf-8")[1:8]
+        except subprocess.CalledProcessError as e:
+            #self.logger.error(e.output)
+            label = "no git hash"
+        self.menu[4][0]["text"]= label
+        self.render()
+
+    def update_software(self):
+        # TODO this has to go to device module
+        self.display_active = True
+        import subprocess
+        cmd = "/bin/bash /var/local/pproxy/git/sync.sh"
+        self.menu[4][1]["text"]= "checking ..."
+        self.render()
+        try:
+            subprocess.check_output(cmd.split()).strip()
+        except subprocess.CalledProcessError as e:
+            #self.logger.error(e.output)
+            label = "not happy"
+        self.menu[4][1]["text"]= "Update"
+        self.show_git_version()
 
 
 def main():
@@ -321,14 +356,18 @@ def main():
                     {"text":"About", "action":keypad.show_about_menu},],
                [ {"text":"Restart", "action":keypad.restart},
                    {"text":"Power off", "action":keypad.power_off},],
-               [ {"text":"Diagnostics", "action":keypad.run_diagnostics},],
-               [ {"text":"LED Ring: " + s, "action":keypad.toggle_led_setting},],
+               [ {"text":"Diagnostics", "action":keypad.run_diagnostics},
+                   {"text":"Git version", "action":keypad.show_git_version}],
+               [ {"text":"LED ring: " + s, "action":keypad.toggle_led_setting},],
+               [ {"text":"Getting version ...  " + s, "action":keypad.show_git_version},
+                {"text":"Update", "action":keypad.update_software},],
             ]
+    titles = [ "Main","Power", "About", "Settings", "Software"]
 
     if 0 == int(keypad.status.get('status', 'claimed')):
         items[2].insert(0,{"text":"Claim Info", "action":keypad.show_claim_info})
 
-    keypad.set_full_menu(items)
+    keypad.set_full_menu(items, titles)
     keypad.set_current_menu(0)
     # default scren is QR Code
     keypad.show_home_screen()
