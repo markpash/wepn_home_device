@@ -124,6 +124,6 @@ class HeartBeat:
             self.logger.error("Error in sending heartbeat: \r\n\t" + str(exception_error))
         if (lcd_print):
             lcd = LCD()
-            lcd.set_lcd_present(self.config.get('hw','lcd'), status)
+            lcd.set_lcd_present(self.config.get('hw','lcd'))
             self.get_display_string_status(lcd)
             lcd.display(display_str, 20)
