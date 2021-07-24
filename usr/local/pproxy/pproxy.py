@@ -280,12 +280,18 @@ class PProxy():
                 lang = 'en'
             print("Adding user: "+ username +" with language:" + lang)
             ip_address = self.sanitize_str(ipw.myip())
+            if self.config.has_section("dyndns") and self.config.getboolean('dyndns','enabled'):
+                # we have good DDNS, lets use it
+                # TODO check if this is actually working
+                server_address =  self.config.get("dydns", "hostname")
+            else:
+                server_address = ip_address
             password = random.SystemRandom().randint(1111111111, 9999999999)
             #TODO why re cannot remove \ even with escape?
             data['passcode'] = re.sub(r'[\\\\/*?:"<>|.]',"",data['passcode'][:25].replace("\n",''))
             port = self.config.get('shadow','start-port')
             try:
-                is_new_user = services.add_user(username, ip_address, password, int(port), lang)
+                is_new_user = services.add_user(username, server_address, password, int(port), lang)
                 if not is_new_user:
                     # getting an add for existing user? should be an ip change
                     self.logger.debug("Update IP")
