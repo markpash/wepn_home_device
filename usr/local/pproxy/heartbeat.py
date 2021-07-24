@@ -55,7 +55,7 @@ class HeartBeat:
             pass
             return False
 
-    def get_display_string_status(self, lcd):
+    def get_display_string_status(self, status, lcd):
         icons, any_err = lcd.get_status_icons(status,
                 self.is_connected(), self.mqtt_connected)
         if any_err:
@@ -72,6 +72,7 @@ class HeartBeat:
             display_str = [(1, "PIN: ",0,"blue"),
                     (2, str(self.pin), 0,"blue"),
                     (3,icons,1, color)]
+        return display_str
 
     def set_mqtt_state(self,is_connected, reason):
        self.mqtt_connected = is_connected
@@ -125,5 +126,5 @@ class HeartBeat:
         if (lcd_print):
             lcd = LCD()
             lcd.set_lcd_present(self.config.get('hw','lcd'))
-            self.get_display_string_status(lcd)
+            display_str = self.get_display_string_status(status, lcd)
             lcd.display(display_str, 20)
