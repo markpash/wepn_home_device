@@ -87,6 +87,7 @@ def my_callback(channel):
     if display:
         LCD.display([(1,"Press all buttons",0, "white"), (2,pressed_ones,0, "green"), (3,not_pressed_ones,0,"red")], 15)
     if len(not_pressed_ones) == 0:
+        LCD.display([(1,"Buttons:",0, "white"), (2,"PASSED",0, "green"), ], 15)
         sys.exit(0)
 
 if display:

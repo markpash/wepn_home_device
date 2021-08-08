@@ -8,11 +8,13 @@ __pycache__/
 *.crt
 *.key
 *.csr
+*.wav
 
 .bash_history
 .viminfo
 .swp
 .shadowsocks
+.cache
 
 .config
 .gitconfig
@@ -22,4 +24,7 @@ __pycache__/
 
 local_test_config.ini
 .sqlite_history
-.cache
+.cach
+
+
+usr/local/pproxy/setup/seeed-voicecard

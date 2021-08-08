@@ -1,9 +1,11 @@
+#TODO this file is way too hack-y
 import pyaudio
 import wave
 import numpy as np
 import pylab
 import os
 import sys
+import getopt
 up_dir = os.path.dirname(os.path.abspath(__file__))+'/../../'
 sys.path.append(up_dir)
 from lcd import LCD as LCD
@@ -32,6 +34,7 @@ def record(side):
     print("*"*25)
     print("*"*25)
     print('Recording ' + side)
+    lcd.display([(1,"Recording "+ side, 0, "white"), (2,"say "+side+" multiple times",0, "orange") ], 15)
 
     stream = p.open(format=sample_format,
                     input_device_index = 1,
@@ -53,8 +56,10 @@ def record(side):
     # Terminate the PortAudio interface
     p.terminate()
     soundplot(data)
+    time.sleep(2)
 
     print('Finished recording '+ side)
+    lcd.display([(1,"Finished recording "+ side,0, "white"), ], 15)
     print("*"*25)
     print("*"*25)
     depth = p.get_sample_size(sample_format)
@@ -124,21 +129,41 @@ def save_wav_channel(fn, depth, fs, sdata, channel):
     outwav.setframerate(fs)
     outwav.writeframes(ch_data.tostring())
     outwav.close()
+
+def print_plus(value):
+    if lcd_based:
+        lcd.display([(1,value,0, "white"), ], 15)
+    else:
+        print(value)
+
+def input_plus(value):
+    if lcd_based:
+       lcd.display([(1,value,0, "orange"), ], 15)
+       time.sleep(5) 
+    else:
+        input(value)
+
+
+lcd_based = False
+if len(sys.argv)> 1 and sys.argv[1] == 'LCD':
+    lcd_based = True
+
 print("-"*25)
 print("-"*25)
-print("Cover right microphone, say 'left'")
-input("Press enter when ready")
+print_plus("Cover right microphone, say 'left'")
+
+input_plus("Press enter when ready")
 depth, fs, frame_bytes = record("left")
 save_wav_channel('left.wav', depth, fs, frame_bytes, 0)
 print("-"*25)
-print("Cover left microphone, say 'right'")
-input("Press enter when ready")
+print_plus("Cover left microphone, say 'right'")
+input_plus("Press enter when ready")
 depth, fs, frame_bytes = record("right")
 save_wav_channel('right.wav', depth, fs, frame_bytes, 1)
 print("-"*25)
-print("don't cover any microphone, say 'both'")
-input("Press enter when ready")
-depth, fs, frame_bytes = record("both")
-print("-"*25)
-print("-"*25)
+#print_plus("Don't cover any, say 'both'")
+#input_plus("Press enter when ready")
+#depth, fs, frame_bytes = record("both")
+#print("-"*25)
+#print("-"*25)
 

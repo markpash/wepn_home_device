@@ -40,3 +40,5 @@ adafruit-circuitpython-aw9523
 adafruit-circuitpython-pct2075
 adafruit-circuitpython-neopixel
 adafruit-circuitpython-veml7700
+pylab
+matplotlib
