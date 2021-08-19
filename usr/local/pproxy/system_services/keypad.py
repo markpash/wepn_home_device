@@ -217,7 +217,7 @@ class KEYPAD:
     def show_claim_info_qrcode(self):
             current_key = self.status.get('status', 'temporary_key')
             serial_number = self.config.get('django','serial_number')
-            display_str = [(1, "https://red.we-pn.com/?s="+
+            display_str = [(1, "https://red.we-pn.com/?pk=NONE&s="+
                 str(serial_number) + "&k="+str(current_key), 2, "white")]
             self.lcd.display(display_str, 20)
             return True # exit the menu

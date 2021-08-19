@@ -226,7 +226,7 @@ class OnBoard():
             serial_number = self.config.get('django','serial_number')
             # if no app is installed, QR code will redirect to iOS/Android App store automaticall
             # if app is installed, the camera in app can extract serial and keys and ignore the URL
-            display_str = [(1, "https://red.we-pn.com/?s="+
+            display_str = [(1, "https://red.we-pn.com/?pk=NONE&s="+
                 str(serial_number) + "&k="+str(self.rand_key), 2, "white")]
         else:
             display_str = [(1, "Device Key:", 0,"blue"),
