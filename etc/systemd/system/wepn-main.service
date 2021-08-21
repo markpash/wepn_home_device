@@ -1,10 +1,12 @@
 [Unit]
-Description=WEPN LED Service
-Before=wepn-keypad.service wepn-main.service
+Description=WEPN Main Service
+After=network-online.target wepn-leds.service
+Before=wepn-keypad.service
+Wants=network-online.target
 
 [Service]
-User=root
-ExecStart=/usr/bin/python3 /usr/local/pproxy/system_services/led_manager.py
+User=pproxy
+ExecStart=/usr/bin/python3 /usr/local/pproxy/run.py
 KillMode=process
 Restart=on-failure
 RestartPreventExitStatus=255

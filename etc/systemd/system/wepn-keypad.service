@@ -1,6 +1,6 @@
 [Unit]
 Description=WEPN Keypad Service
-After=network.target, wepn-leds.service
+After=wepn-leds.service wepn-main.service
 
 [Service]
 User=pproxy
@@ -9,7 +9,7 @@ KillMode=process
 Restart=on-failure
 RestartPreventExitStatus=255
 Type=simple
-RuntimeDirectory=/usr/local/pproxy/
+RuntimeDirectory=pproxy/
 WorkingDirectory=/usr/local/pproxy/
 RuntimeDirectoryMode=0755
 

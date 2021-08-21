@@ -1,6 +1,6 @@
 [Unit]
 Description=WEPN clearnig state at shutdown
-Requires=network.target
+Requires=network-online.target
 DefaultDependencies=no
 Before=shutdown.target reboot.target
 
@@ -8,7 +8,7 @@ Before=shutdown.target reboot.target
 Type=oneshot
 RemainAfterExit=true
 ExecStart=/bin/true
-ExecStop=/usr/bin/python3 /usr/local/pproxy/system_service/blank_state.py
+ExecStop=/usr/bin/python3 /usr/local/pproxy/system_services/blank_state.py
 
 [Install]
 WantedBy=multi-user.target
