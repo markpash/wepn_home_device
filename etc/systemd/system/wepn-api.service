@@ -1,6 +1,7 @@
 [Unit]
 Description=WEPN API Service
 After=network.target 
+Requires=network-online.target
 
 [Service]
 User=wepn-api
@@ -9,7 +10,7 @@ KillMode=process
 Restart=on-failure
 RestartPreventExitStatus=255
 Type=notify
-RuntimeDirectory=/usr/local/pproxy/local_server/
+RuntimeDirectory=pproxy/
 WorkingDirectory=/usr/local/pproxy/local_server/
 RuntimeDirectoryMode=0755
 

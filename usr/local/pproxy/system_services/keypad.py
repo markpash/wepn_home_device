@@ -278,7 +278,7 @@ class KEYPAD:
             # show the status info
             hb = HeartBeat(self.logger)
             status = int(self.status.get("status", 'state'))
-            display_str = hb.get_display_string_status(self.lcd, status)
+            display_str = hb.get_display_string_status(status, self.lcd)
             self.lcd.display(display_str, 20)
 
 
@@ -331,7 +331,7 @@ class KEYPAD:
         # TODO this has to go to device module
         self.display_active = True
         import subprocess
-        cmd = "/bin/bash /var/local/pproxy/git/sync.sh"
+        cmd = "sudo /bin/bash /usr/local/sbin/wepn_git.sh"
         self.menu[4][1]["text"]= "checking ..."
         self.render()
         try:

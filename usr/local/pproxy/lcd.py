@@ -57,7 +57,13 @@ class LCD:
         self.CS = 9
         self.SPI_PORT = 0
         self.SPI_DEVICE = 0
+        if False and (GPIO.getmode() != 11):
+            GPIO.setmode(GPIO.BCM)
+        self.width = 128
+        self.height = 64 
         if self.version==2  or  self.version==3:
+            self.width = 240
+            self.height = 240
             # Config for display baudrate (default max is 24mhz):
             BAUDRATE = 24000000
 
@@ -68,7 +74,7 @@ class LCD:
             dc_pin = digitalio.DigitalInOut(board.D25)
             reset_pin = digitalio.DigitalInOut(board.D24)
             self.lcd = st7789.ST7789(spi, 
-                height=240, width=240,
+                height=self.height, width=self.width,
                 y_offset=80, x_offset=0,
                 rotation=180,
                 cs=cs_pin,
@@ -98,9 +104,10 @@ class LCD:
         x_pad = padding
 
         if self.version==2  or  self.version==3:
-            width = 240 
-            height = 240
+            width = self.width
+            height = self.height
             size = int(size*1.5)
+            x_offset = 20
             image = Image.new("RGB", (width, height), "BLACK")
         else:
             # Note you can change the I2C address by passing an i2c_address parameter like:
@@ -113,6 +120,7 @@ class LCD:
             # Make sure to create image with mode '1' for 1-bit color.
             width = disp.width
             height = disp.height
+            x_offset = 0
             image = Image.new('1', (width, height))
 
         # Get drawing object to draw on image.
@@ -145,7 +153,7 @@ class LCD:
                 color = 255
             if vtype == 1:
                    # icon
-                   curr_x=x_pad
+                   curr_x=x_pad + x_offset
                    for s in current_str.split(" "):
                      draw.text((curr_x, top), s, font=font_icon, fill=color)
                      #draw.text((curr_x+len(s)*size, top), " ", font=rubik_regular, fill=255)
@@ -171,7 +179,7 @@ class LCD:
                     image.paste(img_qr, pos)
             else:
                 # normal text
-                  draw.text((x_pad, top), current_str, font=rubik_regular, fill=color)
+                  draw.text((x_pad+x_offset, top), current_str, font=rubik_regular, fill=color)
             top = top + size
         # Display image.
         if  self.version==3:

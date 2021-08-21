@@ -307,7 +307,7 @@ class Device():
         except Exception as error_exception:
             self.logger.error("Error happened in getting gateway IP")
             self.logger.error("Error details:\n"+str(error_exception))
-            return '0.0.0.0'
+            return ['0.0.0.0']
     def get_default_gw_vendor(self):
         return self.get_default_gw_mac()[:8]
 

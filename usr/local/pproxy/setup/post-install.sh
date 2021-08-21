@@ -28,8 +28,8 @@ chown pproxy.pproxy /var/local/pproxy/*
 chown pproxy.pproxy /var/local/pproxy/.*
 chown pproxy.pproxy /var/local/pproxy/shadow/*
 
-echo -e "correcting scripts that rung as sudo"
-for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system
+echo -e "correcting scripts that run as sudo"
+for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system wepn_git.sh
 do
 	chown root.root /usr/local/sbin/$SCRIPT.sh
 	chmod 755 /usr/local/sbin/$SCRIPT.sh
@@ -51,10 +51,10 @@ $PIP install -r $PPROXY_HOME/setup/requirements.txt
 pip3 install --upgrade pip
 pip3 install -r $PPROXY_HOME/setup/requirements.txt
 
-#autostart service
-chmod 0755 /etc/init.d/pproxy
-/bin/ln -s /etc/init.d/pproxy /etc/rc3.d/S01pproxy
-/bin/ln -s /etc/init.d/pproxy /etc/rc5.d/S01pproxy
+##autostart service
+#chmod 0755 /etc/init.d/pproxy
+#/bin/ln -s /etc/init.d/pproxy /etc/rc3.d/S01pproxy
+#/bin/ln -s /etc/init.d/pproxy /etc/rc5.d/S01pproxy
 
 #config initialized/fixed
 mkdir -p /etc/pproxy/
@@ -119,10 +119,12 @@ chmod 600 /etc/openvpn/easy-rsa/pki/.rnd
 /bin/bash $PPROXY_HOME/openvpn-iptables.sh
 chown root.root /usr/local/sbin/ip-shadow.sh
 chmod 0755 /usr/local/sbin/ip-shadow.sh
+chown root.root /usr/local/sbin/wepn_git.sh
+chmod 0755 /usr/local/sbin/wepn_git.sh
 chown root.root /usr/local/sbin/restart-pproxy.sh
 chmod 0755 /usr/local/sbin/restart-pproxy.sh
-chmod 0755 /etc/network/if-up.d/pproxy.sh
-chmod 0755 /etc/network/if-down.d/pproxy.sh
+chmod 0755 /etc/network/if-up.d/wepn
+chmod 0755 /etc/network/if-down.d/wepn
 
 ##################################
 # Setup DNS
@@ -260,8 +262,10 @@ systemctl enable wepn-keypad
 systemctl restart wepn-keypad
 systemctl enable wepn-leds
 systemctl restart wepn-leds
-#systemctl restart wepn-keypad
-/bin/sh /etc/init.d/pproxy restart
+systemctl restart wepn-keypad
+#/bin/sh /etc/init.d/pproxy restart
+systemctl enable wepn-main
+systemctl restart wepn-main
 
 
-echo -e "Installation of PProxy done."
+echo -e "Installation of WEPN done."

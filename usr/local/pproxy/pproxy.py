@@ -61,8 +61,9 @@ class PProxy():
         self.mqtt_connected = 0
         self.mqtt_reason = 0
         if gpio_up:
-            GPIO.setmode(GPIO.BCM)
             GPIO.cleanup()
+            if GPIO.getmode() != 11:
+                GPIO.setmode(GPIO.BCM)
             self.factory = rpi_gpio.KeypadFactory()
         else:
             self.factory = None
@@ -278,7 +279,7 @@ class PProxy():
                 lang = re.sub(r'\\\\/*\.?',"",self.sanitize_str(data['language']))
             except:
                 lang = 'en'
-            print("Adding user: "+ username +" with language:" + lang)
+            self.logger.debug("Adding user: "+ username +" with language:" + lang)
             ip_address = self.sanitize_str(ipw.myip())
             if self.config.has_section("dyndns") and self.config.getboolean('dyndns','enabled'):
                 # we have good DDNS, lets use it
@@ -361,7 +362,7 @@ class PProxy():
             self.save_state("3")
             #reboot to go into onboarding
             self.device.reboot()
-        print("incoming data:"+str(data))
+        #print("incoming data:"+str(data))
     #callback for diconnection of MQTT from server
     def on_disconnect(self,client, userdata, reason_code):
         self.logger.info("MQTT disconnected")
@@ -381,15 +382,17 @@ class PProxy():
         self.leds.set_all(0, 178, 16)
         services = Services(self.loggers['services'])
         services.start()
+        time.sleep(5)
         client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=False)
         self.logger.debug('HW config: button='+str(int(self.config.get('hw','buttons'))) + '  LCD='+
                 self.config.get('hw','lcd'))
-        if (int(self.config.get('hw','buttons'))==1):
+        if (int(self.config.get('hw','buttons'))==1 and 
+            int(self.config.get('hw','button-version'))==1):
             try:
                 keypad = self.factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
                 keypad.registerKeyPressHandler(self.process_key)
             except RuntimeError as er:
-                self.logger.cirtical("setting up keypad failed: " + str(er))
+                self.logger.critical("setting up keypad failed: " + str(er))
                 if gpio_up:
                     GPIO.cleanup()
         client.on_connect = self.on_connect
