@@ -102,7 +102,8 @@ if not status.has_section('previous_keys'):
 if not config.has_option('hw','iface'):
     config.set('hw','iface', 'eth0')
 
-if not config.has_option('hw','led-version'):
+if (not config.has_option('hw','led-version') and
+    not config.has_option('hw','lcd-version')):
     config.set('hw','led-version', '1')
 
 if config.has_option('hw','led-version'):
