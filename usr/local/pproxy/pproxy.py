@@ -406,6 +406,8 @@ class PProxy():
             rc=client.connect(str(self.config.get('mqtt', 'host')),
                        int(self.config.get('mqtt', 'port')),
                        int(self.config.get('mqtt', 'timeout')))
+            heart_beat = HeartBeat(self.loggers["heartbeat"])
+            heart_beat.send_heartbeat(1)
 
         except Exception as error:
             self.logger.error("MQTT connect failed")

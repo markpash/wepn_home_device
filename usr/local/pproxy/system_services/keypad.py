@@ -328,17 +328,10 @@ class KEYPAD:
         self.render()
 
     def update_software(self):
-        # TODO this has to go to device module
         self.display_active = True
-        import subprocess
-        cmd = "sudo /bin/bash /usr/local/sbin/wepn_git.sh"
         self.menu[4][1]["text"]= "checking ..."
         self.render()
-        try:
-            subprocess.check_output(cmd.split()).strip()
-        except subprocess.CalledProcessError as e:
-            #self.logger.error(e.output)
-            label = "not happy"
+        self.device.software_update_from_git()
         self.menu[4][1]["text"]= "Update"
         self.show_git_version()
 

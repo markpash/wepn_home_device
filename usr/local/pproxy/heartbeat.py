@@ -84,8 +84,11 @@ class HeartBeat:
         headers = {"Content-Type": "application/json"}
         external_ip = str(ipw.myip())
 
-        ni.ifaddresses(self.config.get('hw','iface'))
-        local_ip = ni.ifaddresses(self.config.get('hw','iface'))[ni.AF_INET][0]['addr']
+        try: 
+            ni.ifaddresses(self.config.get('hw','iface'))
+            local_ip = ni.ifaddresses(self.config.get('hw','iface'))[ni.AF_INET][0]['addr']
+        except:
+            local_ip = "0.0.0.0"
         test_port=int(self.config.get('openvpn','port')) + 1
         if int(self.config.get('shadow','enabled'))==1:
             shadow = Shadow(self.logger)

@@ -338,3 +338,11 @@ class Device():
                 if response.find(key.encode('utf-8')) == 0:
                     self.logger.error(message)
 
+    def software_update_from_git(self):
+        # first, the git pull in /var/local/pproxy/git/
+        cmd_normal = "/bin/bash /usr/local/pproxy/setup/sync.sh"
+        self.execute_cmd_output(cmd_normal, True)
+        # part that should run as root:
+        # copies system files, changes permissions, ...
+        cmd_sudo = "sudo /usr/local/sbin/wepn_git.sh"
+        self.execute_cmd_output(cmd_sudo, True)

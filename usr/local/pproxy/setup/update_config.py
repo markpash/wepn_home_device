@@ -18,11 +18,6 @@ port_status.read(PORT_STATUS_FILE)
 if not config.has_option('mqtt','host'):
    config.set('mqtt','host','we-pn.com')
    config.set('mqtt','onboard-timeout','10')
-else:
-   # some configs incorrectly have this
-   # as api.we-pn.com
-   config.set('mqtt','host','we-pn.com')
-
 
 host = config.get('django','host')
 if host == "we-pn.com":
