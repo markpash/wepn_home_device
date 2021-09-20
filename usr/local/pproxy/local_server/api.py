@@ -119,6 +119,26 @@ def claim_info():
         dev_key = status.get_field('status', 'temporary_key')
     return "{\"claimed\":\""+is_claimed+"\", \"serial_number\": \"" + str(serial_number) + "\", \"device_key\":\"" + dev_key + "\"}"
 
+@app.route('/api/v1/claim/progress', methods=['GET'])
+def claim_progress():
+    if exposed:
+        return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
+    status = WStatus(logger)
+    WPD = WPDiag(logger)
+    wepn_available = WPD.is_connected_to_service()
+    vpn_ready = WPD.services_self_test()
+    is_claimed = status.get_field('status','claimed')
+    if is_claimed == 1:
+        WPD.perform_server_port_check(port_no)
+    port = False
+    if status.get_field('port_check', 'result')=="True":
+        port = True
+    is_claimed = status.get_field('status','claimed')
+    result = {"Can talk with WEPN Server":wepn_available,
+             "Can forward ports":port,
+             "VPN is ready": vpn_ready }
+    return json.dumps(result)
+
 
 @app.route('/api/v1/diagnostics/info', methods=['GET'])
 def run_diag():
