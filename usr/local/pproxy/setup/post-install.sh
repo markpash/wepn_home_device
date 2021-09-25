@@ -174,11 +174,12 @@ cd $PPROXY_HOME/local_server/
 openssl genrsa -out wepn-local.key 2048 
 openssl req -new -key wepn-local.key -out wepn-local.csr -subj "/C=US/ST=California/L=California/O=WEPN/OU=Local WEPN Device/CN=invalid.com"
 openssl x509 -req -days 365 -in wepn-local.csr -signkey wepn-local.key -out wepn-local.crt
-
+chown wepn-api wepn-local.*
 chgrp wepn-web wepn-local.* 
 chgrp wepn-web . 
 chmod g+r wepn-local.*
 chmod g+r .
+
 cp $PPROXY_HOME/setup/wepn-api.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable wepn-api
@@ -264,6 +265,7 @@ systemctl enable wepn-leds
 systemctl restart wepn-leds
 systemctl restart wepn-keypad
 #/bin/sh /etc/init.d/pproxy restart
+update-rc.d pproxy disable
 systemctl enable wepn-main
 systemctl restart wepn-main
 

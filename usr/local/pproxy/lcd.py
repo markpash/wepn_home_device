@@ -11,9 +11,14 @@ except Exception as err:
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
-import RPi.GPIO as GPIO
 import logging.config
 import qrcode
+try:
+    import RPi.GPIO as GPIO
+    gpio_enable = True
+except:
+    gpio_enable = False
+
 
 try:
     from self.configparser import configparser
@@ -57,7 +62,7 @@ class LCD:
         self.CS = 9
         self.SPI_PORT = 0
         self.SPI_DEVICE = 0
-        if False and (GPIO.getmode() != 11):
+        if gpio_enable and (GPIO.getmode() != 11):
             GPIO.setmode(GPIO.BCM)
         self.width = 128
         self.height = 64 

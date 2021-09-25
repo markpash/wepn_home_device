@@ -262,7 +262,7 @@ class OnBoard():
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
-        self.client.tls_set("/etc/ssl/certs/DST_Root_CA_X3.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
+        self.client.tls_set("/etc/ssl/certs/ISRG_Root_X1.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
         rc= self.client.username_pw_set(username=self.config.get('mqtt', 'username'),
                                password=self.rand_key)
         self.logger.debug("mqtt host:" +str(self.config.get('mqtt','host')))

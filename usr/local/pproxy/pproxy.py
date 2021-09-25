@@ -398,7 +398,7 @@ class PProxy():
         client.on_connect = self.on_connect
         client.on_message = self.on_message
         client.on_disconnect = self.on_disconnect
-        client.tls_set("/etc/ssl/certs/DST_Root_CA_X3.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
+        client.tls_set("/etc/ssl/certs/ISRG_Root_X1.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
         rc= client.username_pw_set(username=self.config.get('mqtt', 'username'),
                                password=self.config.get('mqtt', 'password'))
         self.logger.debug("mqtt host: " +str(self.config.get('mqtt','host')))
