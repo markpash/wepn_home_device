@@ -1,8 +1,3 @@
-from led_client import LEDClient
-from heartbeat import HeartBeat
-from device import Device
-from diag import WPDiag
-from lcd import LCD as LCD
 import RPi.GPIO as GPIO
 from adafruit_bus_device import i2c_device
 import adafruit_aw9523
@@ -16,6 +11,12 @@ import os
 import sys
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
+# above line is needed for following classes:
+from led_client import LEDClient
+from heartbeat import HeartBeat
+from device import Device
+from diag import WPDiag
+from lcd import LCD as LCD
 try:
     from self.configparser import configparser
 except ImportError:

@@ -151,7 +151,7 @@ if __name__ == '__main__':
                     lm.blank()
                 if incoming[0] == "rainbow":
                     if len(incoming) == 2:
-                        lm.rainbow(100, float(incoming[1]))
+                        lm.rainbow(50, float(incoming[1]))
         except KeyboardInterrupt:
             print('Interrupted')
             server.close()

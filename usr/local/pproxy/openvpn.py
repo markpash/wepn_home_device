@@ -1,6 +1,6 @@
 import shlex
 import subprocess
-import system
+import sys as system
 try:
     from self.configparser import configparser
 except ImportError:

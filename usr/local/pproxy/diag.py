@@ -1,5 +1,5 @@
 import socket
-import system
+import sys as system
 import shlex
 import subprocess
 import json
