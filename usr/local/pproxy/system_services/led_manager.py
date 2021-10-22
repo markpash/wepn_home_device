@@ -9,20 +9,27 @@ import stat
 up_dir = os.path.dirname(os.path.abspath(__file__))+'/../'
 sys.path.append(up_dir)
 
-NUM_LED = 24
 LM_SOCKET_PATH="/tmp/ledmanagersocket.sock"
 # The order of the pixel colors - RGB or GRB. Some NeoPixels have red and green reversed!
 # For RGBW NeoPixels, simply change the ORDER to RGBW or GRBW.
 ORDER = neopixel.GRB
+CONFIG_FILE = '/etc/pproxy/config.ini'
+try:
+    from self.configparser import configparser
+except ImportError:
+    import configparser
 
 class LEDManager:
     def __init__(self):
         self.led_ring_present = True
         self.current_color = None
         self.current_bright_one = 0
+        self.config = configparser.ConfigParser()
+        self.config.read(CONFIG_FILE)
+        self.num_leds = int(self.config.get('hw','num_leds'))
         if self.led_ring_present:
             self.pixels = neopixel.NeoPixel(pin=board.D12,
-                    n=NUM_LED, brightness=1, bpp=3, pixel_order=ORDER)
+                    n=self.num_leds, brightness=1, bpp=3, auto_write=False, pixel_order=ORDER)
         pass
 
     def set_enabled(self, enabled=1):
@@ -35,6 +42,7 @@ class LEDManager:
         if not self.led_ring_present:
             return
         self.pixels.fill(color)
+        self.pixels.show()
 
     def blank(self):
         if not self.led_ring_present:
@@ -44,24 +52,26 @@ class LEDManager:
     def set_all_slow(self, color):
         if not self.led_ring_present:
             return
-        for i in range(24):
+        for i in range(self.num_leds):
             self.pixels[i] = color
             time.sleep(0.1)
+            self.pixels.show()
 
     def progress_wheel_step(self, color):
         if not self.led_ring_present:
             return
         dim_factor = 20
         self.set_all( (color[0]/dim_factor, color[1]/dim_factor, color[2]/dim_factor) )
-        self.current_bright_one = (self.current_bright_one + 1) % NUM_LED
-        before = (self.current_bright_one - 1) % NUM_LED
+        self.current_bright_one = (self.current_bright_one + 1) % self.num_leds 
+        before = (self.current_bright_one - 1) % self.num_leds 
         if before < 0:
             before = NUM_LED + before
-        after = (self.current_bright_one + 1) % NUM_LED
+        after = (self.current_bright_one + 1) % self.num_leds
 
         self.pixels[before] = color
         self.pixels[after] = color
         self.pixels[self.current_bright_one] = color
+        self.pixels.show()
 
     def wheel(self, pos):
         # Input a value 0 to 255 to get a color value.
@@ -85,13 +95,16 @@ class LEDManager:
         return (r, g, b) if ORDER in (neopixel.RGB, neopixel.GRB) else (r, g, b, 0)
 
     # wait is in milliseconds
-    def rainbow(self, wait):
-        for j in range(255):
-            for i in range(NUM_LED):
-                pixel_index = (i * 256 // NUM_LED) + j
-                self.pixels[i] = self.wheel(pixel_index & 255)
-            self.pixels.show()
-            time.sleep(wait/1000)
+    def rainbow(self, rounds, wait):
+        if not self.led_ring_present:
+            return
+        for _r in range(rounds):
+            for j in range(255):
+                for i in range(self.num_leds):
+                    pixel_index = (i * 256 // self.num_leds) + j
+                    self.pixels[i] = self.wheel(pixel_index & 255)
+                self.pixels.show()
+                time.sleep(wait/1000)
 
 
 # LED system needs to be root, so need to
@@ -138,7 +151,7 @@ if __name__=='__main__':
                     lm.blank()
                 if incoming[0] == "rainbow":
                     if len(incoming) == 2:
-                        lm.rainbow(float(incoming[1]))
+                        lm.rainbow(5, float(incoming[1]))
         except KeyboardInterrupt:
             print('Interrupted')
             server.close()
