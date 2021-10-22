@@ -69,6 +69,7 @@ class KEYPAD:
         self.menu_row_skip = 22 
         self.menu = None
         self.menu_index = 0
+        self.led_setting_index = 0
         self.current_title = "Main"
 
 
@@ -302,13 +303,52 @@ class KEYPAD:
 
     def toggle_led_setting(self):
         self.display_active = True
-        self.led_enabled = not self.led_enabled
-        self.led_client.set_enabled(self.led_enabled)
-        self.led_client.set_all(255,255,0)
-        s = "OFF"
-        if self.led_enabled:
-            s= "ON"
-        self.menu[3][0]["text"]= "LED Ring: " + s
+        options = ["Yellow", "White", "Red", "Green", "Brown", "Rainbow", "Reset", "Off"] 
+
+        new_index = (self.led_setting_index + 1) % len(options)
+        if new_index < 5:
+            # static on with colors
+            self.led_enabled = True
+            self.led_client.set_enabled(self.led_enabled)
+            if new_index == 0:
+                # yellow
+                self.led_client.set_all(255,255,0)
+            elif new_index == 1:
+                # white
+                self.led_client.set_all(255,255,255)
+            elif new_index == 2:
+                # red
+                self.led_client.set_all(255,0,0)
+            elif new_index == 3:
+                # green
+                self.led_client.set_all(0, 255,0)
+            elif new_index == 4:
+                # brown
+                self.led_client.set_all(165,42,42)
+        elif new_index == 5:
+            # rainbow
+            self.led_enabled = True
+            self.led_client.set_enabled(self.led_enabled)
+            self.led_client.rainbow(0) # 100ms wait
+        elif new_index == 6:
+            # reset
+            self.led_enabled = True
+            self.led_client.set_enabled(self.led_enabled)
+            self.led_client.blank()
+        elif new_index == 7:
+            # completely off
+            self.led_client.blank()
+            self.led_enabled = False
+            self.led_client.set_enabled(self.led_enabled)
+        
+        # self.led_enabled = not self.led_enabled
+        # self.led_client.set_enabled(self.led_enabled)
+        # self.led_client.set_all(255,255,0)
+        # s = "OFF"
+        # if self.led_enabled:
+        #    s= "ON"
+        self.menu[3][0]["text"]= "Ring: " + options[new_index]
+        self.led_setting_index = new_index
         self.render()
 
     def show_git_version(self):

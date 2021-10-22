@@ -43,6 +43,11 @@ class LEDClient:
             return
         self.send("blank")
 
+    def rainbow(self, wait):
+        if self.client is None:
+            return
+        self.send("rainbow " + str(wait))
+
     def set_all_slow(self, r, g, b):
         if self.client is None:
             return
