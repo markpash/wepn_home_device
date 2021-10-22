@@ -27,7 +27,11 @@ class LEDManager:
         self.current_bright_one = 0
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
-        self.num_leds = int(self.config.get('hw', 'num_leds'))
+        if self.config.has_option('hw', 'num_leds'):
+            self.num_leds = int(self.config.get('hw', 'num_leds'))
+        else:
+            # some hw in the wild do not have the config
+            self.num_leds = 24
         if self.led_ring_present:
             self.pixels = neopixel.NeoPixel(pin=board.D12,
                                             n=self.num_leds, brightness=1, bpp=3, auto_write=False, pixel_order=ORDER)
