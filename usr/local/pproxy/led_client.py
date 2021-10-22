@@ -1,17 +1,12 @@
 import os
-import sys
-import device
 import logging
-import time
 import socket
-import os
 
-
-LM_SOCKET_PATH="/tmp/ledmanagersocket.sock"
-LOG_CONFIG="/etc/pproxy/logging-debug.ini"
+LM_SOCKET_PATH = "/tmp/ledmanagersocket.sock"
+LOG_CONFIG = "/etc/pproxy/logging-debug.ini"
 
 logging.config.fileConfig(LOG_CONFIG,
-        disable_existing_loggers=False)
+                          disable_existing_loggers=False)
 
 logger = logging.getLogger("led_client")
 
@@ -32,7 +27,6 @@ class LEDClient:
             return
         self.send("set_enabled " + str(int(enabled)))
 
-
     def send(self, cmd):
         self.client.send(cmd.encode('utf-8'))
 
@@ -40,9 +34,9 @@ class LEDClient:
         if self.client is None:
             return
         self.send("set_all " +
-                str(r) + " " +
-                str(g) + " " +
-                str(b))
+                  str(r) + " " +
+                  str(g) + " " +
+                  str(b))
 
     def blank(self):
         if self.client is None:
@@ -53,14 +47,14 @@ class LEDClient:
         if self.client is None:
             return
         self.send("send_all_slow " +
-                str(r) + " " +
-                str(g) + " " +
-                str(b))
+                  str(r) + " " +
+                  str(g) + " " +
+                  str(b))
 
     def progress_wheel_step(self, r, g, b):
         if self.client is None:
             return
         self.send("progress_wheel_step " +
-                str(r) + " " +
-                str(g) + " " +
-                str(b))
+                  str(r) + " " +
+                  str(g) + " " +
+                  str(b))

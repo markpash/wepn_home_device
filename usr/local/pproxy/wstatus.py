@@ -1,36 +1,33 @@
-import sys
-import logging.config
-import atexit
 try:
     from self.configparser import configparser
 except ImportError:
     import configparser
-STATUS_FILE='/var/local/pproxy/status.ini'
+STATUS_FILE = '/var/local/pproxy/status.ini'
+
 
 class WStatus:
     def __init__(self, logger, source_file=None):
         self.status = configparser.ConfigParser()
         self.logger = logger
-        if source_file==None:
+        if source_file is None:
             source_file = STATUS_FILE
         self.status.read(source_file)
-        self.source_file=source_file
+        self.source_file = source_file
 
     def save(self):
-        #TODO: add lock checking
+        # TODO: add lock checking
         if self.source_file is not None and self.status is not None:
-          self.logger.info("writing status file")
-          try:
-            statusfile = open(self.source_file, 'w')
-            self.status.write(statusfile)
-            statusfile.close()
-          except Exception as err:
-              #err = sys.exc_info()[0]
-              self.logger.debug("Something happened when writing status file:" + str(err))
+            self.logger.info("writing status file")
+            try:
+                statusfile = open(self.source_file, 'w')
+                self.status.write(statusfile)
+                statusfile.close()
+            except Exception as err:
+                self.logger.debug(
+                    "Something happened when writing status file:" + str(err))
 
     def reload(self):
         self.status.read(self.source_file)
-
 
     def has_section(self, section):
         return self.status.has_section(section)
@@ -48,8 +45,7 @@ class WStatus:
         if not isinstance(value, str):
             value = str(value)
         self.status.set(section, field, value)
-        self.logger.debug('setting '+field+' to '+value)
-
+        self.logger.debug('setting ' + field + ' to ' + value)
 
     def get(self, field):
         try:
@@ -58,11 +54,10 @@ class WStatus:
             self.logger.error("Unknown field: " + field)
             return ""
 
-
     def get_field(self, section, field):
         try:
             return self.status.get(section, field)
         except:
-            self.logger.error("Unknown section/field: " + section + ":"+ field)
+            self.logger.error("Unknown section/field: "
+                              + section + ":" + field)
             return ""
-
