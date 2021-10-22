@@ -98,7 +98,7 @@ class LCD:
                 for row, current_str, vtype, color in strs:
                     spaces = 20 - len(current_str)
                     out.write("row:[" + str(row) + "] \tstring:[\t" + current_str + " " * spaces
-                            + "]\ttype:[" + str(vtype) + "]  color:[" + str(color) + "]\n")
+                              + "]\ttype:[" + str(vtype) + "]  color:[" + str(color) + "]\n")
             return
 
         # Draw some shapes.

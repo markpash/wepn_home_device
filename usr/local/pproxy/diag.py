@@ -1,5 +1,5 @@
 import socket
-import netifaces as ni
+import system
 import shlex
 import subprocess
 import json
@@ -11,7 +11,6 @@ import atexit
 import datetime as datetime
 from datetime import timedelta
 import dateutil.parser
-import logging.config
 
 try:
     from self.configparser import configparser
@@ -186,7 +185,7 @@ class WPDiag:
         result = self.fetch_port_check_results(
             self.status.get_field("port_check", "experiment_number"))
         try:
-            if result['finished_time'] != None:
+            if result['finished_time'] is not None:
                 self.logger.info("test results are in")
                 self.close_test_port(port)
                 self.status.set_field("port_check", "pending", False)
@@ -222,15 +221,15 @@ class WPDiag:
             last_check_date = dateutil.parser.parse(last_port_check)
             self.logger.info("last port check was " + str(last_check_date))
 
-            long_term_expired = (last_check_date.replace(tzinfo=None) <
-                                 (datetime.datetime.now().replace(tzinfo=None) + timedelta(days=-1)))
+            long_term_expired = (last_check_date.replace(tzinfo=None)
+                                 < (datetime.datetime.now().replace(tzinfo=None) + timedelta(days=-1)))
             short_term_expired = (last_check_date.replace(tzinfo=None)
                                   < (datetime.datetime.now().replace(tzinfo=None) + timedelta(hours=-2)))
             previous_failed = self.status.get_field(
                 "port_check", "result") == "False"
 
-            self.logger.info("pending test results? " +
-                             self.status.get_field("port_check", "pending"))
+            self.logger.info("pending test results? "
+                             + self.status.get_field("port_check", "pending"))
             if self.status.get_field("port_check", "pending") == "True":
                 self.logger.debug(
                     "A test has been initiated previously, getting the results")
@@ -326,8 +325,8 @@ class WPDiag:
         url = self.config.get('django', 'url') + "/api/device/diagnosis/"
         try:
             response = requests.post(url, data=data_json, headers=headers)
-            self.logger.info("server diag analysis:" +
-                             str(response.status_code))
+            self.logger.info("server diag analysis:"
+                             + str(response.status_code))
             return response.json()
         except requests.exceptions.RequestException as exception_error:
             self.logger.error(

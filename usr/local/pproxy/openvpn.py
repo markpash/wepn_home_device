@@ -1,6 +1,6 @@
 import shlex
 import subprocess
-from subprocess import call
+import system
 try:
     from self.configparser import configparser
 except ImportError:
@@ -81,7 +81,7 @@ class OpenVPN:
     def get_removal_email_text(self, certname, ip_address):
         txt = ''
         html = ''
-        subjcet = ''
+        subject = ''
         attachments = []
         if self.config.get('openvpn', 'enabled') == 1 and self.config.get('openvpn', 'email') == 1:
             txt = "Access to VPN server IP address " + ip_address + " is revoked.",
