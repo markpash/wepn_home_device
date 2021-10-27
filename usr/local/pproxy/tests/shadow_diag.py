@@ -26,7 +26,7 @@ import signal
 import select
 import time
 import argparse
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE #nosec: static input go.we-pn.com/waiver-1 
 
 default_url = 'http://www.google.com/'
 

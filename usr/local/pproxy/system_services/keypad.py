@@ -348,7 +348,7 @@ class KEYPAD:
         self.display_active = True
         self.set_current_menu(4)
         # ONLY FOR UX DEVELOPMENT, show the git hash
-        import subprocess
+        import subprocess #nosec: dev only, static command = no injection
         label = "production"
         git_cmd = "git log -1 --format=format:\"%H\""
         try:

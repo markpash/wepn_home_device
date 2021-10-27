@@ -9,7 +9,7 @@ try:
 except ImportError:
     import configparser
 
-import subprocess
+import subprocess #nosec shlex split used for sanitization go.we-pn.com/waiver-1
 import shlex
 from wstatus import WStatus as WStatus
 
@@ -108,9 +108,9 @@ class Device():
             out = ""
             err = ""
             if detached:
-                sp = subprocess.Popen(args)
+                sp = subprocess.Popen(args) #nosec: sanitized above, go.we-pn.com/waiver-1
             else:
-                sp = subprocess.Popen(args,
+                sp = subprocess.Popen(args, #nosec: sanitized above, go.we-pn.com/waiver-1
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE)
                 out, err = sp.communicate()
@@ -331,4 +331,8 @@ class Device():
         # part that should run as root:
         # copies system files, changes permissions, ...
         cmd_sudo = "sudo /usr/local/sbin/wepn_git.sh"
-        self.execute_cmd_output(cmd_sudo, True)
+        # TODO: while there is no injection done here, this use of sudo 
+        # is uncomfortable. This is currently a development tool
+        # but we still need to have a better method such as a separate thread signaled here.
+
+        self.execute_cmd_output(cmd_sudo, True) #nosec static input go.we-pn.com/waiver-1)
