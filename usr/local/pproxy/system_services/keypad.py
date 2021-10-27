@@ -352,7 +352,7 @@ class KEYPAD:
         label = "production"
         git_cmd = "git log -1 --format=format:\"%H\""
         try:
-            label = subprocess.check_output(git_cmd.split()).strip()
+            label = subprocess.check_output(git_cmd.split()).strip() #nosec: static command, go.we-pn.com/waiver-1
             label = label.decode("utf-8")[1:8]
         except subprocess.CalledProcessError:
             # self.logger.error(e.output)
