@@ -112,7 +112,7 @@ class Device():
             else:
                 sp = subprocess.Popen(args, #nosec: sanitized above, go.we-pn.com/waiver-1
                                       stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
+                                      stderr=subprocess.PIPE) #nosec: sanitized above, go.we-pn.com/waiver-1
                 out, err = sp.communicate()
                 sp.wait()
                 if err:
