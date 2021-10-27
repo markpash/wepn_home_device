@@ -1,5 +1,5 @@
 import shlex
-import subprocess
+import subprocess #nosec: sanitized with shlex, go.we-pn.com/waiver-1
 import sys as system
 try:
     from self.configparser import configparser
@@ -92,7 +92,7 @@ class OpenVPN:
     def execute_cmd(self, cmd):
         try:
             args = shlex.split(cmd)
-            process = subprocess.Popen(args)
+            process = subprocess.Popen(args) #nosec: sanitized above, go.we-pn.com/waiver-1
             process.wait()
         except Exception as error_exception:
             self.logger.error(args)

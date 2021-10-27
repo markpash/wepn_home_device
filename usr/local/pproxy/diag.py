@@ -1,7 +1,7 @@
 import socket
 import sys as system
 import shlex
-import subprocess
+import subprocess #nosec: shlex is used, go.we-pn.com/waiver-1
 import json
 import requests
 import threading
@@ -51,7 +51,7 @@ class WPDiag:
     def execute_cmd(self, cmd):
         try:
             args = shlex.split(cmd)
-            subprocess.Popen(args)
+            subprocess.Popen(args) #nosec: sanitized above, go.we-pn.com/waiver-1
         except Exception as error_exception:
             self.logger.error("Error happened in running command:" + cmd)
             self.logger.error("Error details:" + str(error_exception))

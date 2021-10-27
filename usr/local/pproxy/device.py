@@ -9,7 +9,7 @@ try:
 except ImportError:
     import configparser
 
-import subprocess
+import subprocess #nosec shlex split used for sanitization go.we-pn.com/waiver-1
 import shlex
 from wstatus import WStatus as WStatus
 
@@ -108,11 +108,11 @@ class Device():
             out = ""
             err = ""
             if detached:
-                sp = subprocess.Popen(args)
+                sp = subprocess.Popen(args) #nosec: sanitized above, go.we-pn.com/waiver-1
             else:
                 sp = subprocess.Popen(args,
                                       stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
+                                      stderr=subprocess.PIPE) #nosec: sanitized above, go.we-pn.com/waiver-1
                 out, err = sp.communicate()
                 sp.wait()
                 if err:

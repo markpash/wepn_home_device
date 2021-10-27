@@ -12,13 +12,13 @@ except ImportError:
 
 import smtplib
 from os.path import basename
-import subprocess
+import subprocess #nosec: sanitized with shlex, go.we-pn.com/waiver-1
+from subprocess import call #nosec: go.we-pn.com/waiver-1
+import shlex                #nosec: go.we-pn.com/waiver-1
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
-from subprocess import call
-import shlex
 import logging.config
 #import ipw
 from ipw import IPW
