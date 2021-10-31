@@ -166,7 +166,8 @@ class PProxy():
 
     def send_mail(self, send_from, send_to,
                   subject, text, html, files_in,
-                  server="127.0.0.1"):
+                  server="127.0.0.1",
+                  unsubscribe_link=None):
         if int(self.config.get('email', 'enabled')) == 0:
             # email is completely disabled
             self.logger.debug("Email feature is completely off.")
@@ -192,7 +193,21 @@ class PProxy():
         msg['Date'] = formatdate(localtime=True)
         msg['Subject'] = subject
 
-        part1 = MIMEText(text, 'plain')
+        if unsubscribe_link is not None:
+            msg.add_header('List-Unsubscribe', 
+                            '<'+unsubscribe_link+'>')
+            msg.add_header('List-Unsubscribe-Post',
+                           'List-Unsubscribe=One-Click')
+            template = open("ui/emails_template.txt", "r")
+            email_txt = template.read()
+            template.close()
+            email_txt = email_txt.replace("{{text}}", text)
+            email_txt = email_txt.replace("{{unsubscribe_link}}", unsubscribe_link)
+            part1 = MIMEText(email_txt, 'plain')
+        else:
+            part1 = MIMEText(text, 'plain')
+
+
         msg.attach(part1)
 
         if html_option:
@@ -201,12 +216,14 @@ class PProxy():
 
             template.close()
             email_html = email_html.replace("{{text}}", html)
+            email_html = email_html.replace("{{unsubscribe_link}}", unsubscribe_link)
 
             part2 = MIMEText(email_html, 'html')
             msg.attach(part2)
 
         if files_in_list is not None:
             for file_in in files_in_list:
+                # TODO: security check: check if file_in is safe
                 if (file_in is not None):
                     with open(file_in, "rb") as current_file:
                         part = MIMEApplication(
@@ -273,6 +290,23 @@ class PProxy():
         except:
             data = json.loads(msg.payload.decode("utf-8"))
         services = Services(self.loggers['services'])
+        unsubscribe_link = None
+        send_email = True
+
+        if ("uuid" in data and "subscribed" in data and "id" in data):
+            us_id = self.sanitize_str(str(data['id']))
+            if data['subscribed']:
+                send_email = True
+                us_flag = "false"
+            else:
+                send_email = False
+                us_flag = "true"
+            us_uuid = self.sanitize_str(data['uuid'])
+            unsubscribe_link = "https://api.we-pn.com/api/friend/" + us_id + "/subscribe/?uuid=" \
+                                + us_uuid + "&subscribe=" + us_flag
+            print(unsubscribe_link)
+
+
         if (data['action'] == 'add_user'):
             username = self.sanitize_str(data['cert_name'])
             try:
@@ -286,7 +320,7 @@ class PProxy():
             ip_address = self.sanitize_str(ipw.myip())
             if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
                 # we have good DDNS, lets use it
-                # TODO check if this is actually working
+                self.logger.debug(self.config['dydns'])
                 server_address = self.config.get("dydns", "hostname")
             else:
                 server_address = ip_address
@@ -306,31 +340,35 @@ class PProxy():
                     username, ip_address, lang, is_new_user)
             except:
                 logging.exception("Error occured with adding user")
+
             self.logger.debug("add_user: " + txt)
-            # TODO: this is not general enough, improve to assess if each service is enabled
-            #       without naming OpenVPN explicitly
-            # vpn_file = self.get_safe_path(username)
-            self.send_mail(self.config.get('email', 'email'),
-                           data['email'],
-                           subject,
-                           'The familiar phrase you have arranged with your friend is: '
-                           + data['passcode'] + '\n' + txt,
-                           '<p>The familiar phrase you have arranged with your friend is: <b>'
-                           + data['passcode'] + '</b></p>' + html,
-                           attachments)
+            self.logger.debug("send_email?"  + str(send_email))
+            if send_email:
+                self.send_mail(send_from = self.config.get('email', 'email'),
+                               send_to = data['email'],
+                               subject = subject,
+                               text = 'The familiar phrase you have arranged with your friend is: '
+                               + data['passcode'] + '\n' + txt,
+                               html = '<p>The familiar phrase you have arranged with your friend is: <b>'
+                               + data['passcode'] + '</b></p>' + html,
+                               files_in = attachments,
+                               unsubscribe_link = unsubscribe_link)
 
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])
             self.logger.debug("Removing user: " + username)
             ip_address = ipw.myip()
             services.delete_user(username)
-            self.send_mail(self.config.get('email', 'email'), data['email'],
-                           "Your VPN details",
-                           # 'Familiar phrase is '+ data['passcode'] +
-                           '\nAccess to VPN server IP address ' + ip_address + ' is revoked.',
-                           # '<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+
-                           "<p>Access to VPN server IP address <b>" + ip_address + "</b> is revoked.</p>",
-                           None)
+            if send_email:
+                self.send_mail(send_from = self.config.get('email', 'email'),
+                               send_to = data['email'],
+                               subject = "Your VPN details",
+                               # 'Familiar phrase is '+ data['passcode'] +
+                               text = '\nAccess to VPN server IP address ' + ip_address + ' is revoked.',
+                               # '<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+
+                               html = "<p>Access to VPN server IP address <b>" + ip_address + "</b> is revoked.</p>",
+                               files_in = None,
+                               unsubscribe_link = None ) #at this point, friend is removed from backend db
         elif (data['action'] == 'reboot_device'):
             self.save_state("3")
             self.device.reboot()
