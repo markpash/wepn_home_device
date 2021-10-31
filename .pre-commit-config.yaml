@@ -1,0 +1,31 @@
+repos:
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: '4.0.0'
+    hooks:
+    -   id: flake8
+
+# this requires pip3 install bandit
+# repo fails to run correctly
+-   repo: local
+    hooks:
+    -   id: python-bandit-vulnerability-check
+        entry: bandit
+        name: bandit
+        args: [-l, ]
+        language: system
+        files: ''
+
+-   repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+    rev: v1.2.2
+    hooks:
+    -   id: python-safety-dependencies-check
+
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+#    -   id: detect-aws-credentials
+    -   id: check-added-large-files
+    -   id: detect-private-key
+    -   id: debug-statements
+
+
