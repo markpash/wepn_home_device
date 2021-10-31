@@ -34,7 +34,9 @@ class LEDManager:
             self.num_leds = 24
         if self.led_ring_present:
             self.pixels = neopixel.NeoPixel(pin=board.D12,
-                                            n=self.num_leds, brightness=1, bpp=3, auto_write=False, pixel_order=ORDER)
+                                            n=self.num_leds, brightness=1,
+                                            bpp=3, auto_write=False,
+                                            pixel_order=ORDER)
         pass
 
     def set_enabled(self, enabled=1):

@@ -1,5 +1,5 @@
 import shlex
-import subprocess #nosec: sanitized with shlex, go.we-pn.com/waiver-1
+import subprocess  # nosec: sanitized with shlex, go.we-pn.com/waiver-1
 import sys as system
 try:
     from self.configparser import configparser
@@ -74,8 +74,12 @@ class OpenVPN:
         subject = ''
         attachments = []
         if self.is_enabled() and self.can_email():
-            txt = "To use OpenVPN (" + ip_address + ") \n\n1. download the attached certificate, \n 2. install OpenVPN for Android Client. \n 3. Import the certificate you downloaded in step 1."
-            html = "To use OpenVPN (" + ip_address + ")<ul><li>download the attached certificate, \n <li>install OpenVPN for Android Client. <li> Import the certificate you downloaded in step 1.</ul>"
+            txt = "To use OpenVPN (" + ip_address + \
+                ") \n\n1. download the attached certificate, \n 2. install OpenVPN for Android Client." + \
+                "\n 3. Import the certificate you downloaded in step 1."
+            html = "To use OpenVPN (" + ip_address + \
+                ")<ul><li>download the attached certificate, \n <li>install OpenVPN for Android Client." + \
+                "<li> Import the certificate you downloaded in step 1.</ul>"
         return txt, html, attachments, subject
 
     def get_removal_email_text(self, certname, ip_address):
@@ -92,7 +96,7 @@ class OpenVPN:
     def execute_cmd(self, cmd):
         try:
             args = shlex.split(cmd)
-            process = subprocess.Popen(args) #nosec: sanitized above, go.we-pn.com/waiver-1
+            process = subprocess.Popen(args)  # nosec: sanitized above, go.we-pn.com/waiver-1
             process.wait()
         except Exception as error_exception:
             self.logger.error(args)

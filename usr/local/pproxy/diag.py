@@ -1,7 +1,7 @@
 import socket
 import sys as system
 import shlex
-import subprocess #nosec: shlex is used, go.we-pn.com/waiver-1
+import subprocess  # nosec: shlex is used, go.we-pn.com/waiver-1
 import json
 import requests
 import threading
@@ -51,7 +51,7 @@ class WPDiag:
     def execute_cmd(self, cmd):
         try:
             args = shlex.split(cmd)
-            subprocess.Popen(args) #nosec: sanitized above, go.we-pn.com/waiver-1
+            subprocess.Popen(args)  # nosec: sanitized above, go.we-pn.com/waiver-1
         except Exception as error_exception:
             self.logger.error("Error happened in running command:" + cmd)
             self.logger.error("Error details:" + str(error_exception))
@@ -168,8 +168,8 @@ class WPDiag:
             "/api/experiment/" + experiment_number + "/result/"
         try:
             response = requests.post(url, data=data_json, headers=headers)
-            self.logger.info("server experiment results" +
-                             str(response.status_code))
+            self.logger.info("server experiment results"
+                             + str(response.status_code))
             self.logger.info(response.json())
             return response.json()
         except requests.exceptions.RequestException as exception_error:
@@ -221,15 +221,15 @@ class WPDiag:
             last_check_date = dateutil.parser.parse(last_port_check)
             self.logger.info("last port check was " + str(last_check_date))
 
-            long_term_expired = (last_check_date.replace(tzinfo=None)
-                                 < (datetime.datetime.now().replace(tzinfo=None) + timedelta(days=-1)))
-            short_term_expired = (last_check_date.replace(tzinfo=None)
-                                  < (datetime.datetime.now().replace(tzinfo=None) + timedelta(hours=-2)))
+            long_term_expired = (last_check_date.replace(tzinfo=None) <
+                                 (datetime.datetime.now().replace(tzinfo=None) + timedelta(days=-1)))
+            short_term_expired = (last_check_date.replace(tzinfo=None) <
+                                  (datetime.datetime.now().replace(tzinfo=None) + timedelta(hours=-2)))
             previous_failed = self.status.get_field(
                 "port_check", "result") == "False"
 
-            self.logger.info("pending test results? "
-                             + self.status.get_field("port_check", "pending"))
+            self.logger.info("pending test results? " +
+                             self.status.get_field("port_check", "pending"))
             if self.status.get_field("port_check", "pending") == "True":
                 self.logger.debug(
                     "A test has been initiated previously, getting the results")
@@ -325,8 +325,8 @@ class WPDiag:
         url = self.config.get('django', 'url') + "/api/device/diagnosis/"
         try:
             response = requests.post(url, data=data_json, headers=headers)
-            self.logger.info("server diag analysis:"
-                             + str(response.status_code))
+            self.logger.info("server diag analysis:" +
+                             str(response.status_code))
             return response.json()
         except requests.exceptions.RequestException as exception_error:
             self.logger.error(

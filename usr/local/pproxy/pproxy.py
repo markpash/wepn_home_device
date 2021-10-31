@@ -171,7 +171,7 @@ class PProxy():
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "device_key": self.config.get('django', 'device_key'),
-            "is_read" : False,
+            "is_read": False,
             "destination": "DEVICE",
             "is_expired": False,
         }
@@ -181,7 +181,6 @@ class PProxy():
         response = requests.get(url, data=data_json, headers=headers)
         print(response.content)
         print(response.json())
-        print(json.dumps(response.json(), indent=indents))
 
     def send_mail(self, send_from, send_to,
                   subject, text, html, files_in,
@@ -193,8 +192,8 @@ class PProxy():
             return
 
         html_option = False
-        if (self.config.has_option('email', 'type')
-                and self.config.get('email', 'type') == 'html'):
+        if (self.config.has_option('email', 'type') and
+                self.config.get('email', 'type') == 'html'):
             html_option = True
         self.logger.info("preparing email")
         if not isinstance(files_in, list):
@@ -213,8 +212,8 @@ class PProxy():
         msg['Subject'] = subject
 
         if unsubscribe_link is not None:
-            msg.add_header('List-Unsubscribe', 
-                            '<'+unsubscribe_link+'>')
+            msg.add_header('List-Unsubscribe',
+                           '<' + unsubscribe_link + '>')
             msg.add_header('List-Unsubscribe-Post',
                            'List-Unsubscribe=One-Click')
             template = open("ui/emails_template.txt", "r")
@@ -225,7 +224,6 @@ class PProxy():
             part1 = MIMEText(email_txt, 'plain')
         else:
             part1 = MIMEText(text, 'plain')
-
 
         msg.attach(part1)
 
@@ -322,9 +320,8 @@ class PProxy():
                 us_flag = "true"
             us_uuid = self.sanitize_str(data['uuid'])
             unsubscribe_link = "https://api.we-pn.com/api/friend/" + us_id + "/subscribe/?uuid=" \
-                                + us_uuid + "&subscribe=" + us_flag
+                + us_uuid + "&subscribe=" + us_flag
             print(unsubscribe_link)
-
 
         if (data['action'] == 'add_user'):
             username = self.sanitize_str(data['cert_name'])
@@ -334,8 +331,8 @@ class PProxy():
                               self.sanitize_str(data['language']))
             except:
                 lang = 'en'
-            self.logger.debug("Adding user: " + username
-                              + " with language:" + lang)
+            self.logger.debug("Adding user: " + username +
+                              " with language:" + lang)
             ip_address = self.sanitize_str(ipw.myip())
             if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
                 # we have good DDNS, lets use it
@@ -361,17 +358,17 @@ class PProxy():
                 logging.exception("Error occured with adding user")
 
             self.logger.debug("add_user: " + txt)
-            self.logger.debug("send_email?"  + str(send_email))
+            self.logger.debug("send_email?" + str(send_email))
             if send_email:
-                self.send_mail(send_from = self.config.get('email', 'email'),
-                               send_to = data['email'],
-                               subject = subject,
-                               text = 'The familiar phrase you have arranged with your friend is: '
-                               + data['passcode'] + '\n' + txt,
-                               html = '<p>The familiar phrase you have arranged with your friend is: <b>'
-                               + data['passcode'] + '</b></p>' + html,
-                               files_in = attachments,
-                               unsubscribe_link = unsubscribe_link)
+                self.send_mail(send_from=self.config.get('email', 'email'),
+                               send_to=data['email'],
+                               subject=subject,
+                               text='The familiar phrase you have arranged with your friend is: ' +
+                               data['passcode'] + '\n' + txt,
+                               html='<p>The familiar phrase you have arranged with your friend is: <b>' +
+                               data['passcode'] + '</b></p>' + html,
+                               files_in=attachments,
+                               unsubscribe_link=unsubscribe_link)
 
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])
@@ -379,15 +376,16 @@ class PProxy():
             ip_address = ipw.myip()
             services.delete_user(username)
             if send_email:
-                self.send_mail(send_from = self.config.get('email', 'email'),
-                               send_to = data['email'],
-                               subject = "Your VPN details",
+                self.send_mail(send_from=self.config.get('email', 'email'),
+                               send_to=data['email'],
+                               subject="Your VPN details",
                                # 'Familiar phrase is '+ data['passcode'] +
-                               text = '\nAccess to VPN server IP address ' + ip_address + ' is revoked.',
+                               text='\nAccess to VPN server IP address ' + ip_address + ' is revoked.',
                                # '<p>Familiar phrase is <b>'+ data['passcode'] + '</b></p>'+
-                               html = "<p>Access to VPN server IP address <b>" + ip_address + "</b> is revoked.</p>",
-                               files_in = None,
-                               unsubscribe_link = None ) #at this point, friend is removed from backend db
+                               html="<p>Access to VPN server IP address <b>" + ip_address +
+                                    "</b> is revoked.</p>",
+                               files_in=None,
+                               unsubscribe_link=None)  # at this point, friend is removed from backend db
         elif (data['action'] == 'reboot_device'):
             self.save_state("3")
             self.device.reboot()
@@ -455,10 +453,10 @@ class PProxy():
         time.sleep(5)
         client = mqtt.Client(self.config.get(
             'mqtt', 'username'), clean_session=False)
-        self.logger.debug('HW config: button=' + str(int(self.config.get('hw', 'buttons'))) + '  LCD='
-                          + self.config.get('hw', 'lcd'))
-        if (int(self.config.get('hw', 'buttons')) == 1
-                and int(self.config.get('hw', 'button-version')) == 1):
+        self.logger.debug('HW config: button=' + str(int(self.config.get('hw', 'buttons'))) + '  LCD=' +
+                          self.config.get('hw', 'lcd'))
+        if (int(self.config.get('hw', 'buttons')) == 1 and
+                int(self.config.get('hw', 'button-version')) == 1):
             try:
                 keypad = self.factory.create_keypad(
                     keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)

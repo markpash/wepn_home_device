@@ -12,11 +12,11 @@ import sys
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
 # above line is needed for following classes:
-from led_client import LEDClient
-from heartbeat import HeartBeat
-from device import Device
-from diag import WPDiag
-from lcd import LCD as LCD
+from led_client import LEDClient  # noqa E402 need up_dir first
+from heartbeat import HeartBeat  # noqa E402 need up_dir first
+from device import Device  # noqa E402 need up_dir first
+from diag import WPDiag  # noqa E402 need up_dir first
+from lcd import LCD as LCD  # noqa E402 need up_dir first
 try:
     from self.configparser import configparser
 except ImportError:
@@ -211,8 +211,8 @@ class KEYPAD:
     def show_claim_info_qrcode(self):
         current_key = self.status.get('status', 'temporary_key')
         serial_number = self.config.get('django', 'serial_number')
-        display_str = [(1, "https://red.we-pn.com/?pk=NONE&s="
-                        + str(serial_number) + "&k =" + str(current_key), 2, "white")]
+        display_str = [(1, "https://red.we-pn.com/?pk=NONE&s=" +
+                        str(serial_number) + "&k =" + str(current_key), 2, "white")]
         self.lcd.display(display_str, 20)
         return True  # exit the menu
 
@@ -258,8 +258,8 @@ class KEYPAD:
             try:
                 os.kill(wepn_pid, signal.SIGUSR1)
             except ProcessLookupError as process_error:
-                self.logger.error("Could not find the process for main wepn: "
-                                  + str(wepn_pid) + ":" + str(process_error))
+                self.logger.error("Could not find the process for main wepn: " +
+                                  str(wepn_pid) + ":" + str(process_error))
 
     def show_home_screen(self):
         # self.render()
@@ -348,11 +348,12 @@ class KEYPAD:
         self.display_active = True
         self.set_current_menu(4)
         # ONLY FOR UX DEVELOPMENT, show the git hash
-        import subprocess #nosec: dev only, static command = no injection
+        import subprocess  # nosec: dev only, static command = no injection
         label = "production"
         git_cmd = "git log -1 --format=format:\"%H\""
         try:
-            label = subprocess.check_output(git_cmd.split()).strip() #nosec: static command, go.we-pn.com/waiver-1
+            label = subprocess.check_output(  # nosec: static command, go.we-pn.com/waiver-1
+                git_cmd.split()).strip()
             label = label.decode("utf-8")[1:8]
         except subprocess.CalledProcessError:
             # self.logger.error(e.output)

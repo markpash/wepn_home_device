@@ -9,7 +9,7 @@ try:
 except ImportError:
     import configparser
 
-import subprocess #nosec shlex split used for sanitization go.we-pn.com/waiver-1
+import subprocess  # nosec shlex split used for sanitization go.we-pn.com/waiver-1
 import shlex
 from wstatus import WStatus as WStatus
 
@@ -68,8 +68,8 @@ class Device():
         if self.igds:
             for d in self.igds:
                 try:
-                    self.logger.critical("IGD found: {" + str(d.model_name)
-                                         + ", " + str(d.manufacturer) + ", " + str(d.location) + "}")
+                    self.logger.critical("IGD found: {" + str(d.model_name) +
+                                         ", " + str(d.manufacturer) + ", " + str(d.location) + "}")
                     self.check_igd_supports_portforward(d)
                 except Exception as err:
                     self.logger.critical("IGD found, missing attributes")
@@ -108,11 +108,11 @@ class Device():
             out = ""
             err = ""
             if detached:
-                sp = subprocess.Popen(args) #nosec: sanitized above, go.we-pn.com/waiver-1
+                sp = subprocess.Popen(args)  # nosec: sanitized above, go.we-pn.com/waiver-1
             else:
-                sp = subprocess.Popen(args, #nosec: sanitized above, go.we-pn.com/waiver-1
+                sp = subprocess.Popen(args,  # nosec: sanitized above, go.we-pn.com/waiver-1
                                       stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE) #nosec: sanitized above, go.we-pn.com/waiver-1
+                                      stderr=subprocess.PIPE)  # nosec: sanitized above, go.we-pn.com/waiver-1
                 out, err = sp.communicate()
                 sp.wait()
                 if err:
@@ -165,8 +165,8 @@ class Device():
         else:
             # no skipping, just try opening port normally with UPNP
             self.set_port_forward("open", port, text)
-        self.logger.info("skipping? " + str(skip)
-                         + " count=" + str(skip_count))
+        self.logger.info("skipping? " + str(skip) +
+                         " count=" + str(skip_count))
 
     def close_port(self, port):
         skip = int(self.status.get_field('port-fwd', 'skipping'))
@@ -308,10 +308,10 @@ class Device():
             "nochg": "[SUCCESS] No update needed to host.",
             "nohost": "[ERROR] Host doesn't exist.",
             "badauth": "[ERROR] Username or password is invalid.",
-            "badagent": "[ERROR] Client disabled. Client should exit and not perform any more updates without user intervention.",
-            "!donator": "[ERROR] An update request was sent including a feature that is not available to that particular user such as offline options.",
+            "badagent": "[ERROR] Client disabled. Client should exit and not perform any more updates without user intervention.",  # noqa: B950
+            "!donator": "[ERROR] An update request was sent including a feature that is not available to that particular user such as offline options.",  # noqa: B950
             "abuse": "[ERROR] Username is blocked due to abuse.",
-            "911": "[ERROR] A fatal error on our side such as a database outage. Retry the update no sooner than 30 minutes"
+            "911": "[ERROR] A fatal error on our side such as a database outage. Retry the update no sooner than 30 minutes"  # noqa: B950
         }
         r = requests.get(self.config.get('dyndns', 'url').format(
             self.config.get('dyndns', 'username'),
@@ -331,8 +331,8 @@ class Device():
         # part that should run as root:
         # copies system files, changes permissions, ...
         cmd_sudo = "sudo /usr/local/sbin/wepn_git.sh"
-        # TODO: while there is no injection done here, this use of sudo 
+        # TODO: while there is no injection done here, this use of sudo
         # is uncomfortable. This is currently a development tool
         # but we still need to have a better method such as a separate thread signaled here.
 
-        self.execute_cmd_output(cmd_sudo, True) #nosec static input go.we-pn.com/waiver-1)
+        self.execute_cmd_output(cmd_sudo, True)  # nosec static input go.we-pn.com/waiver-1)

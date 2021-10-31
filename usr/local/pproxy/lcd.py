@@ -247,11 +247,14 @@ class LCD:
 
         # TODO: device is calculated but not shown in error
         if (status == 1 or status == 2 or status == 4):
-            device = chr(114)  # device is on
+            # device is on
+            device = chr(114)  # noqa: F841
         elif (status == 3):
-            device = chr(77)  # device is restarting
+            # device is restarting
+            device = chr(77)  # noqa: F841
         else:
-            device = chr(64)  # device is off
+            # dvice is off
+            device = chr(64)  # noqa: F841
             any_err = True
 
         if (is_connected):
@@ -262,9 +265,11 @@ class LCD:
 
         # TODO: mqtt is calculated but not shown in error
         if (is_mqtt_connected):
-            mqtt = chr(51)  # netis_mqtt_connectedwork sign
+            # networks sign2
+            _mqtt = chr(51)  # noqa: F841
         else:
-            mqtt = chr(77)  # magnifier sign
+            # magnifier sign2
+            _mqtt = chr(77)  # noqa: F841
 
         if (any_err):
             err = chr(50)  # thumb up

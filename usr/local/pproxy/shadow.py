@@ -78,8 +78,8 @@ class Shadow:
                 max_port = None
             if max_port is None:
                 max_port = int(self.config.get('shadow', 'start-port'))
-            self.logger.info("New port assigned is " + str(max_port + 1)
-                             + " was " + str(unused_port))
+            self.logger.info("New port assigned is " + str(max_port + 1) +
+                             " was " + str(unused_port))
             port = max_port + 1
         else:
             port = server['server_port']
@@ -117,7 +117,8 @@ class Shadow:
             port = server['server_port']
             cmd = 'remove : {"server_port": ' + str(server['server_port']) + ' } '
             self.sock.send(str.encode(cmd))
-            self.logger.info("socket response to delete:" + str(self.sock.recv(1056)))
+            self.logger.info("socket response to delete:"
+                             + str(self.sock.recv(1056)))
             # add certname, port, password to a json list to ues at delete/boot
             servers.delete(certname=cname)
             self.logger.info('disabling port forwarding to port ' + str(port))
@@ -293,8 +294,8 @@ class Shadow:
                 server_name = str(server['server_port'])
                 if server_name in response:
                     current_usage = response[server_name]
-                    self.logger.debug("port=" + str(server['server_port'])
-                                      + " usage=" + str(response[str(server['server_port'])]))
+                    self.logger.debug("port=" + str(server['server_port']) +
+                                      " usage=" + str(response[str(server['server_port'])]))
                     usage_server = usage_servers.find_one(
                         certname=server['certname'])
                 if usage_server is None or usage_server['usage'] is None or 'usage' not in usage_server:
@@ -306,8 +307,8 @@ class Shadow:
                 else:
                     self.logger.debug(
                         "Current usage in db = " + str(usage_server['usage']))
-                    print("Current usage in db = "
-                          + str(usage_server['usage']))
+                    print("Current usage in db = " +
+                          str(usage_server['usage']))
 
                     # already has some value in usage db
                     if usage_server['usage'] > current_usage:
@@ -322,10 +323,10 @@ class Shadow:
                 self.logger.debug("usage value = " + str(usage_value))
                 if usage_value > 0:
                     usage_status = 1
-                self.logger.debug('certname:' + server['certname']
-                                  + ' server_port:' + str(server['server_port'])
-                                  + ' usage:' + str(usage_value)
-                                  + ' status:' + str(usage_status))
+                self.logger.debug('certname:' + server['certname'] +
+                                  ' server_port:' + str(server['server_port']) +
+                                  ' usage:' + str(usage_value) +
+                                  ' status:' + str(usage_status))
                 today = datetime.today().strftime('%Y-%m-%d')
                 usage_today = usage_daily.find_one(
                     certname=server['certname'], date=today)
@@ -488,7 +489,9 @@ class Shadow:
             return True
         device = Device(self.logger)
         try:
-            res = requests.get('https://127.0.0.1:5000/', verify=False) #nosec: local cert, http://go.we-pn.com/waiver-3
+
+            res = requests.get('https://127.0.0.1:5000/',
+                               verify=False)  # nosec: local cert, http://go.we-pn.com/waiver-3
             if res.status_code != 200:
                 # the local flask API server is down, so all of these tests will fail
                 # TODO: this is not a real shadowsocks error, so need a way to convey and recover
@@ -512,7 +515,7 @@ class Shadow:
                     # using the local Flask API webserver
                     # using external websites adds timeout and remote connection limits
                     r = requests.get('https://127.0.0.1:5000/',
-                                     proxies=proxies, verify=False) #nosec: local cert, http://go.we-pn.com/waiver-3
+                                     proxies=proxies, verify=False)  # nosec: http://go.we-pn.com/waiver-3
                     success &= (r.status_code == 200)
             except:
                 self.logger.exception("Error in self test:>\t:" + str(server))
