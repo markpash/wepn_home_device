@@ -264,7 +264,7 @@ class Device():
         except Exception as error_exception:
             self.logger.error("Error happened in getting my IP")
             self.logger.error("Error details:\n" + str(error_exception))
-            return '0.0.0.0'
+            return '127.0.0.1'
 
     def get_local_mac(self):
         try:
@@ -282,7 +282,7 @@ class Device():
         except Exception as error_exception:
             self.logger.error("Error happened in getting gateway IP")
             self.logger.error("Error details:\n" + str(error_exception))
-            return '0.0.0.0'
+            return '127.0.0.1'
 
     def get_default_gw_mac(self):
         gw_ip = self.get_default_gw_ip()
@@ -292,7 +292,7 @@ class Device():
         except Exception as error_exception:
             self.logger.error("Error happened in getting gateway IP")
             self.logger.error("Error details:\n" + str(error_exception))
-            return ['0.0.0.0']
+            return ['127.0.0.1']
 
     def get_default_gw_vendor(self):
         return self.get_default_gw_mac()[:8]

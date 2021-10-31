@@ -133,5 +133,5 @@ def check_port_available_externally():
     return "ERROR: Exposure detected! APIs are closed now.", http_status.HTTP_503_SERVICE_UNAVAILABLE
 
 if __name__=='__main__':
-    app.run(host= '0.0.0.0', ssl_context='adhoc')
+    app.run(host= '0.0.0.0', ssl_context='adhoc') #nosec: need all interfaces covered https://go.we-pn.com/waiver-2
 

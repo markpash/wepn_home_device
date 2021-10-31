@@ -200,5 +200,5 @@ def get_error_log():
     return(contents)
 
 if __name__=='__main__':
-    app.run(host= '0.0.0.0', ssl_context='adhoc')
+    app.run(host= '0.0.0.0', ssl_context='adhoc') #nosec: need all addresses covered, https://go.we-pn.com/waiver-2
 
