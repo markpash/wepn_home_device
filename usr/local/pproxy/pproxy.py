@@ -2,6 +2,7 @@ import json
 import time
 import ssl
 import random
+import requests
 import os
 import re
 import atexit
@@ -163,6 +164,24 @@ class PProxy():
             time.sleep(2)
             lcd.display(display_str, 20)
             self.device.turn_off()
+
+    def get_messages(self):
+        print("getting messages")
+        url = "https://api.we-pn.com/api/message/"
+        data = {
+            "serial_number": self.config.get('django', 'serial_number'),
+            "device_key": self.config.get('django', 'device_key'),
+            "is_read" : False,
+            "destination": "DEVICE",
+            "is_expired": False,
+        }
+        headers = {"Content-Type": "application/json"}
+        data_json = json.dumps(data)
+        print(data_json)
+        response = requests.get(url, data=data_json, headers=headers)
+        print(response.content)
+        print(response.json())
+        print(json.dumps(response.json(), indent=indents))
 
     def send_mail(self, send_from, send_to,
                   subject, text, html, files_in,
@@ -409,6 +428,11 @@ class PProxy():
             self.save_state("3")
             # reboot to go into onboarding
             self.device.reboot()
+        elif (data['action'] == 'notification'):
+            # get with serial and dev key from https://api.we-pn.com/api/message/
+            # gives list of all messages for this device
+            self.get_messages()
+
     # callback for diconnection of MQTT from server
 
     def on_disconnect(self, client, userdata, reason_code):
