@@ -24,7 +24,7 @@ except ImportError:
 display = True
 
 
-PWD = '/usr/local/pproxy/ui/'
+DIR = '/usr/local/pproxy/ui/'
 CONFIG_FILE = '/etc/pproxy/config.ini'
 STATUS_FILE = '/var/local/pproxy/status.ini'
 LOG_CONFIG = "/etc/pproxy/logging.ini"
@@ -170,8 +170,8 @@ class KEYPAD:
     def render(self):
         # get a font
         base = Image.new("RGBA", (self.width, self.height), (0, 0, 0))
-        fnt = ImageFont.truetype(PWD + 'rubik/Rubik-Light.ttf', 30)
-        # fnt_title = ImageFont.truetype(PWD + 'rubik/Rubik-Light.ttf', 8)
+        fnt = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', 30)
+        # fnt_title = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', 8)
         txt = Image.new("RGBA", base.size, (255, 255, 255, 0))
         d = ImageDraw.Draw(txt)
         overlay = Image.new("RGBA", base.size, (255, 255, 255, 0))

@@ -3,7 +3,7 @@ import logging
 import logging.config
 import socket
 
-LM_SOCKET_PATH = "/tmp/ledmanagersocket.sock"
+LM_SOCKET_PATH = "/var/local/pproxy/ledmanagersocket.sock"
 LOG_CONFIG = "/etc/pproxy/logging-debug.ini"
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)

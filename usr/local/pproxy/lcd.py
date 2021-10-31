@@ -30,8 +30,10 @@ CONFIG_FILE = '/etc/pproxy/config.ini'
 LOG_CONFIG = "/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
-PWD = '/usr/local/pproxy/ui/'
-TEXT_OUT = '/tmp/fake_lcd'
+DIR = '/usr/local/pproxy/ui/'
+TEXT_OUT = '/var/local/pproxy/fake_lcd'
+IMG_OUT = '/var/local/pproxy/screen.png'
+
 GPIO.setmode(GPIO.BCM)
 
 
@@ -135,10 +137,10 @@ class LCD:
         # Draw a black filled box to clear the image.
         draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
-        rubik_regular = ImageFont.truetype(PWD + 'rubik/Rubik-Light.ttf', size)
+        rubik_regular = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', size)
         # rubik_light = ImageFont.truetype('rubik/Rubik-Light.ttf', size)
         # rubik_medium = ImageFont.truetype('rubik/Rubik-Medium.ttf', size)
-        font_icon = ImageFont.truetype(PWD + 'heydings_icons.ttf', size)
+        font_icon = ImageFont.truetype(DIR + 'heydings_icons.ttf', size)
 
         # Alternatively load a TTF font.  Make sure the .ttf font file
         # is in the same directory as the python script!
@@ -188,7 +190,7 @@ class LCD:
         else:
             disp.image(image)
             disp.display()
-        image.save("/tmp/screen.png")
+        image.save(IMG_OUT)
 
     def set_logo_text(self, text, x=60, y=200, color="red", size=15):
         self.logo_text = text
@@ -206,10 +208,10 @@ class LCD:
                 out.write("[WEPN LOGO]")
             return
         if self.version == 2 or self.version == 3:
-            img = PWD + 'wepn_240_240.png'
+            img = DIR + 'wepn_240_240.png'
             image = Image.open(img)
             if self.logo_text is not None:
-                rubik_regular = ImageFont.truetype(PWD + 'rubik/Rubik-Bold.ttf',
+                rubik_regular = ImageFont.truetype(DIR + 'rubik/Rubik-Bold.ttf',
                                                    self.logo_text_size)
                 draw = ImageDraw.Draw(image)
                 draw.text((self.logo_text_x, self.logo_text_y), self.logo_text,
@@ -220,7 +222,7 @@ class LCD:
                 image = image.rotate(270)
             self.lcd.image(image, x, y)
         else:
-            img = PWD + 'wepn_128_64.png'
+            img = DIR + 'wepn_128_64.png'
             image = Image.open(img).convert('1')
             disp = Adafruit_SSD1306.SSD1306_128_64(
                 rst=self.RST, i2c_address=0x3C)
@@ -230,7 +232,7 @@ class LCD:
             disp.display()
             disp.image(image)
             disp.display()
-        image.save("/tmp/screen.png")
+        image.save(IMG_OUT)
 
     def get_status_icons(self, status, is_connected, is_mqtt_connected):
         any_err = False

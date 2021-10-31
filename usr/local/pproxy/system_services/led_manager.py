@@ -9,7 +9,7 @@ import stat
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
 
-LM_SOCKET_PATH = "/tmp/ledmanagersocket.sock"
+LM_SOCKET_PATH = "/var/local/pproxy/ledmanagersocket.sock"
 # The order of the pixel colors - RGB or GRB. Some NeoPixels have red and green reversed!
 # For RGBW NeoPixels, simply change the ORDER to RGBW or GRBW.
 ORDER = neopixel.GRB
