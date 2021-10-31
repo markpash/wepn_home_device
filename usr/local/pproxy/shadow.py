@@ -488,7 +488,7 @@ class Shadow:
             return True
         device = Device(self.logger)
         try:
-            res = requests.get('https://127.0.0.1:5000/', verify=False)
+            res = requests.get('https://127.0.0.1:5000/', verify=False) #nosec: local cert, http://go.we-pn.com/waiver-3
             if res.status_code != 200:
                 # the local flask API server is down, so all of these tests will fail
                 # TODO: this is not a real shadowsocks error, so need a way to convey and recover
@@ -512,7 +512,7 @@ class Shadow:
                     # using the local Flask API webserver
                     # using external websites adds timeout and remote connection limits
                     r = requests.get('https://127.0.0.1:5000/',
-                                     proxies=proxies, verify=False)
+                                     proxies=proxies, verify=False) #nosec: local cert, http://go.we-pn.com/waiver-3
                     success &= (r.status_code == 200)
             except:
                 self.logger.exception("Error in self test:>\t:" + str(server))
