@@ -25,6 +25,8 @@ __pycache__/
 local_test_config.ini
 .sqlite_history
 .cach
+.local
 
 
 usr/local/pproxy/setup/seeed-voicecard
+

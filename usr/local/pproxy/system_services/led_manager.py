@@ -10,7 +10,8 @@ up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
 
 LM_SOCKET_PATH = "/var/local/pproxy/ledmanagersocket.sock"
-# The order of the pixel colors - RGB or GRB. Some NeoPixels have red and green reversed!
+# The order of the pixel colors - RGB or GRB.
+# Some NeoPixels have red and green reversed!
 # For RGBW NeoPixels, simply change the ORDER to RGBW or GRBW.
 ORDER = neopixel.GRB
 CONFIG_FILE = '/etc/pproxy/config.ini'
@@ -67,7 +68,8 @@ class LEDManager:
         if not self.led_ring_present:
             return
         dim_factor = 20
-        self.set_all((color[0] / dim_factor, color[1] / dim_factor, color[2] / dim_factor))
+        self.set_all((color[0] / dim_factor, color[1] / dim_factor,
+                      color[2] / dim_factor))
         self.current_bright_one = (self.current_bright_one + 1) % self.num_leds
         before = (self.current_bright_one - 1) % self.num_leds
         if before < 0:
@@ -127,7 +129,7 @@ if __name__ == '__main__':
     server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     server.bind(LM_SOCKET_PATH)
     os.chmod(LM_SOCKET_PATH,
-             stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH | stat.S_IWOTH | stat.S_IWUSR)
+             stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH | stat.S_IWGRP | stat.S_IWUSR)
 
     print("LED Manager Listening...")
     while True:

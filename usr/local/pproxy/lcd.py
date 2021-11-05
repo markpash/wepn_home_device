@@ -64,8 +64,13 @@ class LCD:
         self.CS = 9
         self.SPI_PORT = 0
         self.SPI_DEVICE = 0
-        if gpio_enable and (GPIO.getmode() != 11):
-            GPIO.setmode(GPIO.BCM)
+        if gpio_enable:
+            if (GPIO.getmode() != 11):
+                GPIO.setmode(GPIO.BCM)
+            else:
+                print("GPIO is already BCM")
+        else:
+            print("GPIO not set")
         self.width = 128
         self.height = 64
         if self.version == 2 or self.version == 3:
