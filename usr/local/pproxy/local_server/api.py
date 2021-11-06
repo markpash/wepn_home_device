@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(1, '..')
 from wstatus import WStatus
 from ipw import IPW
 import shlex
@@ -7,14 +9,12 @@ from diag import WPDiag
 import json
 import dataset
 import base64
-import sys
 import flask
 from flask import request
 from flask_api import status as http_status
 import hashlib
 import logging.config
 
-sys.path.insert(1, '..')
 try:
     from configparser import configparser
 except ImportError:
@@ -57,6 +57,8 @@ def return_link(cname):
 def valid_token(incoming):
     status = WStatus(logger)
     valid_token = status.get_field('status', 'local_token')
+    print(incoming)
+    print(valid_token)
     return sanitize_str(incoming) == str(valid_token)
 
 
@@ -149,7 +151,8 @@ def run_diag():
     if not valid_token(request.args.get('local_token')):
         return "Not accessible", http_status.HTTP_401_UNAUTHORIZED
     WPD = WPDiag(logger)
-    local_ip = Device.get_local_ip()
+    device = Device(logger)
+    local_ip =  device.get_local_ip()
     port = 4091
 
     print('local ip=' + local_ip)
@@ -175,6 +178,7 @@ def check_port_available_externally():
         return "Not accessible", http_status.HTTP_401_UNAUTHORIZED
     global exposed
     exposed = True
+    print("EXPOSED!!!!")
     return "ERROR: Exposure detected! APIs are closed now.", http_status.HTTP_503_SERVICE_UNAVAILABLE
 
 
