@@ -65,7 +65,7 @@ pyftdi==0.53.3
 PyGObject==3.30.4
 pyinotify==0.9.6
 pylab==0.0.1
-pyOpenSSL==19.0.0
+pyOpenSSL==21.0.0
 pyparsing==3.0.4
 pyserial==3.5
 PySocks==1.7.1

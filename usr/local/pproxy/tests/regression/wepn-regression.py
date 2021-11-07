@@ -38,7 +38,7 @@ status.read(STATUS_FILE)
 static_friend_id=config.get('friend','static_id')
 friend_access_key = ""
 local_api_url = "https://127.0.0.1:5000"
-local_api_url = "http://127.0.0.1:5000"
+#local_api_url = "http://127.0.0.1:5000"
 
 
 import json
@@ -49,28 +49,30 @@ friend_id = None
 device_id = None
 
 
-def util_iterate_apis(expected_code):
+def util_iterate_apis(local_token, expected_code, filter_auth=False):
     result = True
-    status = configparser.ConfigParser()
-    status.read(STATUS_FILE)
-    local_token = status.get('status','local_token')
     headers = {
             "content-type": "application/json"
             }
-    apis = [ "/api/v1/friends/usage/", 
-                "/api/v1/friends/access_links/",
-                "/api/v1/claim/info",
-                "/api/v1/claim/progress",
-                "/api/v1/diagnostics/info",
-                "/api/v1/diagnostics/error_log"]
+    apis = [ 
+                { "url": "/api/v1/friends/usage/", "auth": True, },
+                { "url": "/api/v1/friends/access_links/", "auth": True, },
+                { "url":   "/api/v1/claim/info", "auth": False, },
+                { "url":  "/api/v1/claim/progress", "auth": False },
+                { "url":  "/api/v1/diagnostics/info", "auth": (status.get('status','claimed') == '0'), }, # if unclaimed, no auth needed
+                { "url": "/api/v1/diagnostics/error_log", "auth": True, },
+            ]
     for api in apis:
+        if filter_auth:
+            # if asked, skip testing APIs that don't need auth
+            if not api['auth']:
+                continue
         payload = {
                 'local_token':str(local_token),
                 #'certname':'cf.9q'}
                 'certname':'zxcvb'}
-        response = requests.get(url=local_api_url + api,
+        response = requests.get(url=local_api_url + api['url'],
                 params= payload)
-        print(response.content)
         result = result and (response.status_code == expected_code)
         time.sleep(2)
     return result
@@ -104,7 +106,6 @@ def test_login():
     headers = {
             "content-type": "application/json"
             }
-    #print(payload)
     response = requests.post(authorization_base_url, json=payload, headers=headers)
     jresponse = response.json()
     auth_token = "Bearer " + jresponse['access_token']
@@ -133,8 +134,8 @@ def test_confirm_device_unclaimed():
 
 @pytest.mark.dependency(depends=["test_confirm_device_unclaimed"]) 
 def test_api_returns_unclaimed():
-    status = configparser.ConfigParser()
-    status.read(STATUS_FILE)
+    #status = configparser.ConfigParser()
+    #status.read(STATUS_FILE)
     key = status.get('status','temporary_key')
     # get the key through the local API
     response = requests.get(local_api_url + "/api/v1/claim/info", verify = False)
@@ -149,8 +150,8 @@ def test_api_returns_unclaimed():
 def test_claim():
     global device_id
     global key
-    status = configparser.ConfigParser()
-    status.read(STATUS_FILE)
+    #status = configparser.ConfigParser()
+    #status.read(STATUS_FILE)
     key = status.get('status','temporary_key')
     headers = {
             "Authorization" : auth_token,
@@ -158,12 +159,7 @@ def test_claim():
             }
     payload = {"device_key":key, "serial_number":serial, "device_name":"Regression Device"}
     response = requests.post(url + '/device/claim/', json=payload, headers=headers)
-    #print(payload)
-    #print(response)
     jresponse = response.json()
-    #print (jresponse)
-    #print(response.status_code)
-    #print(payload)
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
     device_id = jresponse['id']
 
@@ -175,32 +171,28 @@ def test_claim_fail_serial():
             }
     payload = {"device_key":key,"serial_number":"BADBEEF", "device_name":"Regression Device"}
     response = requests.post(url + '/device/claim/', json=payload, headers=headers)
-    #print(response)
     assert(response.status_code != 200) #nosec: assert is a legit check for pytest
 
 
 @pytest.mark.dependency(depends=["test_login","test_claim","test_confirm_device_unclaimed"])
 def test_check_device_connected():
     time.sleep(30) # assuming it takes x seconds for onboarding to kick-in
-    status = configparser.ConfigParser()
-    status.read(STATUS_FILE)
+    #status = configparser.ConfigParser()
+    #status.read(STATUS_FILE)
     assert(status.get('status','claimed') == '1') #nosec: assert is a legit check for pytest
 
 @pytest.mark.dependency(depends=["test_login","test_claim", "test_check_device_connected"]) 
 def test_api_claim_info_redacted_post_claim():
-    status = configparser.ConfigParser()
-    status.read(STATUS_FILE)
+    #status = configparser.ConfigParser()
+    #status.read(STATUS_FILE)
     key = status.get('status','temporary_key')
-    print(key)
     assert(key == 'CLAIMED')
     # get the key through the local API
     response = requests.get(local_api_url + "/api/v1/claim/info", verify = False)
     jresponse = response.json()
-    print("This is the result:")
     assert(response.status_code == 200) #nosec: assert is a legit check for pytestv
     assert(jresponse['claimed'] == '1')
     assert(jresponse['device_key'] == 'CLAIMED')
-    print(jresponse)
 
 
 @pytest.mark.dependency(depends=["test_login","test_claim"])	
@@ -213,8 +205,6 @@ def test_heartbeat():
     payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {}}
     response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
     jresponse = response.json()
-    #print (jresponse)
-    #print(response.status_code)
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
 
@@ -265,11 +255,8 @@ def test_add_friend():
     #print (response.content)
     assert(response.status_code == 201) #nosec: assert is a legit check for pytest
     jresponse = response.json()
-    #print (jresponse)
-    #print(response.status_code)
     payload['id'] = jresponse['id']
     friend_id = payload['id']
-    #print(payload)
     assert(jresponse == payload) #nosec: assert is a legit check for pytest
     time.sleep(5)
     conn = sqlite3.connect(shadow_db)
@@ -279,7 +266,7 @@ def test_add_friend():
     conn.close()
     assert(len(result)==1) #nosec: assert is a legit check for pytest
 
-#@pytest.mark.dependency(depends=["test_add_friend"])
+@pytest.mark.dependency(depends=["test_add_friend"])
 def test_api_gives_correct_key():
     '''get the key through the API server
     compare to firend_access_key'''
@@ -287,7 +274,6 @@ def test_api_gives_correct_key():
     cursor = conn.cursor()
     cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "cn"''')
     #cursor.execute('''SELECT server_port, password from servers where certname like "cf.9q"''')
-    #cursor.execute('''SELECT * from servers''')
     result = cursor.fetchall()
     conn.close()
     real_ss_pass = result[0][1]
@@ -312,7 +298,7 @@ def test_api_gives_correct_key():
 
 
 
-#@pytest.mark.dependency(depends=["test_add_friend"])
+@pytest.mark.dependency(depends=["test_add_friend"])
 def test_delete_friend():
     global friend_id
     headers = {
@@ -349,35 +335,18 @@ def test_delete_friend():
     assert(jresponse['link'] == "empty")
     assert(jresponse["digest"] == "")
 
+@pytest.mark.dependency(depends=["test_confirm_device_unclaimed"]) 
 def test_check_api_calls_access():
     '''
     loop through all api calls in flask
     make sure if provided an invalid key, it reject
     '''
-    assert(util_iterate_apis(200))
-    pass
+    assert(util_iterate_apis("BAD_TOKEN", 401, True)) 
 
+@pytest.mark.dependency(depends=["test_api_gives_correct_key"]) 
 def test_check_api_calls_valid():
-    # probably more than one call: do apis work?
-    pass
-
-def test_simulate_web_exposure():
-    '''
-    fake an exposure by calling the protected api
-    the same that heartbeat calls
-    now check the subsequent calls to **ALL** apis are blocked
-    '''
-    local_token = status.get('status','local_token')
-    headers = {
-            "content-type": "application/json"
-            }
-    payload = { 'local_token':str(local_token) }
     # first, things should be normal
-    assert(util_iterate_apis(200))
-    response = requests.post(url=local_api_url + "/api/v1/port_exposure/check", params=payload)
-    # now they should be blocked
-    assert(util_iterate_apis(403))
-    pass
+    assert(util_iterate_apis(local_token, 200))
 
 
 @pytest.mark.dependency(depends=["test_login", "test_claim", "test_heartbeat"])
@@ -388,19 +357,43 @@ def test_unclaim():
             }
     response = requests.get(url + '/device/'+str(device_id)+'/unclaim/', headers=headers)
     jresponse = response.json()
-    #print (jresponse)
-    #print(response.status_code)
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
+@pytest.mark.dependency(depends=["test_unclaim"])
+def test_check_device_disconnected_unclaimed():
+    time.sleep(30) # assuming it takes x seconds for onboarding to kick-in
+    #status = configparser.ConfigParser()
+    #status.read(STATUS_FILE)
+    assert(status.get('status','claimed') == '0') #nosec: assert is a legit check for pytest
 
+@pytest.mark.dependency(depends=["test_unclaim"])
 def test_api_updated_unclaim():
     '''
     depends on unclaim (if not rebooting)
         check API is not leaking incorrec info after 5 seconds
     '''
-    pass
-#test_login()
-#test_list()
-#test_add()
-#test_delete()
-#test_list()
+    time.sleep(5)
+    key = status.get('status','temporary_key')
+    # get the key through the local API
+    response = requests.get(local_api_url + "/api/v1/claim/info", verify = False)
+    jresponse = response.json()
+    assert(response.status_code == 200) #nosec: assert is a legit check for pytestv
+    assert(int(jresponse['claimed']) == 0)
+    assert(jresponse['device_key'] == key)
+
+# last test, since it will kill the api server
+@pytest.mark.dependency(depends=["test_check_api_calls_valid", "test_api_updated_unclaim"]) 
+def test_simulate_web_exposure():
+    '''
+    fake an exposure by calling the protected api
+    the same that heartbeat calls
+    now check the subsequent calls to **ALL** apis are blocked
+    '''
+    local_token = status.get('status','local_token')
+    headers = {
+            "content-type": "application/json"
+            }
+    response = requests.get(url=local_api_url + "/api/v1/port_exposure/check?local_token="+local_token)
+    # now they should be blocked
+    assert(util_iterate_apis(local_token, 503))
+
