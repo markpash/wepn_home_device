@@ -32,9 +32,6 @@ key=config.get('device', 'key')
 serial=pproxy_config.get('django', 'serial_number')
 shadow_db=pproxy_config.get('shadow', 'db-path')
 
-status = configparser.ConfigParser()
-status.read(STATUS_FILE)
-
 static_friend_id=config.get('friend','static_id')
 friend_access_key = ""
 local_api_url = "https://127.0.0.1:5000"
@@ -51,6 +48,9 @@ device_id = None
 
 def util_iterate_apis(local_token, expected_code, filter_auth=False):
     result = True
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
+
     headers = {
             "content-type": "application/json"
             }
@@ -72,7 +72,7 @@ def util_iterate_apis(local_token, expected_code, filter_auth=False):
                 #'certname':'cf.9q'}
                 'certname':'zxcvb'}
         response = requests.get(url=local_api_url + api['url'],
-                params= payload)
+                params= payload, verify=False)
         result = result and (response.status_code == expected_code)
         time.sleep(2)
     return result
@@ -134,8 +134,8 @@ def test_confirm_device_unclaimed():
 
 @pytest.mark.dependency(depends=["test_confirm_device_unclaimed"]) 
 def test_api_returns_unclaimed():
-    #status = configparser.ConfigParser()
-    #status.read(STATUS_FILE)
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
     key = status.get('status','temporary_key')
     # get the key through the local API
     response = requests.get(local_api_url + "/api/v1/claim/info", verify = False)
@@ -150,8 +150,8 @@ def test_api_returns_unclaimed():
 def test_claim():
     global device_id
     global key
-    #status = configparser.ConfigParser()
-    #status.read(STATUS_FILE)
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
     key = status.get('status','temporary_key')
     headers = {
             "Authorization" : auth_token,
@@ -177,14 +177,14 @@ def test_claim_fail_serial():
 @pytest.mark.dependency(depends=["test_login","test_claim","test_confirm_device_unclaimed"])
 def test_check_device_connected():
     time.sleep(30) # assuming it takes x seconds for onboarding to kick-in
-    #status = configparser.ConfigParser()
-    #status.read(STATUS_FILE)
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
     assert(status.get('status','claimed') == '1') #nosec: assert is a legit check for pytest
 
 @pytest.mark.dependency(depends=["test_login","test_claim", "test_check_device_connected"]) 
 def test_api_claim_info_redacted_post_claim():
-    #status = configparser.ConfigParser()
-    #status.read(STATUS_FILE)
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
     key = status.get('status','temporary_key')
     assert(key == 'CLAIMED')
     # get the key through the local API
@@ -250,7 +250,7 @@ def test_add_friend():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'cn'}
+    payload = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'en'}
     response = requests.post(url + '/friend/', json=payload, headers=headers)
     #print (response.content)
     assert(response.status_code == 201) #nosec: assert is a legit check for pytest
@@ -258,10 +258,17 @@ def test_add_friend():
     payload['id'] = jresponse['id']
     friend_id = payload['id']
     assert(jresponse == payload) #nosec: assert is a legit check for pytest
-    time.sleep(5)
+
+@pytest.mark.dependency(depends=["test_add_friend"])
+def test_added_friend_in_local_db():
+    global friend_id
+    # long wait since new friend key generation can take variable time
+    time.sleep(55)
     conn = sqlite3.connect(shadow_db)
     cursor = conn.cursor()
-    cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "cn"''')
+    cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "en"''')
+    #cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "cn"''')
+    #cursor.execute('''SELECT * from servers''')
     result = cursor.fetchall()
     conn.close()
     assert(len(result)==1) #nosec: assert is a legit check for pytest
@@ -272,10 +279,11 @@ def test_api_gives_correct_key():
     compare to firend_access_key'''
     conn = sqlite3.connect(shadow_db)
     cursor = conn.cursor()
-    cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "cn"''')
+    cursor.execute('''SELECT server_port, password from servers where certname like "zxcvb" and language like "en"''')
     #cursor.execute('''SELECT server_port, password from servers where certname like "cf.9q"''')
     result = cursor.fetchall()
     conn.close()
+    assert(len(result)==1)
     real_ss_pass = result[0][1]
     real_port = result[0][0]
     status = configparser.ConfigParser()
@@ -289,7 +297,7 @@ def test_api_gives_correct_key():
             #'certname':'cf.9q'}
             'certname':'zxcvb'}
     response = requests.post(url=local_api_url + "/api/v1/friends/access_links/",
-            params= payload)
+            params= payload, verify=False)
     assert(response.status_code == 200)
     jresponse = response.json()
     split_resp = base64.b64decode(jresponse['link'][5:61]).decode('utf-8').replace('@',':').split(':')
@@ -308,15 +316,21 @@ def test_delete_friend():
     response = requests.delete(url + '/friend/'+ str(friend_id), headers=headers)
     assert(response.status_code == 204) #nosec: assert is a legit check for pytest
     friend_id = None
+
+@pytest.mark.dependency(depends=["test_delete_friend"])
+def test_deleted_friend_in_local_db():
     # wait for server to send the command to device
-    time.sleep(10)
+    time.sleep(15)
     # check local database to see if the friend was removed
     conn = sqlite3.connect(shadow_db)
     cursor = conn.cursor()
-    cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "cn"''')
+    cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "en"''')
     result = cursor.fetchall()
     conn.close()
     assert(len(result) == 0)
+
+@pytest.mark.dependency(depends=["test_delete_friend"])
+def test_deleted_friend_in_api():
     # Now make sure the local API server is also empty
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
@@ -329,7 +343,7 @@ def test_delete_friend():
             #'certname':'cf.9q'}
             'certname':'zxcvb'}
     response = requests.post(url=local_api_url + "/api/v1/friends/access_links/",
-            params= payload)
+            params= payload, verify=False)
     assert(response.status_code == 200)
     jresponse = response.json()
     assert(jresponse['link'] == "empty")
@@ -346,7 +360,10 @@ def test_check_api_calls_access():
 @pytest.mark.dependency(depends=["test_api_gives_correct_key"]) 
 def test_check_api_calls_valid():
     # first, things should be normal
-    assert(util_iterate_apis(local_token, 200))
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
+    local_token = status.get('status','local_token')
+    assert(util_iterate_apis(local_token, 200, True))
 
 
 @pytest.mark.dependency(depends=["test_login", "test_claim", "test_heartbeat"])
@@ -362,8 +379,8 @@ def test_unclaim():
 @pytest.mark.dependency(depends=["test_unclaim"])
 def test_check_device_disconnected_unclaimed():
     time.sleep(30) # assuming it takes x seconds for onboarding to kick-in
-    #status = configparser.ConfigParser()
-    #status.read(STATUS_FILE)
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
     assert(status.get('status','claimed') == '0') #nosec: assert is a legit check for pytest
 
 @pytest.mark.dependency(depends=["test_unclaim"])
@@ -373,6 +390,9 @@ def test_api_updated_unclaim():
         check API is not leaking incorrec info after 5 seconds
     '''
     time.sleep(5)
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
+
     key = status.get('status','temporary_key')
     # get the key through the local API
     response = requests.get(local_api_url + "/api/v1/claim/info", verify = False)
@@ -389,11 +409,14 @@ def test_simulate_web_exposure():
     the same that heartbeat calls
     now check the subsequent calls to **ALL** apis are blocked
     '''
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
+
     local_token = status.get('status','local_token')
     headers = {
             "content-type": "application/json"
             }
-    response = requests.get(url=local_api_url + "/api/v1/port_exposure/check?local_token="+local_token)
+    response = requests.get(url=local_api_url + "/api/v1/port_exposure/check?local_token="+local_token, verify=False)
     # now they should be blocked
     assert(util_iterate_apis(local_token, 503))
 
