@@ -3,7 +3,7 @@ PPROXY_HOME=/usr/local/pproxy/
 ######################################
 ## Add PProxy user
 ######################################
-echo -e "\n* Configuring PProxy ... "
+echo -e "\n* Configuring WEPN ... "
 echo -e "If you are setting up services yourself, expect some user/owner/file warnings."
 echo -e "These are usually harmless errors."
 
@@ -16,6 +16,7 @@ adduser openvpn --disabled-password --disabled-login  --quiet --gecos "OpenVPN U
 # Adding specific API user so it can have access to local network
 adduser wepn-api --disabled-password --disabled-login --home $PPROXY_HOME/local_server --quiet --gecos "WEPN-API User"
 adduser pproxy gpio 
+
 echo -e "\nCorrecing owners..."
 chown pproxy.pproxy $PPROXY_HOME
 chown -R pproxy.pproxy $PPROXY_HOME/* 
@@ -34,11 +35,15 @@ do
 	chown root.root /usr/local/sbin/$SCRIPT.sh
 	chmod 755 /usr/local/sbin/$SCRIPT.sh
 done
+# led manager runs as service by root
+# led client sends it messages via a socket
+# TODO: new led user & group, put pproxy in that group, run as that
+chwon root.root $PPROXY_HOME/system_services/led_manager.py
 
 cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
 
-python3.7 -m pip install --upgrade pip
+python3 -m pip install --upgrade pip
 PIP=pip3
 if ! command -v $PIP -V &> /dev/null
 then
@@ -50,11 +55,6 @@ $PIP install -r $PPROXY_HOME/setup/requirements.txt
 
 pip3 install --upgrade pip
 pip3 install -r $PPROXY_HOME/setup/requirements.txt
-
-##autostart service
-#chmod 0755 /etc/init.d/pproxy
-#/bin/ln -s /etc/init.d/pproxy /etc/rc3.d/S01pproxy
-#/bin/ln -s /etc/init.d/pproxy /etc/rc5.d/S01pproxy
 
 #config initialized/fixed
 mkdir -p /etc/pproxy/
@@ -80,7 +80,9 @@ echo -e "\nSet up OpenVPN ..."
 if [[ ! -f /etc/openvpn/server.conf ]]; then 
   echo -e "\n\nSeems like OpenVPN is not configured, initializing that now"
   echo -e "this can take a LONG time (hours)"
+  cd $PPROXY_HOME/setup/
   /bin/bash $PPROXY_HOME/setup/init_vpn.sh
+  cd $PPROXY_HOME/
 fi
 addgroup easy-rsa
 adduser openvpn easy-rsa
@@ -112,11 +114,11 @@ chmod 600 /etc/openvpn/easy-rsa/pki/.rnd
 ##empty crontab
 ##add heartbeat to crontab
 ##add apt-get update && apt-get install pproxy-rpi to weekly crontab
-#/usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
-#/usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
+/usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
+/usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
 
 #install iptables, configure iptables for port forwarding and blocking
-/bin/bash $PPROXY_HOME/openvpn-iptables.sh
+/bin/bash $PPROXY_HOME/setup/openvpn-iptables.sh
 chown root.root /usr/local/sbin/ip-shadow.sh
 chmod 0755 /usr/local/sbin/ip-shadow.sh
 chown root.root /usr/local/sbin/wepn_git.sh
@@ -167,6 +169,7 @@ systemctl restart bind9
 echo -e "\n Setting up the local INVALID certificates"
 echo -e "These are ONLY used for local network communications."
 echo -e "Local API server will disable itself if it detects port exposure to external IP."
+echo -e "See: https://go.we-pn.com/waiver-3"
 addgroup wepn-web
 adduser pproxy wepn-web
 adduser wepn-api wepn-web
@@ -180,7 +183,6 @@ chgrp wepn-web .
 chmod g+r wepn-local.*
 chmod g+r .
 
-cp $PPROXY_HOME/setup/wepn-api.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable wepn-api
 systemctl enable wepn-keypad
@@ -264,6 +266,7 @@ systemctl restart wepn-keypad
 systemctl enable wepn-leds
 systemctl restart wepn-leds
 systemctl restart wepn-keypad
+# pproxy has moved to wepn-main on systemctl
 #/bin/sh /etc/init.d/pproxy restart
 update-rc.d pproxy disable
 systemctl enable wepn-main

@@ -24,7 +24,3 @@
 */15 * * * * /bin/bash /usr/local/pproxy/periodic/cron-upnp.sh >/dev/null 2>&1
 @weekly sudo /usr/local/sbin/update-pproxy.sh >/dev/null 2>&1
 @daily /usr/bin/python3 /usr/local/pproxy/periodic/ddns.py >/dev/null 2>&1
-#daily while rollout in progress
-@daily sudo /usr/local/sbin/update-pproxy.sh >/dev/null 2>&1
-@hourly sudo /usr/local/sbin/update-pproxy.sh >/dev/null 2>&1
-@monthly sudo /usr/local/sbin/update-system.sh >/dev/null 2>&1
