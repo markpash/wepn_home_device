@@ -17,14 +17,14 @@ class OpenVPN:
         return
 
     def add_user(self, certname, ip_address, password, port, lang):
-        cmd = '/bin/sh ./add_user.sh ' + certname + ' ' + \
+        cmd = '/bin/sh ./add_user_openvpn.sh ' + certname + ' ' + \
             ip_address + ' ' + str(self.config.get('openvpn', 'port'))
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return False
 
     def delete_user(self, certname):
-        cmd = '/bin/sh ./delete_user.sh ' + certname
+        cmd = '/bin/sh ./delete_user_openvpn.sh ' + certname
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return

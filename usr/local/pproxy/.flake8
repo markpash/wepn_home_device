@@ -25,3 +25,4 @@ select = C,D,E,F,W,B,B950
 # The B001 and E722 excepts are disabled since we need the catch-alls.
 # W504 is not compatible with autopep8 (binary after line)
 ignore = E501,W503, B001, E722, W504
+exclude = tests/
