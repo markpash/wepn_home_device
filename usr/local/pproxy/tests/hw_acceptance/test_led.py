@@ -4,9 +4,9 @@ import neopixel
 import time
 
 result = True
-pixels = neopixel.NeoPixel(board.D12, 24)
+pixels = neopixel.NeoPixel(board.D12, 27)
 
-for i in range(24):
+for i in range(27):
     #test red
     pixels[i] = (255/2, 0, 0)
     time.sleep(0.1)
@@ -14,14 +14,14 @@ current_result = input("all LEDs filled with red? [y/n]>\t\n")
 result = result and (current_result == "y")
 
 
-for i in range(24):
+for i in range(27):
     #test green
     pixels[i] = (0, 255/2, 0)
     time.sleep(0.1)
 current_result = input("all LEDs filled with green? [y/n]>\t\n")
 result = result and (current_result == "y")
 
-for i in range(24):
+for i in range(27):
     #test blue
     pixels[i] = (0, 0, 255/2)
     time.sleep(0.1)

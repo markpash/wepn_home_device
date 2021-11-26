@@ -75,16 +75,47 @@ class KEYPAD:
         i2c = board.I2C()
         # Set this to the GPIO of the interrupt:
         GPIO.setup(INT_EXPANDER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        self.aw = adafruit_aw9523.AW9523(i2c)
-        new_i2c = i2c_device.I2CDevice(i2c, 0x58)
-        time.sleep(1)
+        try: 
+            self.aw = adafruit_aw9523.AW9523(i2c,0x58)
+            new_i2c = i2c_device.I2CDevice(i2c, 0x58)
+        except:
+            self.aw = adafruit_aw9523.AW9523(i2c,0x5b)
+            new_i2c = i2c_device.I2CDevice(i2c, 0x5b)
+        self.aw.reset()
+        # print("Inputs: {:016b}".format(self.aw.inputs))
+        self.aw.directions = 0x0000
+        #self.aw.outputs = 0x0000
+        # time.sleep(1)
         buffer = bytearray(2)
+        buffer[0]=0x00
+        buffer[1]=0x00
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+        print(buffer)
+        time.sleep(0.1)
+        buffer[0]=0x01
+        buffer[1]=0x00
+        new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+        print(buffer)
+        time.sleep(0.1) #added
+        new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+        print(buffer)
         buffer[0] = 0x06
         buffer[1] = 0x00
         new_i2c.write(buffer)
-        # print(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+        print(buffer)
+        buffer[0] = 0x07
+        buffer[1] = 0xff
+        new_i2c.write(buffer)
+        new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+        print(buffer)
+        time.sleep(0.1)
+        #_inputs = self.aw.inputs
+        #print("Inputs: {:016b}".format(_inputs))
+        for i in range(1):
+            print("Inputs: {:016b}".format(self.aw.inputs))
+            time.sleep(0.5)
+        time.sleep(0.5)
         GPIO.add_event_detect(INT_EXPANDER, GPIO.FALLING, callback=self.key_press_cb)
 
     def key_press_cb(self, channel):

@@ -5,7 +5,7 @@ import neopixel
 
 #pixel_pin = board.A1
 pixel_pin = board.D12
-num_pixels = 24 
+num_pixels = 27 
 
 pixels = neopixel.NeoPixel(pixel_pin, num_pixels, brightness=0.3, auto_write=False)
 #pixels = neopixel.NeoPixel(board.D12, brightness=0.3, auto_write=False, num_pixels=24)
