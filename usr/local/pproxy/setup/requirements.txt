@@ -63,7 +63,7 @@ pycairo==1.20.1
 pycodestyle==2.8.0
 pycparser==2.20
 pyftdi==0.53.3
-Pygments==2.7.1
+Pygments==2.7.4
 PyGObject==3.42.0
 pyinotify==0.9.6
 pylab==0.0.1
