@@ -38,16 +38,16 @@ done
 # led manager runs as service by root
 # led client sends it messages via a socket
 # TODO: new led user & group, put pproxy in that group, run as that
-chwon root.root $PPROXY_HOME/system_services/led_manager.py
+chown root.root $PPROXY_HOME/system_services/led_manager.py
 
 cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
 
 python3 -m pip install --upgrade pip
-PIP=pip3
+PIP=/usr/local/bin/pip3
 if ! command -v $PIP -V &> /dev/null
 then
-	PIP=/usr/local/bin/pip3
+	PIP=pip3
 fi
 
 $PIP install --upgrade pip

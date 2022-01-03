@@ -19,6 +19,10 @@ if not config.has_option('mqtt','host'):
    config.set('mqtt','host','we-pn.com')
    config.set('mqtt','onboard-timeout','10')
 
+mqtt = config.get('mqtt','host')
+if mqtt == "api.we-pn.com":
+   config.set('mqtt','host','we-pn.com')
+
 host = config.get('django','host')
 if host == "we-pn.com":
    config.set('django','host','api.we-pn.com')
@@ -101,6 +105,9 @@ if (not config.has_option('hw','led-version') and
     not config.has_option('hw','lcd-version')):
     config.set('hw','led-version', '1')
 
+if not config.has_option('hw','num_leds'):
+    config.set('hw', 'num_leds', '27')
+
 if config.has_option('hw','led-version'):
     v = config.get('hw','led-version')
     config.set('hw','lcd-version', v)
@@ -147,7 +154,7 @@ if shadowsocks_3:
 else:
     config.set('shadow','method', 'aes-256-cfm')
 
-status.set('status','sw','1.3.9')
+status.set('status','sw','1.5.1')
 
 
 with open(CONFIG_FILE, 'w') as configfile:
