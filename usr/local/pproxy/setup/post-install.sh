@@ -51,7 +51,7 @@ then
 fi
 
 $PIP install --upgrade pip
-$PIP install -r $PPROXY_HOME/setup/requirements.txt
+$PIP install --ignore-installed -r $PPROXY_HOME/setup/requirements.txt
 
 pip3 install --upgrade pip
 pip3 install -r $PPROXY_HOME/setup/requirements.txt
