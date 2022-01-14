@@ -105,7 +105,7 @@ class HeartBeat:
             "local_token": str(self.local_token),
             "local_ip_address": str(local_ip),
             "device_key": self.config.get('django', 'device_key'),
-            'port': self.config.get('openvpn', 'port'),
+            'port': self.config.get('shadow', 'start-port'),
             "software_version": self.status.get('sw'),
             "diag_code": diag_code,
             "access_cred": access_creds,
