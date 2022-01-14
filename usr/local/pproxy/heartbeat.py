@@ -9,6 +9,7 @@ import random
 import requests
 import socket
 import netifaces as ni
+from device import Device
 
 from ipw import IPW
 ipw = IPW()
@@ -81,10 +82,10 @@ class HeartBeat:
         external_ip = str(ipw.myip())
 
         try:
-            ni.ifaddresses(self.config.get('hw', 'iface'))
-            local_ip = ni.ifaddresses(self.config.get('hw', 'iface'))[
-                ni.AF_INET][0]['addr']
-        except:
+            device = Device(self.logger)
+            local_ip = device.get_local_ip()
+        except Exception as e:
+            print(e)
             local_ip = "127.0.0.1"
         test_port = int(self.config.get('openvpn', 'port')) + 1
         if int(self.config.get('shadow', 'enabled')) == 1:

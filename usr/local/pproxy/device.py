@@ -4,6 +4,7 @@ import netifaces
 import atexit
 import upnpclient as upnp
 import requests
+
 try:
     from self.configparser import configparser
 except ImportError:
@@ -257,9 +258,19 @@ class Device():
                 self.status.set_field('port-fwd', 'fails', str(fails))
 
     def get_local_ip(self):
+        ip = "127.0.0.1"
         try:
-            ip = netifaces.ifaddresses(self.iface)[
-                netifaces.AF_INET][0]['addr']
+            if netifaces.AF_INET in netifaces.ifaddresses(self.iface):
+                ip = netifaces.ifaddresses(self.iface)[
+                    netifaces.AF_INET][0]['addr']
+            else:
+                interfaces = netifaces.interfaces()
+                for inf in interfaces:
+                    if inf == "lo" or inf == "tun0":
+                        continue
+                    if netifaces.AF_INET in netifaces.ifaddresses(inf):
+                        ip = netifaces.ifaddresses(inf)[
+                            netifaces.AF_INET][0]['addr']
             return ip
         except Exception as error_exception:
             self.logger.error("Error happened in getting my IP")
