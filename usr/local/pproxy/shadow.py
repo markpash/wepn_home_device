@@ -11,6 +11,7 @@ import hashlib
 import atexit
 from datetime import datetime
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 import logging
 
@@ -514,6 +515,7 @@ class Shadow:
                 if int(failed) == 0:
                     # using the local Flask API webserver
                     # using external websites adds timeout and remote connection limits
+                    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
                     r = requests.get('https://127.0.0.1:5000/',
                                      proxies=proxies, verify=False)  # nosec: http://go.we-pn.com/waiver-3
                     success &= (r.status_code == 200)
