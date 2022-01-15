@@ -13,6 +13,7 @@ then
 	ln -s $GIT_DIR/home_device/usr/local/pproxy/ $WEPN_DIR
 else
 	cd $GIT_DIR/home_device/
-	git pull
+	git stash
+	git pull --ff-only
 fi
 
