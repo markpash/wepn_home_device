@@ -60,7 +60,7 @@ class KEYPAD:
         self.diag_shown = False
         self.lcd = LCD()
         self.lcd.set_lcd_present(self.config.get('hw', 'lcd'))
-        self.lcd.display([(1, "Press all buttons", 0, "white"), ], 15)
+        self.lcd.display([(1, "WEPN loading ... ", 0, "white"), ], 15)
         self.width = 240
         self.height = 240
         self.menu_row_y_size = 37
