@@ -341,9 +341,17 @@ class PProxy():
             else:
                 server_address = ip_address
             password = random.SystemRandom().randint(1111111111, 9999999999)
-            # TODO why re cannot remove \ even with escape?
-            data['passcode'] = re.sub(
-                r'[\\\\/*?:"<>|.]', "", data['passcode'][:25].replace("\n", ''))
+            if 'passcode' in data and 'email' in data:
+                if data['passcode'] and data['email']:
+                    # TODO why re cannot remove \ even with escape?
+                    print("data=" + str(data))
+                    data['passcode'] = re.sub(
+                        r'[\\\\/*?:"<>|.]', "", data['passcode'][:25].replace("\n", ''))
+                else:
+                    send_email = False
+            else:
+                # if email not present or familiar phrase not set, no email!
+                send_email = False
             port = self.config.get('shadow', 'start-port')
             try:
                 is_new_user = services.add_user(

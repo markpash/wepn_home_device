@@ -149,7 +149,7 @@ class KEYPAD:
                     self.show_home_screen()
             if BUTTONS[index] in ["1", "2", "0"]:
                 print("Key side =" + BUTTONS[index])
-                if window_size == 0 or (self.menu_index != self.window_stack[window_size]):
+                if window_size == 0 or (self.menu_index != self.window_stack[window_size - 1]):
                     self.window_stack.append(self.menu_index)
                 exit_menu = self.menu[self.menu_index][int(
                     BUTTONS[index]) + menu_base_index]["action"]()
