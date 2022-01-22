@@ -63,7 +63,7 @@ def valid_token(incoming):
 
 
 app = flask.Flask(__name__)
-#app.config["DEBUG"] = False
+# app.config["DEBUG"] = False
 app.config["DEBUG"] = True
 
 
@@ -152,7 +152,7 @@ def run_diag():
         return "Not accessible", http_status.HTTP_401_UNAUTHORIZED
     WPD = WPDiag(logger)
     device = Device(logger)
-    local_ip =  device.get_local_ip()
+    local_ip = device.get_local_ip()
     port = 4091
 
     print('local ip=' + local_ip)

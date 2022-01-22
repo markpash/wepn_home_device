@@ -3,6 +3,7 @@ repos:
     rev: '4.0.0'
     hooks:
     -   id: flake8
+        exclude: tests/
 
 # this requires pip3 install bandit
 # repo fails to run correctly
@@ -11,7 +12,7 @@ repos:
     -   id: python-bandit-vulnerability-check
         entry: bandit
         name: bandit
-        args: [-l, ]
+        args: [-l, -x, "usr/local/pproxy/tests/"]
         language: system
         files: ''
 

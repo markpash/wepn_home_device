@@ -84,7 +84,7 @@ class KEYPAD:
         self.aw.reset()
         # print("Inputs: {:016b}".format(self.aw.inputs))
         self.aw.directions = 0x0000
-        #self.aw.outputs = 0x0000
+        # self.aw.outputs = 0x0000
         # time.sleep(1)
         buffer = bytearray(2)
         buffer[0] = 0x06
@@ -112,8 +112,8 @@ class KEYPAD:
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
         print(buffer)
         time.sleep(0.1)
-        #_inputs = self.aw.inputs
-        #print("Inputs: {:016b}".format(_inputs))
+        # _inputs = self.aw.inputs
+        # print("Inputs: {:016b}".format(_inputs))
         for i in range(1):
             print("Inputs: {:016b}".format(self.aw.inputs))
             time.sleep(0.5)

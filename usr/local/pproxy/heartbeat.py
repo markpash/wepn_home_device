@@ -8,7 +8,6 @@ import json
 import random
 import requests
 import socket
-import netifaces as ni
 from device import Device
 
 from ipw import IPW

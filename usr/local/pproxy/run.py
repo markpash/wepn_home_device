@@ -26,6 +26,7 @@ logging.config.fileConfig(LOG_CONFIG,
 logger = logging.getLogger("startup")
 logger.critical("Starting WEPN")
 
+
 # check if INI configs are corrupted
 # restore and upgrade as needed
 def check_and_restore(conf, backup):
@@ -34,7 +35,8 @@ def check_and_restore(conf, backup):
             copyfile(backup, conf)
         # backup might have been created before
         # new changes were made. Do upgrades
-        exec(open(UPDATE_SCRIPT).read())
+        exec(open(UPDATE_SCRIPT).read())  # nosec: fixed file path
+
 
 check_and_restore(CONFIG_FILE, CONFIG_FILE_BACKUP)
 check_and_restore(STATUS_FILE, STATUS_FILE_BACKUP)

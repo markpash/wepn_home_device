@@ -9,7 +9,7 @@ class IPW():
             f = requests.get('http://ip.we-pn.com')
             ip = str(f.text).rstrip()
             # check if it is valid, not an error message
-            regex = "^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"
+            regex = r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"
             if re.search(regex, ip):
                 return ip
             else:
