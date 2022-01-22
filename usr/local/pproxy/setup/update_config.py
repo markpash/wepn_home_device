@@ -15,6 +15,9 @@ status.read(STATUS_FILE)
 port_status = configparser.ConfigParser()
 port_status.read(PORT_STATUS_FILE)
 
+if not config.has_section('mqtt'):
+   config.add_section('mqtt')
+
 if not config.has_option('mqtt','host'):
    config.set('mqtt','host','we-pn.com')
    config.set('mqtt','onboard-timeout','10')
@@ -23,6 +26,14 @@ mqtt = config.get('mqtt','host')
 if mqtt == "api.we-pn.com":
    config.set('mqtt','host','we-pn.com')
 
+if not config.has_option('mqtt','onboard-timeout'):
+    config.set('mqtt','onboard-timeout', '10')
+
+if not config.has_section('django'):
+   config.add_section('django')
+   config.set('django','host','api.we-pn.com')
+   config.set('django','url','https://api.we-pn.com')
+
 host = config.get('django','host')
 if host == "we-pn.com":
    config.set('django','host','api.we-pn.com')
@@ -30,6 +41,10 @@ if host == "we-pn.com":
 url = config.get('django','url')
 if url == "we-pn.com" or url == "https://we-pn.com":
    config.set('django','url','https://api.we-pn.com')
+
+if not config.has_section('openvpn'):
+   config.add_section('openvpn')
+   config.set('openvpn','enabled','1')
 
 if not config.has_option('openvpn','enabled'):
    config.set('openvpn','enabled', '1')
@@ -58,6 +73,8 @@ if not status.has_section('status'):
     status.set('status','mqtt','0')
     status.set('status','pin','00000000')
     status.set('status','mqtt-reason','0')
+    status.set('status','local_token','0')
+    status.set('status','temporary_key','0')
 
 if not status.has_section('port_check'):
     status.add_section('port_check')
@@ -78,6 +95,9 @@ if not port_status.has_section('port-fwd'):
 if status.has_section('port-fwd'):
     status.remove_section('port-fwd')
 
+if not config.has_section('email'):
+   config.add_section('email')
+
 # temporary re-update for an earlier bug
 if config.has_option('email','enabled'):
     if config.get('email','enabled') == 'text':
@@ -92,11 +112,12 @@ if not config.has_option('email','type'):
 
 config.set('email','email',"WEPN Device<devices@we-pn.com>")
 
-if not config.has_option('mqtt','onboard-timeout'):
-    config.set('mqtt','onboard-timeout', '10')
 
 if not status.has_section('previous_keys'):
     status.add_section('previous_keys')
+
+if not config.has_section('hw'):
+    config.add_section('hw')
 
 if not config.has_option('hw','iface'):
     config.set('hw','iface', 'eth0')

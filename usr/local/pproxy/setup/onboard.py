@@ -32,7 +32,9 @@ KEYPAD = [
     ["1", ], ["2", ], ["3"],
 ]
 CONFIG_FILE = '/etc/pproxy/config.ini'
+CONFIG_FILE_BACKUP = '/var/local/pproxy/config.bak'
 STATUS_FILE = '/var/local/pproxy/status.ini'
+STATUS_FILE_BACKUP = '/var/local/pproxy/status.bak'
 LOG_CONFIG = "/etc/pproxy/logging-debug.ini"
 RETRIES_BETWEEN_SCREEN_CHANGE = 100
 logging.config.fileConfig(LOG_CONFIG,
@@ -191,6 +193,11 @@ class OnBoard():
             with open(CONFIG_FILE, 'w') as configfile:
                 self.config.write(configfile)
             with open(STATUS_FILE, 'w') as statusfile:
+                self.status.write(statusfile)
+            # save copies
+            with open(CONFIG_FILE_BACKUP, 'w') as configfile:
+                self.config.write(configfile)
+            with open(STATUS_FILE_BACKUP, 'w') as statusfile:
                 self.status.write(statusfile)
             self.client.disconnect()
             self.client.loop_stop()

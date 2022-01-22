@@ -1,6 +1,23 @@
 PPROXY_HOME=/usr/local/pproxy/
 
 ######################################
+## Copy back up config files
+## helps when files get corrupted
+######################################
+if [ ! -f "/var/local/pproxy/config.bak" ]; then
+    cp /etc/pproxy/config.ini /var/local/pproxy/config.bak
+fi
+if [ ! -f "/var/local/pproxy/status.bak" ]; then
+    cp /var/local/pproxy/status.ini /var/local/pproxy/status.bak
+fi
+
+chown pproxy.pproxy /var/local/pproxy/config.bak
+chmod 0600 /var/local/pproxy/config.bak
+chown pproxy.pproxy /var/local/pproxy/status.bak
+chmod 0600 /var/local/pproxy/status.bak
+
+######################################
+######################################
 ## Add PProxy user
 ######################################
 echo -e "\n* Configuring WEPN ... "

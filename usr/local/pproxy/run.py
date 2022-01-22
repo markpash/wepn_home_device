@@ -6,7 +6,8 @@ import requests
 import json
 import logging.config
 from device import Device
-
+import os
+from shutil import copyfile
 
 try:
     from self.configparser import configparser
@@ -14,18 +15,36 @@ except ImportError:
     import configparser
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
+CONFIG_FILE_BACKUP = '/var/local/pproxy/config.bak'
 STATUS_FILE = '/var/local/pproxy/status.ini'
+STATUS_FILE_BACKUP = '/var/local/pproxy/status.bak'
 LOG_CONFIG = "/etc/pproxy/logging.ini"
+UPDATE_SCRIPT = "/usr/local/pproxy/setup/update_config.py"
+
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
 logger = logging.getLogger("startup")
 logger.critical("Starting WEPN")
+
+# check if INI configs are corrupted
+# restore and upgrade as needed
+def check_and_restore(conf, backup):
+    if not os.path.exists(conf) or os.stat(conf).st_size == 0:
+        if os.path.exists(backup):
+            copyfile(backup, conf)
+        # backup might have been created before
+        # new changes were made. Do upgrades
+        exec(open(UPDATE_SCRIPT).read())
+
+check_and_restore(CONFIG_FILE, CONFIG_FILE_BACKUP)
+check_and_restore(STATUS_FILE, STATUS_FILE_BACKUP)
 
 lcd = LCD()
 
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
 status = configparser.ConfigParser()
+
 status.read(STATUS_FILE)
 lcd.set_lcd_present(config.get('hw', 'lcd'))
 lcd.show_logo()
