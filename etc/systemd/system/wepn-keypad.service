@@ -5,7 +5,7 @@ After=wepn-leds.service wepn-main.service
 [Service]
 User=pproxy
 ExecStart=/usr/bin/python3 /usr/local/pproxy/system_services/keypad.py
-KillMode=process
+KillMode=control-group
 Restart=on-failure
 RestartPreventExitStatus=255
 Type=simple

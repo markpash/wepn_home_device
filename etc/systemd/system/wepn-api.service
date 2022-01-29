@@ -6,7 +6,7 @@ Requires=network-online.target
 [Service]
 User=wepn-api
 ExecStart=/usr/local/bin/uwsgi --wsgi-file wsgi.py --mount /=api:app --https 0.0.0.0:5000,wepn-local.crt,wepn-local.key
-KillMode=process
+KillMode=control-group
 Restart=on-failure
 RestartPreventExitStatus=255
 Type=notify

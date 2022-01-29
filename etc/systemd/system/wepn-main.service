@@ -7,7 +7,7 @@ Wants=network-online.target
 [Service]
 User=pproxy
 ExecStart=/usr/bin/python3 /usr/local/pproxy/run.py
-KillMode=process
+KillMode=control-group
 Restart=on-failure
 RestartPreventExitStatus=255
 Type=simple

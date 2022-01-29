@@ -5,7 +5,7 @@ Before=wepn-keypad.service wepn-main.service
 [Service]
 User=root
 ExecStart=/usr/bin/python3 /usr/local/pproxy/system_services/led_manager.py
-KillMode=process
+KillMode=control-group
 Restart=on-failure
 RestartPreventExitStatus=255
 Type=simple
