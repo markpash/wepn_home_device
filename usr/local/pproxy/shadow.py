@@ -497,8 +497,14 @@ class Shadow:
         device = Device(self.logger)
         try:
 
-            res = requests.get('https://127.0.0.1:5000/',
-                               verify=False)  # nosec: local cert, http://go.we-pn.com/waiver-3
+            requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+            try:
+                res = requests.get('https://127.0.0.1:5000/',
+                                   verify=False, timeout=3)  # nosec: local cert, http://go.we-pn.com/waiver-3
+            except requests.exceptions.SSLError:
+                pass
+            except requests.exceptions.ReadTimeout:
+                pass
             if res.status_code != 200:
                 # the local flask API server is down, so all of these tests will fail
                 # TODO: this is not a real shadowsocks error, so need a way to convey and recover
@@ -522,8 +528,9 @@ class Shadow:
                 if int(failed) == 0:
                     # using the local Flask API webserver
                     # using external websites adds timeout and remote connection limits
-                    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+                    requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
                     r = requests.get('https://127.0.0.1:5000/',
+                                     timeout=3,
                                      proxies=proxies, verify=False)  # nosec: http://go.we-pn.com/waiver-3
                     success &= (r.status_code == 200)
             except:
