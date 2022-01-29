@@ -380,6 +380,9 @@ class PProxy():
 
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])
+            if not username:
+                self.logger.error("username to be removed was empty")
+                return
             self.logger.debug("Removing user: " + username)
             ip_address = ipw.myip()
             services.delete_user(username)

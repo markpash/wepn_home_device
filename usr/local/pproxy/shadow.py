@@ -233,6 +233,9 @@ class Shadow:
             self.logger.debug("No servers found for usage")
             return {}
         for server in local_db['servers']:
+            if server['certname']=="''" or not server['certname']:
+                self.logger.error("Certname is empty, skipping")
+                continue
             self.logger.debug("creds for " + server['certname'])
             uri = str(self.config.get('shadow', 'method')) + ':' + str(
                 server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
@@ -285,6 +288,9 @@ class Shadow:
         usage_daily = usage_db['daily']
         usage_status = -1
         for server in servers:
+            if server['certname']=="''" or not server['certname']:
+                self.logger.error("Certname is empty, skipping")
+                continue
             self.logger.debug("current server name is " + server['certname'])
             print("current server name is " + server['certname'])
             try:
@@ -496,6 +502,7 @@ class Shadow:
             if res.status_code != 200:
                 # the local flask API server is down, so all of these tests will fail
                 # TODO: this is not a real shadowsocks error, so need a way to convey and recover
+                self.logger.error("Local server is down")
                 return False
         except:
             return False
