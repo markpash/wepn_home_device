@@ -321,7 +321,7 @@ class PProxy():
             us_uuid = self.sanitize_str(data['uuid'])
             unsubscribe_link = "https://api.we-pn.com/api/friend/" + us_id + "/subscribe/?uuid=" \
                 + us_uuid + "&subscribe=" + us_flag
-            print(unsubscribe_link)
+            # print(unsubscribe_link)
 
         if (data['action'] == 'add_user'):
             username = self.sanitize_str(data['cert_name'])
@@ -344,7 +344,7 @@ class PProxy():
             if 'passcode' in data and 'email' in data:
                 if data['passcode'] and data['email']:
                     # TODO why re cannot remove \ even with escape?
-                    print("data=" + str(data))
+                    # print("data=" + str(data))
                     data['passcode'] = re.sub(
                         r'[\\\\/*?:"<>|.]', "", data['passcode'][:25].replace("\n", ''))
                 else:

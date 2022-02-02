@@ -34,7 +34,8 @@ DIR = '/usr/local/pproxy/ui/'
 TEXT_OUT = '/var/local/pproxy/fake_lcd'
 IMG_OUT = '/var/local/pproxy/screen.png'
 
-GPIO.setmode(GPIO.BCM)
+if gpio_enable:
+    GPIO.setmode(GPIO.BCM)
 
 
 class LCD:
