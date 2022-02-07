@@ -37,6 +37,14 @@ def add_user(cname, ip_address, password, port):
     cmd = 'add : {"server_port": '+str(port)+' , "password" : "'+str(password)+'" } '
     print("cmd="+cmd)
 
+def del_user(port):
+        conn = sqli.connect('/var/local/pproxy/usage.db')
+        cur = conn.cursor()
+        results = cur.execute("delete from servers")
+        conn.commit()
+        conn.close()
+
+
 def print_all():
         #used at service stop time
         #loop over cert files, stop all 
@@ -58,6 +66,7 @@ def print_all_usage():
             line = 'usage : {"server_port": '+str(server['server_port'])+', usage='+str(server['usage'])+', "certname": '+ str(server['certname'])+', status= '+ str(server['status'])+' }' 
             print(line)
 
-#add_user('abcd','1.1.1.1','kjasas../.../da',999)
+# add_user('abcd','1.1.1.1','kjasas../.../da',999)
+# del_user(1)
 print_all()
 print_all_usage()
