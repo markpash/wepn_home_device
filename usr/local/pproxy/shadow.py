@@ -12,6 +12,7 @@ import atexit
 from datetime import datetime
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from random import randrange
 
 import logging
 
@@ -486,7 +487,7 @@ class Shadow:
 
     def self_test(self):
         success = True
-        local_port = 10000
+        local_port = 10000 + randrange(10)
         local_db = dataset.connect(
             'sqlite:///' + self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
@@ -497,15 +498,18 @@ class Shadow:
         device = Device(self.logger)
         try:
 
+            local_down = False
             requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
             try:
                 res = requests.get('https://127.0.0.1:5000/',
                                    verify=False, timeout=3)  # nosec: local cert, http://go.we-pn.com/waiver-3
             except requests.exceptions.SSLError:
+                local_down = True
                 pass
             except requests.exceptions.ReadTimeout:
+                local_down = True
                 pass
-            if res.status_code != 200:
+            if res.status_code != 200 or local_down:
                 # the local flask API server is down, so all of these tests will fail
                 # TODO: this is not a real shadowsocks error, so need a way to convey and recover
                 self.logger.error("Local server is down")
