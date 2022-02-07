@@ -283,6 +283,7 @@ systemctl restart wepn-keypad
 systemctl enable wepn-leds
 systemctl restart wepn-leds
 systemctl restart wepn-keypad
+systemctl enable wepn-poweroff
 # pproxy has moved to wepn-main on systemctl
 #/bin/sh /etc/init.d/pproxy restart
 update-rc.d pproxy disable

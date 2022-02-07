@@ -5,9 +5,9 @@ After=final.target
 
 [Service]
 Type=oneshot
+User=pproxy
 RemainAfterExit=true
-ExecStart=/bin/true
-ExecStop=/usr/bin/python3 /usr/local/pproxy/system_services/blank_state.py
+ExecStart=/usr/bin/python3 /usr/local/pproxy/system_services/blank_state.py
 
 [Install]
 WantedBy=final.target
