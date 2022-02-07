@@ -12,7 +12,7 @@ import atexit
 from datetime import datetime
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from random import randrange
+from random import randrange  # nosec: not used for cryptography
 
 import logging
 
@@ -234,7 +234,7 @@ class Shadow:
             self.logger.debug("No servers found for usage")
             return {}
         for server in local_db['servers']:
-            if server['certname']=="''" or not server['certname']:
+            if server['certname'] == "''" or not server['certname']:
                 self.logger.error("Certname is empty, skipping")
                 continue
             self.logger.debug("creds for " + server['certname'])
@@ -289,7 +289,7 @@ class Shadow:
         usage_daily = usage_db['daily']
         usage_status = -1
         for server in servers:
-            if server['certname']=="''" or not server['certname']:
+            if server['certname'] == "''" or not server['certname']:
                 self.logger.error("Certname is empty, skipping")
                 continue
             self.logger.debug("current server name is " + server['certname'])
@@ -487,7 +487,7 @@ class Shadow:
 
     def self_test(self):
         success = True
-        local_port = 10000 + randrange(10)
+        local_port = 10000 + randrange(10)  # nosec: not used for cryptography
         local_db = dataset.connect(
             'sqlite:///' + self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
