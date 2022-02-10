@@ -83,20 +83,11 @@ class KEYPAD:
             new_i2c = i2c_device.I2CDevice(i2c, 0x5b)
         self.aw.reset()
         # print("Inputs: {:016b}".format(self.aw.inputs))
-        self.aw.directions = 0x0000
+        self.aw.directions = 0xff00
         # self.aw.outputs = 0x0000
         # time.sleep(1)
+        # first write to both registers to reset the interrupt flag 
         buffer = bytearray(2)
-        buffer[0] = 0x06
-        buffer[1] = 0x00
-        new_i2c.write(buffer)
-        new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
-        buffer[0] = 0x07
-        buffer[1] = 0xff
-        new_i2c.write(buffer)
-        new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         buffer[0] = 0x00
         buffer[1] = 0x00
         new_i2c.write(buffer)
@@ -108,7 +99,27 @@ class KEYPAD:
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
         print(buffer)
-        time.sleep(0.1)  # added
+        # disable interrupt for higher bits
+        buffer[0] = 0x06
+        buffer[1] = 0x00
+        new_i2c.write(buffer)
+        new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+        print(buffer)
+        buffer[0] = 0x07
+        buffer[1] = 0xff
+        new_i2c.write(buffer)
+        new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+        print(buffer)
+        # read registers again to reset interrupt
+        buffer[0] = 0x00
+        buffer[1] = 0x00
+        new_i2c.write(buffer)
+        new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
+        print(buffer)
+        time.sleep(0.1)
+        buffer[0] = 0x01
+        buffer[1] = 0x00
+        new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
         print(buffer)
         time.sleep(0.1)
