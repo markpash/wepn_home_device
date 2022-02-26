@@ -56,6 +56,9 @@ class LCD:
         except configparser.NoOptionError:
             self.version = 1
         if (self.lcd_present == 0):
+            if self.version == 2 or self.version == 3:
+                self.width = 240
+                self.height = 240
             return
 
         # Raspberry Pi pin configuration:
@@ -75,8 +78,6 @@ class LCD:
         self.width = 128
         self.height = 64
         if self.version == 2 or self.version == 3:
-            self.width = 240
-            self.height = 240
             # Config for display baudrate (default max is 24mhz):
             BAUDRATE = 24000000
 
@@ -107,7 +108,6 @@ class LCD:
                     spaces = 20 - len(current_str)
                     out.write("row:[" + str(row) + "] \tstring:[\t" + current_str + " " * spaces
                               + "]\ttype:[" + str(vtype) + "]  color:[" + str(color) + "]\n")
-            return
 
         # Draw some shapes.
         # First define some constants to allow easy resizing of shapes.
@@ -188,15 +188,17 @@ class LCD:
                           font=rubik_regular, fill=color)
             top = top + size
         # Display image.
-        if self.version == 3:
-            self.lcd.image(image, 0, 0)
-        elif self.version == 2:
-            image = image.rotate(270)
-            self.lcd.image(image, 0, 0)
+        if (self.lcd_present == 0):
+            image.save(IMG_OUT)
         else:
-            disp.image(image)
-            disp.display()
-        image.save(IMG_OUT)
+            if self.version == 3:
+                self.lcd.image(image, 0, 0)
+            elif self.version == 2:
+                image = image.rotate(270)
+                self.lcd.image(image, 0, 0)
+            else:
+                disp.image(image)
+                disp.display()
 
     def set_logo_text(self, text, x=60, y=200, color="red", size=15):
         self.logo_text = text

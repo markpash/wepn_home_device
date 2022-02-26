@@ -7,6 +7,8 @@ import os
 import re
 import atexit
 import logging.config
+import threading
+
 
 try:
     from self.configparser import configparser
@@ -306,6 +308,10 @@ class PProxy():
             data = json.loads(msg.payload)
         except:
             data = json.loads(msg.payload.decode("utf-8"))
+        th = threading.Thread(target=self.on_message_handler, args=(data,))
+        th.start()
+
+    def on_message_handler(self, data):
         services = Services(self.loggers['services'])
         unsubscribe_link = None
         send_email = True
