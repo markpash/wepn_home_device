@@ -75,8 +75,9 @@ class LCD:
                 print("GPIO is already BCM")
         else:
             print("GPIO not set")
-        self.width = 128
-        self.height = 64
+        # proper fix incoming: version is sometimes not set right
+        self.width = 240
+        self.height = 240
         if self.version == 2 or self.version == 3:
             # Config for display baudrate (default max is 24mhz):
             BAUDRATE = 24000000
