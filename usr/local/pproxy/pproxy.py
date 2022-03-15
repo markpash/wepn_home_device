@@ -290,7 +290,7 @@ class PProxy():
         # sending heartbeat might take too long and make MQTT fail
         # hence the False parameter for hb_send
         # self.save_state("2", 1, False)
-        th = threading.Thread(target=self.save_state, args=("2",1))
+        th = threading.Thread(target=self.save_state, args=("2", 1))
         th.start()
 
     # prevent directory traversal attacks by checking final path
