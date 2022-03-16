@@ -85,7 +85,7 @@ class KEYPAD:
         # print("Inputs: {:016b}".format(self.aw.inputs))
         self.aw.directions = 0xff00
         # self.aw.outputs = 0x0000
-        # time.sleep(1)
+        time.sleep(1)
         # first write to both registers to reset the interrupt flag
         buffer = bytearray(2)
         buffer[0] = 0x00
