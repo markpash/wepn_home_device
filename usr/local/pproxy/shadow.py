@@ -537,6 +537,9 @@ class Shadow:
                                      timeout=3,
                                      proxies=proxies, verify=False)  # nosec: http://go.we-pn.com/waiver-3
                     success &= (r.status_code == 200)
+            except requests.exceptions.ReadTimeout:
+                self.logger.info("Timedout: \t" + str(server))
+                success = False
             except:
                 self.logger.exception("Error in self test:>\t:" + str(server))
                 success = False

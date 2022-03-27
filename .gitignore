@@ -12,6 +12,7 @@ __pycache__/
 
 .bash_history
 .viminfo
+.vim/
 .swp
 .shadowsocks
 .cache

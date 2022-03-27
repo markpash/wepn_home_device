@@ -230,7 +230,10 @@ class WPDiag:
 
             self.logger.info("pending test results? " +
                              self.status.get_field("port_check", "pending"))
-            if self.status.get_field("port_check", "pending") == "True":
+            if not long_term_expired and self.status.get_field("port_check", "pending") == "True":
+                # even if there is a pending one, but it's too old
+                # then run a new experiment
+                # if pending experiment is recent, just wait
                 self.logger.debug(
                     "A test has been initiated previously, getting the results")
                 self.get_results_from_server(port)
@@ -299,7 +302,6 @@ class WPDiag:
     # make sure the server side is also updated to reflect that
     def get_error_code(self, port_no):
         local_ip = self.device.get_local_ip()
-        # print("local_ip=" + local_ip)
         internet = self.is_connected_to_internet()
         service_connected = self.is_connected_to_service()
         service_test = self.services_self_test()
