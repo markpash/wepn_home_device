@@ -150,35 +150,13 @@ chmod 0755 /etc/network/if-down.d/wepn
 # This can be used to make 
 # queries faster and safer
 ##################################
-systemctl enable bind9
-
-if [[ ! -f /var/log/named/bind.log ]]; then 
-	mkdir -p /var/log/named
-	chown bind.bind /var/log/named/
-
-	echo -e > /etc/bind/named.conf.local << EOF
-//
-// Do any local configuration here
-//
-
-// Consider adding the 1918 zones here, if they are not used in your
-// organization
-//include "/etc/bind/zones.rfc1918";
-logging{
-  channel simple_log {
-    file "/var/log/named/bind.log" versions 3 size 5m;
-    severity warning;
-    print-time yes;
-    print-severity yes;
-    print-category yes;
-  };
-  category default{
-    simple_log;
-  };
-};
+echo "Setting up DNS (local/remote)"
+systemctl enable resolvconf.service
+systemctl start resolvconf.service
+cat > /etc/resolvconf/resolv.conf.d/head << EOF
+nameserver 8.8.8.8
+nameserver 8.8.4.4
 EOF
-fi
-systemctl restart bind9
 
 ##################################
 # Create SSL invalid certifcates

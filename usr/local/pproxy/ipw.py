@@ -6,7 +6,7 @@ class IPW():
     def myip(self):
         # get the ip.we-pn.com IP
         try:
-            f = requests.get('http://ip.we-pn.com')
+            f = requests.get('https://ip.we-pn.com')
             ip = str(f.text).rstrip()
             # check if it is valid, not an error message
             regex = r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"
