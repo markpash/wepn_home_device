@@ -6,7 +6,7 @@
 #sudo wg-quick down wg0
 #sudo systemctl stop wg-quick@wg0
 
-ip=`curl -s http://ip.we-pn.com`
+ip=`curl -s https://ip.we-pn.com`
 name=$1
 
 CLEAN=${name//_/}

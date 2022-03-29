@@ -1,5 +1,7 @@
 from shadow import Shadow
 from openvpn import OpenVPN
+from wireguard import Wireguard
+
 try:
     from self.configparser import configparser
 except ImportError:
@@ -15,6 +17,7 @@ class Services:
         self.services = []
         self.services.append({'name': 'openvpn', 'obj': OpenVPN(logger)})
         self.services.append({'name': 'shadow', 'obj': Shadow(logger)})
+        self.services.append({'name': 'wireguard', 'obj': Wireguard(logger)})
         self.logger = logger
         return
 
