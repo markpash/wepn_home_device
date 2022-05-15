@@ -541,7 +541,7 @@ class Shadow:
                 self.logger.info("Timedout: \t" + str(server))
                 success = False
             except:
-                self.logger.exception("Error in self test:>\t:" + str(server))
+                self.logger.info("Error in self test:>\t:" + str(server))
                 success = False
             if ss_process:
                 ss_process.kill()
