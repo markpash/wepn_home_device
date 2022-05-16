@@ -8,6 +8,7 @@ __pycache__/
 *.crt
 *.key
 *.csr
+*.sig
 *.wav
 
 .bash_history
@@ -30,4 +31,5 @@ local_test_config.ini
 
 
 usr/local/pproxy/setup/seeed-voicecard
+usr/local/pproxy/users
 

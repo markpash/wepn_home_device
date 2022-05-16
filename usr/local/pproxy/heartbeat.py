@@ -97,6 +97,13 @@ class HeartBeat:
         access_creds = self.services.get_service_creds_summary(external_ip)
         usage_status = self.services.get_usage_status_summary()
         self.logger.debug(usage_status)
+        try:
+            with open('local_server/wepn-local.sig') as f:
+                # this signature is updated every time
+                # a new local certificate is created
+                signature = f.readline().strip()
+        except OSError:
+            signature = "NA"
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "ip_address": external_ip,
@@ -110,6 +117,7 @@ class HeartBeat:
             "diag_code": diag_code,
             "access_cred": access_creds,
             "usage_status": usage_status,
+            "public_key": signature,
         }
         self.status.set('pin', str(self.pin))
         self.status.set('local_token', str(self.local_token))

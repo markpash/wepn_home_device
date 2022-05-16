@@ -172,6 +172,11 @@ cd $PPROXY_HOME/local_server/
 openssl genrsa -out wepn-local.key 2048 
 openssl req -new -key wepn-local.key -out wepn-local.csr -subj "/C=US/ST=California/L=California/O=WEPN/OU=Local WEPN Device/CN=invalid.com"
 openssl x509 -req -days 365 -in wepn-local.csr -signkey wepn-local.key -out wepn-local.crt
+openssl x509 -in wepn-local.crt -pubkey -noout \
+   | openssl asn1parse -inform PEM -in - -noout -out - \
+   | openssl dgst -sha256 -binary - \
+   | openssl base64 > wepn-local.sig
+
 chown wepn-api wepn-local.*
 chgrp wepn-web wepn-local.* 
 chgrp wepn-web . 
