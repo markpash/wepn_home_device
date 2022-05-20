@@ -157,6 +157,8 @@ cat > /etc/resolvconf/resolv.conf.d/head << EOF
 nameserver 8.8.8.8
 nameserver 8.8.4.4
 EOF
+sudo resolvconf --enable-updates
+sudo resolvconf -u
 
 ##################################
 # Create SSL invalid certifcates
