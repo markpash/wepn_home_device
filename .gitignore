@@ -17,6 +17,7 @@ __pycache__/
 .swp
 .shadowsocks
 .cache
+.wget-hsts
 
 .config
 .gitconfig
