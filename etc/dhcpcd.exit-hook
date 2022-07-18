@@ -1,0 +1,8 @@
+#!/bin/sh
+#send heartbeat/correct the LCD status
+
+case "$reason" in
+	BOUND|RENEW|REBIND|REBOOT|BOUND6|RENEW6|REBIND6|EXPIRE|EXPIRE6)
+		runuser -l pproxy -c '/usr/bin/python3 /usr/local/pproxy/periodic/send_heartbeat.py'
+		;;
+esac
