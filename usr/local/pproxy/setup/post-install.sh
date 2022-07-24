@@ -47,7 +47,7 @@ chown pproxy.pproxy /var/local/pproxy/.*
 chown pproxy.pproxy /var/local/pproxy/shadow/*
 
 echo -e "correcting scripts that run as sudo"
-for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system wepn_git
+for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system wepn_git run_iptables prevent_location_issue
 do
 	chown root.root /usr/local/sbin/$SCRIPT.sh
 	chmod 755 /usr/local/sbin/$SCRIPT.sh

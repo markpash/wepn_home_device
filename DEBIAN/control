@@ -1,6 +1,6 @@
 Package: pproxy-rpi
-Version: 1.6.0
+Version: 1.7.0
 Maintainer: WEPN Support <support@we-pn.com>
 Architecture: all 
 Description: RPi3 python executables for WEPN PProxy
-Depends: miniupnpc, iptables, openvpn, python3-pip, python3, python3-flask, libopenjp2-7-dev, libtiff5, i2c-tools, rng-tools, shadowsocks-libev, uwsgi, libxslt1-dev,  libatlas-base-dev, sox, python3-pyaudio, libssl-dev, libgirepository1.0-dev, libcairo2-dev, gcc, pkg-config, python3-dev, gir1.2-gtk-3.0, resolvconf, wireguard
+Depends: miniupnpc, iptables, openvpn, python3-pip, python3, python3-flask, libopenjp2-7-dev, libtiff5, i2c-tools, rng-tools, shadowsocks-libev, uwsgi, libxslt1-dev,  libatlas-base-dev, sox, python3-pyaudio, libssl-dev, libgirepository1.0-dev, libcairo2-dev, gcc, pkg-config, python3-dev, gir1.2-gtk-3.0, resolvconf, wireguard, jq

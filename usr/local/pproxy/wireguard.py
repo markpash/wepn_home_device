@@ -53,10 +53,16 @@ class Wireguard:
         return
 
     def is_enabled(self):
-        return (int(self.config.get('wireguard', 'enabled')) == 1)
+        if self.config.has_section('wireguard'):
+            return (int(self.config.get('wireguard', 'enabled')) == 1)
+        else:
+            return False
 
     def can_email(self):
-        return (int(self.config.get('wireguard', 'email')) == 1)
+        if self.config.has_section('wireguard'):
+            return (int(self.config.get('wireguard', 'email')) == 1)
+        else:
+            return False
 
     def get_service_creds_summary(self, ip_address):
         return {}

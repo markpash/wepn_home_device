@@ -3,14 +3,19 @@ apt-get --yes  -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-
 
 cat > /etc/tor/torrc <<EOF
 
-BridgeRelay 1
+BridgeRelay 0
+ExitRelay 0
 ORPort 8991
 ServerTransportPlugin obfs4 exec /usr/bin/obfs4proxy
 ServerTransportListenAddr obfs4 0.0.0.0:8992
 ExtORPort auto
 
-ContactInfo support at we-pn.com 
-Nickname WEPNTor
+AccountingStart day 0:00
+AccountingMax 5 GBytes
+RelayBandwidthRate 1000 KBytes
+RelayBandwidthBurst 5000 KBytes # allow higher bursts but maintain average
+
+Nickname WETor
 EOF
 
 setcap cap_net_bind_service=+ep /usr/bin/obfs4proxy

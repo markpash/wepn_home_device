@@ -1,3 +1,0 @@
-#!/bin/sh
-#send heartbeat/correct the LCD status
-#runuser -l pproxy -c '/usr/bin/python3 /usr/local/pproxy/periodic/send_heartbeat.py'
