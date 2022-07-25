@@ -286,3 +286,34 @@ class LCD:
             err = chr(56)  # thumb down
         ret = str(err) + "   " + str(net) + str(service)
         return (ret, any_err)
+
+    def get_status_icons_v2(self, status, diag_code):
+        any_err = (127 != diag_code)
+        if (status == 0 or status == 1 or status == 3):
+            service = "X"  # service is off, X mark
+            any_err = True
+        elif (status == 4):
+            service = "!"  # error in service, danger sign
+            any_err = True
+        else:
+            service = "O"  # service is on, checkmark
+
+        # TODO: device is calculated but not shown in error
+        if (status == 1 or status == 2 or status == 4):
+            # device is on
+            device = chr(114)  # noqa: F841
+        elif (status == 3):
+            # device is restarting
+            device = chr(77)  # noqa: F841
+        else:
+            # dvice is off
+            device = chr(64)  # noqa: F841
+            any_err = True
+
+
+        if (any_err):
+            err = chr(50)  # thumb up
+        else:
+            err = chr(56)  # thumb down
+        ret = str(err) + str(service) + str(device)
+        return (ret, any_err)

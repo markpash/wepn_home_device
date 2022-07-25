@@ -220,13 +220,26 @@ class KEYPAD:
         txt = Image.new("RGBA", base.size, (255, 255, 255, 0))
         d = ImageDraw.Draw(txt)
         overlay = Image.new("RGBA", base.size, (255, 255, 255, 0))
-        title = self.titles[self.menu_index]
-        d.text(((200 - len(title) * 8) / 2, 2), title, font=fnt, fill=(255, 255, 255, 255))
+        title = self.titles[self.menu_index]["text"]
+        if "color" in self.titles[self.menu_index]:
+            color = self.titles[self.menu_index]["color"]
+        else:
+            color = (255, 255, 255)
+        d.text(((200 - len(title) * 8) / 2, 2), title, font=fnt, fill=(color[0], color[1], color[2], 255))
         x = 10
         y = 0
         i = 0
         corner = None
         for item in self.menu[self.menu_index]:
+            if "display" in item and item["display"] == False:
+                y = y + int(self.menu_row_y_size / 2) + self.menu_row_skip
+                continue
+
+            if "color" in item:
+                color = item["color"]
+            else:
+                color = (255, 255, 255)
+
             y = y + int(self.menu_row_y_size / 2) + self.menu_row_skip
             opacity = 128
             if True:
@@ -236,7 +249,7 @@ class KEYPAD:
                 corner.putalpha(18)
                 cornery = y
                 overlay.paste(corner, (x, cornery))
-            d.text((x, y), "  " + item['text'], font=fnt, fill=(255, 255, 255, opacity))
+            d.text((x, y), "  " + item['text'], font=fnt, fill=(color[0], color[1], color[2], opacity))
             i = i + 1
             y = y + int(self.menu_row_y_size / 2)
         out = Image.alpha_composite(base, txt)
@@ -278,21 +291,24 @@ class KEYPAD:
         display_str = [(1, "Starting Diagnostics", 0, "white"), (2, "please wait ...", 0, "green")]
         self.lcd.display(display_str, 15)
         test_port = int(self.config.get('openvpn', 'port')) + 1
-        diag_code = diag.get_error_code(test_port)
+        self.diag_code = diag.get_error_code(test_port)
         serial_number = self.config.get('django', 'serial_number')
         time.sleep(3)
-        display_str = [(1, "Status Code", 0, "blue"), (2, str(diag_code), 0, "white"),
+        display_str = [(1, "Status Code", 0, "blue"), (2, str(self.diag_code), 0, "white"),
                        (3, "Serial #", 0, "blue"), (4, serial_number, 0, "white"),
                        (5, "Local IP", 0, "blue"), (6, self.device.get_local_ip(), 0, "white"),
                        (7, "MAC Address", 0, "blue"), (8, self.device.get_local_mac(), 0, "white"), ]
         self.lcd.display(display_str, 20)
         self.logger.debug(display_str)
-        time.sleep(15)
-        display_str = [(2, "wepn://diag=" + str(diag_code), 2, "white"), ]
+        return True  # stay in the menu
+
+    def show_diag_qr_code(self):
+        if not hasattr(self, "diag_code"):
+            self.run_diagnostics()
+        display_str = [(2, "wepn://diag=" + str(self.diag_code), 2, "white"), ]
         self.lcd.display(display_str, 19)
-        time.sleep(15)
         self.diag_shown = True
-        return False  # stay in the menu
+        return True  # stay in the menu
 
     def signal_main_wepn(self):
         print("starting")
@@ -307,19 +323,31 @@ class KEYPAD:
                                   str(wepn_pid) + ":" + str(process_error))
 
     def show_home_screen(self):
-        # self.render()
-        # return
-        self.display_active = False
+        self.display_active = True
         self.status = configparser.ConfigParser()
         self.status.read(STATUS_FILE)
         if int(self.status.get("status", "claimed")) == 0:
             self.show_claim_info_qrcode()
         else:
             # show the status info
-            hb = HeartBeat(self.logger)
             status = int(self.status.get("status", 'state'))
-            display_str = hb.get_display_string_status(status, self.lcd)
-            self.lcd.display(display_str, 20)
+            diag = WPDiag(self.logger)
+            test_port = int(self.config.get('openvpn', 'port')) + 1
+            self.diag_code = diag.get_error_code(test_port)
+            self.diag_code = 127
+            if self.diag_code != 127:
+                color = (255, 0, 0)
+                title = "Error"
+            else:
+                color = (0, 255, 0)
+                title = "OK"
+                self.menu[5][1]["display"] = False
+                self.menu[5][1]["action"] = ()
+
+            self.set_current_menu(5)
+            self.titles[5]["color"] = color
+            self.titles[5]["text"] = title
+            self.render()
 
     def show_power_menu(self):
         self.display_active = True
@@ -415,6 +443,8 @@ class KEYPAD:
         self.show_git_version()
 
 
+
+
 def main():
     keypad = KEYPAD()
     if keypad.enabled is False:
@@ -433,8 +463,11 @@ def main():
         [{"text": "LED ring: " + s, "action": keypad.toggle_led_setting}, ],
         [{"text": "Getting version ...  " + s, "action": keypad.show_git_version},
          {"text": "Update", "action": keypad.update_software}, ],
+        [   {"text": "", "display": False, "action": 0},
+            {"text": "Help", "action": keypad.run_diagnostics, "color":(255,255,255)}, 
+            {"text": "Show QR Code", "action": keypad.show_diag_qr_code},],
     ]
-    titles = ["Main", "Power", "About", "Settings", "Software"]
+    titles = [{"text":"Main"}, {"text":"Power"}, {"text":"About"}, {"text":"Settings"}, {"text":"Software"}, {"text":"Home","color":(255,255,255)}]
 
     if 0 == int(keypad.status.get('status', 'claimed')):
         items[2].insert(0, {"text": "Claim Info", "action": keypad.show_claim_info})
