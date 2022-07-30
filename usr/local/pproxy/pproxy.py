@@ -7,7 +7,7 @@ import os
 import re
 import atexit
 import logging.config
-import threading
+from threading import Thread, Lock
 
 
 try:
@@ -81,6 +81,7 @@ class PProxy():
             self.logger = logging.getLogger("pproxy")
         self.status = WStatus(self.loggers['wstatus'])
         self.device = Device(self.loggers['device'])
+        self.mqtt_lock = Lock()
         return
 
     def cleanup(self):
@@ -290,7 +291,7 @@ class PProxy():
         # sending heartbeat might take too long and make MQTT fail
         # hence the False parameter for hb_send
         # self.save_state("2", 1, False)
-        th = threading.Thread(target=self.save_state, args=("2", 1))
+        th = Thread(target=self.save_state, args=("2", 1))
         th.start()
 
     # prevent directory traversal attacks by checking final path
@@ -310,10 +311,10 @@ class PProxy():
             data = json.loads(msg.payload)
         except:
             data = json.loads(msg.payload.decode("utf-8"))
-        th = threading.Thread(target=self.on_message_handler, args=(data,))
+        th = Thread(target=self.on_message_handler, args=(data, self.mqtt_lock))
         th.start()
 
-    def on_message_handler(self, data):
+    def on_message_handler(self, data, lock):
         services = Services(self.loggers['services'])
         unsubscribe_link = None
         send_email = True
@@ -332,59 +333,65 @@ class PProxy():
             # print(unsubscribe_link)
 
         if (data['action'] == 'add_user'):
-            username = self.sanitize_str(data['cert_name'])
+            lock.acquire()
             try:
-                # extra sanitization to avoid path injection
-                lang = re.sub(r'\\\\/*\.?', "",
-                              self.sanitize_str(data['language']))
-            except:
-                lang = 'en'
-            self.logger.debug("Adding user: " + username +
-                              " with language:" + lang)
-            ip_address = self.sanitize_str(ipw.myip())
-            if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
-                # we have good DDNS, lets use it
-                self.logger.debug(self.config['dydns'])
-                server_address = self.config.get("dydns", "hostname")
-            else:
-                server_address = ip_address
-            password = random.SystemRandom().randint(1111111111, 9999999999)
-            if 'passcode' in data and 'email' in data:
-                if data['passcode'] and data['email']:
-                    # TODO why re cannot remove \ even with escape?
-                    # print("data=" + str(data))
-                    data['passcode'] = re.sub(
-                        r'[\\\\/*?:"<>|.]', "", data['passcode'][:25].replace("\n", ''))
+                username = self.sanitize_str(data['cert_name'])
+                try:
+                    # extra sanitization to avoid path injection
+                    lang = re.sub(r'\\\\/*\.?', "",
+                                  self.sanitize_str(data['language']))
+                except:
+                    lang = 'en'
+                self.logger.debug("Adding user: " + username +
+                                  " with language:" + lang)
+                ip_address = self.sanitize_str(ipw.myip())
+                if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
+                    # we have good DDNS, lets use it
+                    self.logger.debug(self.config['dydns'])
+                    server_address = self.config.get("dydns", "hostname")
                 else:
+                    server_address = ip_address
+                password = random.SystemRandom().randint(1111111111, 9999999999)
+                if 'passcode' in data and 'email' in data:
+                    if data['passcode'] and data['email']:
+                        # TODO why re cannot remove \ even with escape?
+                        # print("data=" + str(data))
+                        data['passcode'] = re.sub(
+                            r'[\\\\/*?:"<>|.]', "", data['passcode'][:25].replace("\n", ''))
+                    else:
+                        send_email = False
+                else:
+                    # if email not present or familiar phrase not set, no email!
                     send_email = False
-            else:
-                # if email not present or familiar phrase not set, no email!
-                send_email = False
-            port = self.config.get('shadow', 'start-port')
-            try:
-                is_new_user = services.add_user(
-                    username, server_address, password, int(port), lang)
-                if not is_new_user:
-                    # getting an add for existing user? should be an ip change
-                    self.logger.debug("Update IP")
-                    self.device.update_dns(ip_address)
-                txt, html, attachments, subject = services.get_add_email_text(
-                    username, ip_address, lang, is_new_user)
-            except:
-                logging.exception("Error occured with adding user")
+                port = self.config.get('shadow', 'start-port')
+                try:
+                    is_new_user = services.add_user(
+                        username, server_address, password, int(port), lang)
+                    if not is_new_user:
+                        # getting an add for existing user? should be an ip change
+                        self.logger.debug("Update IP")
+                        self.device.update_dns(ip_address)
+                    txt, html, attachments, subject = services.get_add_email_text(
+                        username, ip_address, lang, is_new_user)
+                except:
+                    logging.exception("Error occured with adding user")
 
-            self.logger.debug("add_user: " + txt)
-            self.logger.debug("send_email?" + str(send_email))
-            if send_email:
-                self.send_mail(send_from=self.config.get('email', 'email'),
-                               send_to=data['email'],
-                               subject=subject,
-                               text='The familiar phrase you have arranged with your friend is: ' +
-                               data['passcode'] + '\n' + txt,
-                               html='<p>The familiar phrase you have arranged with your friend is: <b>' +
-                               data['passcode'] + '</b></p>' + html,
-                               files_in=attachments,
-                               unsubscribe_link=unsubscribe_link)
+                self.logger.debug("add_user: " + txt)
+                self.logger.debug("send_email?" + str(send_email))
+                if send_email:
+                    self.send_mail(send_from=self.config.get('email', 'email'),
+                                   send_to=data['email'],
+                                   subject=subject,
+                                   text='The familiar phrase you have arranged with your friend is: ' +
+                                   data['passcode'] + '\n' + txt,
+                                   html='<p>The familiar phrase you have arranged with your friend is: <b>' +
+                                   data['passcode'] + '</b></p>' + html,
+                                   files_in=attachments,
+                                   unsubscribe_link=unsubscribe_link)
+            except:
+                self.logger.exception("Unhandled exception adding friend")
+            finally:
+                lock.release()
 
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])
