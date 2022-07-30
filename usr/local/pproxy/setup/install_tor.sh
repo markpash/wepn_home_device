@@ -15,6 +15,11 @@ AccountingMax 5 GBytes
 RelayBandwidthRate 1000 KBytes
 RelayBandwidthBurst 5000 KBytes # allow higher bursts but maintain average
 
+Transport 9040
+DNSPort 5353
+AutomapHostsOnResolve 1
+AutomapHostsSuffixes .exit,.onion
+
 Nickname WETor
 EOF
 
