@@ -347,8 +347,7 @@ class PProxy():
                 ip_address = self.sanitize_str(ipw.myip())
                 if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
                     # we have good DDNS, lets use it
-                    self.logger.debug(self.config['dydns'])
-                    server_address = self.config.get("dydns", "hostname")
+                    server_address = self.config.get("dyndns", "hostname")
                 else:
                     server_address = ip_address
                 password = random.SystemRandom().randint(1111111111, 9999999999)
@@ -372,7 +371,7 @@ class PProxy():
                         self.logger.debug("Update IP")
                         self.device.update_dns(ip_address)
                     txt, html, attachments, subject = services.get_add_email_text(
-                        username, ip_address, lang, is_new_user)
+                        username, server_address, lang, is_new_user)
                 except:
                     logging.exception("Error occured with adding user")
 
@@ -441,6 +440,15 @@ class PProxy():
                             self.sanitize_str(data['password']))
             with open(CONFIG_FILE, 'w') as configfile:
                 self.config.write(configfile)
+
+        elif (data['action'] == 'set_ddns'):
+            for item in ['enabled', 'hostname', 'url', 'username', 'password']:
+                if (item in data):
+                    self.config.set('dyndns', item,
+                                    self.sanitize_str(data[item]))
+            with open(CONFIG_FILE, 'w') as configfile:
+                self.config.write(configfile)
+
         elif (data['action'] == 'wipe_device'):
             # very important action: make sure all VPN/ShadowSocks are deleted, and stopped
             # now reset the status bits
