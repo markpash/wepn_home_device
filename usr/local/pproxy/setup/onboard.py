@@ -51,6 +51,7 @@ class OnBoard():
         self.config.read(CONFIG_FILE)
         self.status = configparser.ConfigParser()
         self.status.read(STATUS_FILE)
+        self.disconnect_count = 0
         if logger is not None:
             self.logger = logger
         else:
@@ -178,6 +179,14 @@ class OnBoard():
 
     def on_disconnect(self, client, userdata, reason_code):
         self.logger.debug(">>>MQTT disconnected")
+        self.disconnect_count += 1
+        sleep_delay = 60
+        if self.disconnect_count > 720:
+            self.logger.error("Too many MQTT disconnects, sleeping a bit")
+            if self.disconnect_count > 8640:
+                # if not claimed in a day, wait 10 mins between retries
+                sleep_delay = 600
+            time.sleep(sleep_delay)
 
     # The callback for when the client receives a CONNACK response from the server.
     def on_connect(self, client, userdata, flags, result_code):

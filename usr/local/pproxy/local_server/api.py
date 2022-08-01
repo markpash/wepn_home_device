@@ -37,6 +37,11 @@ def return_link(cname):
     local_db = dataset.connect('sqlite:///' + config.get('shadow', 'db-path'))
     ipw = IPW()
     ip_address = sanitize_str(ipw.myip())
+    if config.has_section("dyndns") and config.getboolean('dyndns', 'enabled'):
+        # we have good DDNS, lets use it
+        server_address = config.get("dyndns", "hostname")
+    else:
+        server_address = ip_address
     servers = local_db['servers']
     server = servers.find_one(certname=cname)
     uri = "unknown"
@@ -44,7 +49,7 @@ def return_link(cname):
     digest = ""
     if server is not None:
         uri = str(config.get('shadow', 'method')) + ':' + \
-            str(server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
+            str(server['password']) + '@' + str(server_address) + ':' + str(server['server_port'])
         print(uri)
         uri64 = 'ss://' + \
             base64.urlsafe_b64encode(str.encode(uri)).decode(
