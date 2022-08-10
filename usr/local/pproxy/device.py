@@ -23,6 +23,10 @@ CONFIG_FILE = '/etc/pproxy/config.ini'
 PORT_STATUS_FILE = '/var/local/pproxy/port.ini'
 
 
+# setuid command runner
+SRUN = "/usr/local/sbin/wepn-run"
+
+
 class Device():
     def __init__(self, logger):
         self.config = configparser.ConfigParser()
@@ -98,11 +102,15 @@ class Device():
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
 
+    def execute_setuid(self, cmd):
+        return self.execute_cmd(SRUN + " " + cmd)
+
     def execute_cmd(self, cmd):
         out, err, failed, pid = self.execute_cmd_output(cmd)
         return failed
 
     def execute_cmd_output(self, cmd, detached=False):
+        self.logger.debug(cmd)
         try:
             failed = 0
             args = shlex.split(cmd)
@@ -128,28 +136,28 @@ class Device():
             return "", "running failed", 99, None
 
     def turn_off(self):
-        cmd = "wepn-run 1 0"
-        self.execute_cmd(cmd)
+        cmd = "1 0"
+        self.execute_setuid(cmd)
 
     def restart_pproxy_service(self):
-        cmd = "wepn-run 1 1"
-        self.execute_cmd(cmd)
+        cmd = "1 1"
+        self.execute_setuid(cmd)
 
     def reboot(self):
-        cmd = "wepn-run 1 2"
+        cmd = "1 2"
         if self.config.has_option('hw', 'disable-reboot'):
             if self.config.getint('hw', 'disable-reboot') == 1:
                 # used for hardware that reboot is not realistic
-                cmd = "wepn-run 1 1"
-        self.execute_cmd(cmd)
+                cmd = "1 1"
+        self.execute_setuid(cmd)
 
     def update(self):
-        cmd = "wepn-run 1 3"
-        self.execute_cmd(cmd)
+        cmd = "1 3"
+        self.execute_setuid(cmd)
 
     def update_all(self):
-        cmd = "wepn-run 1 4"
-        self.execute_cmd(cmd)
+        cmd = "1 4"
+        self.execute_setuid(cmd)
 
     def open_port(self, port, text):
         skip = int(self.status.get_field('port-fwd', 'skipping'))
@@ -341,7 +349,7 @@ class Device():
         self.execute_cmd_output(cmd_normal, True)
         # part that should run as root:
         # copies system files, changes permissions, ...
-        cmd_sudo = "wepn-run 1 5"
+        cmd_sudo = SRUN + " 1 5"
         # TODO: while there is no injection done here, this use of sudo
         # is uncomfortable. This is currently a development tool
         # but we still need to have a better method such as a separate thread signaled here.

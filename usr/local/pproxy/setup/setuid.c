@@ -3,6 +3,11 @@
 #include <string.h>
 #include <stdlib.h>
 
+int len(void* arr) {
+	int size = sizeof arr / sizeof *arr;
+	return size;
+}
+
 int main(int argc, char * argv[])
 {
 	FILE *p;
@@ -23,7 +28,7 @@ int main(int argc, char * argv[])
 
 	const char* scommands[6];
 	scommands[0]="/sbin/poweroff";
-	scommands[1]="/usr/local/sbin/restart-pproxy.sh";
+	scommands[1]="/bin/sh /usr/local/sbin/restart-pproxy.sh";
 	scommands[2]="/sbin/reboot";
 	scommands[3]="/bin/sh /usr/local/sbin/update-pproxy.sh";
 	scommands[4]="/bin/sh /usr/local/sbin/update-system.sh";
@@ -63,21 +68,26 @@ int main(int argc, char * argv[])
 	char* ptr;
 	t = strtol(argv[1], &ptr, 10);
 	s = strtol(argv[2], & ptr, 10);
-	c = strtol(argv[3], &ptr, 10);
 
 
 
-	if (c > 3 || s > 2 || t > 6) {
+	if (s > len(scommands) || t > 3) {
+		printf("Out of range index");
 		return(-1);
 	}
 
 	if (t == 0) {
+		c = strtol(argv[3], &ptr, 10);
+		if (c > len(commands)) {
+			printf("Out of range commands index");
+			return(-1);
+		}
 		sprintf(cmd, "systemctl %s %s", commands[c], services[s]); 
 	}
 	if (t == 1) {
 		sprintf(cmd, "%s", scommands[s]); 
 	}
-	//printf(cmd);
+	printf(cmd);
 	printf("\n");
 	setuid(0);
 	p = popen(cmd,"r");

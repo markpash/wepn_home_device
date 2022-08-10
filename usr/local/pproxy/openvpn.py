@@ -7,6 +7,8 @@ except ImportError:
     import configparser
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
+# setuid command runner
+SRUN = "/usr/local/sbin/wepn-run"
 
 
 class OpenVPN:
@@ -30,27 +32,27 @@ class OpenVPN:
         return
 
     def start(self):
-        cmd = "wepn-run 0 0 1 "
+        cmd = "0 0 1 "
         self.logger.debug(cmd)
-        self.execute_cmd(cmd)
+        self.execute_setuid(cmd)
         return
 
     def stop(self):
-        cmd = "wepn-run 0 0 0 "
+        cmd = "0 0 0 "
         self.logger.debug(cmd)
-        self.execute_cmd(cmd)
+        self.execute_setuid(cmd)
         return
 
     def restart(self):
-        cmd = "wepn-run 0 0 2 "
+        cmd = "0 0 2 "
         self.logger.debug(cmd)
-        self.execute_cmd(cmd)
+        self.execute_setuid(cmd)
         return
 
     def reload(self):
-        cmd = "wepn-run 0 0 3 "
+        cmd = "0 0 3 "
         self.logger.debug(cmd)
-        self.execute_cmd(cmd)
+        self.execute_setuid(cmd)
         return
 
     def is_enabled(self):
@@ -93,7 +95,11 @@ class OpenVPN:
 
         return txt, html, attachments, subject
 
+    def execute_setuid(self, cmd):
+        return self.execute_cmd(SRUN + " " + cmd)
+
     def execute_cmd(self, cmd):
+        self.logger.debug(cmd)
         try:
             args = shlex.split(cmd)
             process = subprocess.Popen(args)  # nosec: sanitized above, go.we-pn.com/waiver-1
