@@ -38,5 +38,4 @@ echo sudo wg set wg0 peer $pub allowed-ips 0.0.0.0/0
 wg set wg0 peer $pub allowed-ips 0.0.0.0/0
 wg-quick save wg0
 
-systemctl restart wg-quick@wg0
-
+wepn-run 0 2 2

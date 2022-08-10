@@ -62,8 +62,8 @@ int main(int argc, char * argv[])
 	}
 	char* ptr;
 	t = strtol(argv[1], &ptr, 10);
-	c = strtol(argv[2], &ptr, 10);
-	s = strtol(argv[3], & ptr, 10);
+	s = strtol(argv[2], & ptr, 10);
+	c = strtol(argv[3], &ptr, 10);
 
 
 
@@ -77,7 +77,7 @@ int main(int argc, char * argv[])
 	if (t == 1) {
 		sprintf(cmd, "%s", scommands[s]); 
 	}
-	// printf(cmd);
+	//printf(cmd);
 	printf("\n");
 	setuid(0);
 	p = popen(cmd,"r");

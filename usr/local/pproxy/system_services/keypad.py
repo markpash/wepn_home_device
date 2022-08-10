@@ -231,7 +231,7 @@ class KEYPAD:
         i = 0
         corner = None
         for item in self.menu[self.menu_index]:
-            if "display" in item and item["display"] == False:
+            if "display" in item and item["display"] is False:
                 y = y + int(self.menu_row_y_size / 2) + self.menu_row_skip
                 continue
 
@@ -270,7 +270,7 @@ class KEYPAD:
         current_key = self.status.get('status', 'temporary_key')
         serial_number = self.config.get('django', 'serial_number')
         display_str = [(1, "https://red.we-pn.com/?pk=NONE&s=" +
-                        str(serial_number) + "&k =" + str(current_key), 2, "white")]
+                        str(serial_number) + "&k=" + str(current_key), 2, "white")]
         self.lcd.display(display_str, 20)
         return True  # exit the menu
 
@@ -330,7 +330,6 @@ class KEYPAD:
             self.show_claim_info_qrcode()
         else:
             # show the status info
-            status = int(self.status.get("status", 'state'))
             diag = WPDiag(self.logger)
             test_port = int(self.config.get('openvpn', 'port')) + 1
             self.diag_code = diag.get_error_code(test_port)
@@ -443,8 +442,6 @@ class KEYPAD:
         self.show_git_version()
 
 
-
-
 def main():
     keypad = KEYPAD()
     if keypad.enabled is False:
@@ -463,11 +460,12 @@ def main():
         [{"text": "LED ring: " + s, "action": keypad.toggle_led_setting}, ],
         [{"text": "Getting version ...  " + s, "action": keypad.show_git_version},
          {"text": "Update", "action": keypad.update_software}, ],
-        [   {"text": "", "display": False, "action": 0},
-            {"text": "Help", "action": keypad.run_diagnostics, "color":(255,255,255)}, 
-            {"text": "Show QR Code", "action": keypad.show_diag_qr_code},],
+        [{"text": "", "display": False, "action": 0},
+            {"text": "Help", "action": keypad.run_diagnostics, "color": (255, 255, 255)},
+            {"text": "Show QR Code", "action": keypad.show_diag_qr_code}],
     ]
-    titles = [{"text":"Main"}, {"text":"Power"}, {"text":"About"}, {"text":"Settings"}, {"text":"Software"}, {"text":"Home","color":(255,255,255)}]
+    titles = [{"text": "Main"}, {"text": "Power"}, {"text": "About"}, {"text": "Settings"},
+              {"text": "Software"}, {"text": "Home", "color": (255, 255, 255)}]
 
     if 0 == int(keypad.status.get('status', 'claimed')):
         items[2].insert(0, {"text": "Claim Info", "action": keypad.show_claim_info})

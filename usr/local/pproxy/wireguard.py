@@ -29,25 +29,25 @@ class Wireguard:
         return
 
     def start(self):
-        cmd = "wepn-run 1 2 1"
+        cmd = "wepn-run 0 2 1"
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def stop(self):
-        cmd = "wepn-run 1 2 0"
+        cmd = "wepn-run 0 2 0"
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def restart(self):
-        cmd = "wepn-run 1 2 2"
+        cmd = "wepn-run 0 2 2"
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def reload(self):
-        cmd = "wepn-run 1 2 3"
+        cmd = "wepn-run 0 2 3"
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
