@@ -249,6 +249,23 @@ modprobe i2c_dev
 modprobe i2c_bcm2708
 modprobe spi-bcm2835
 
+
+
+#######################################
+# Compile and intall the setuid program
+# so we don't need sudo
+######################################
+
+echo -e "\n compiling setuid"
+SRUN=/usr/local/sbin/wepn-run
+gcc setuid.c  -o $SRUN
+chown root.wepn-web $SRUN
+# setuid user, writable by root, read and execute by wepn-web group
+chmod 4750 $SRUN
+ls -la $SRUN
+
+echo "\n done with setuid"
+
 #######################################
 # Install SeeedStudio for speakers
 # This is needed for HW2 ONLY

@@ -30,25 +30,25 @@ class OpenVPN:
         return
 
     def start(self):
-        cmd = "sudo /etc/init.d/openvpn start"
+        cmd = "wepn-run 0 0 1 "
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def stop(self):
-        cmd = "sudo /etc/init.d/openvpn stop"
+        cmd = "wepn-run 0 0 0 "
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def restart(self):
-        cmd = "sudo /etc/init.d/openvpn restart"
+        cmd = "wepn-run 0 0 2 "
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def reload(self):
-        cmd = "sudo /etc/init.d/openvpn reload"
+        cmd = "wepn-run 0 0 3 "
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return

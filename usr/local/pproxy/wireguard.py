@@ -29,25 +29,25 @@ class Wireguard:
         return
 
     def start(self):
-        cmd = "sudo sudo systemctl start wg-quick@wg0"
+        cmd = "wepn-run 1 2 1"
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def stop(self):
-        cmd = "sudo sudo systemctl stop wg-quick@wg0"
+        cmd = "wepn-run 1 2 0"
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def restart(self):
-        cmd = "sudo sudo systemctl restart wg-quick@wg0"
+        cmd = "wepn-run 1 2 2"
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def reload(self):
-        cmd = "sudo sudo systemctl restart wg-quick@wg0"
+        cmd = "wepn-run 1 2 3"
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return

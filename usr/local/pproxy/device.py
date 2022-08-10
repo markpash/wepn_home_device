@@ -128,27 +128,27 @@ class Device():
             return "", "running failed", 99, None
 
     def turn_off(self):
-        cmd = "sudo /sbin/poweroff"
+        cmd = "wepn-run 1 0"
         self.execute_cmd(cmd)
 
     def restart_pproxy_service(self):
-        cmd = "sudo /usr/local/sbin/restart-pproxy.sh"
+        cmd = "wepn-run 1 1"
         self.execute_cmd(cmd)
 
     def reboot(self):
-        cmd = "sudo /sbin/reboot"
+        cmd = "wepn-run 1 2"
         if self.config.has_option('hw', 'disable-reboot'):
             if self.config.getint('hw', 'disable-reboot') == 1:
                 # used for hardware that reboot is not realistic
-                cmd = "sudo /usr/local/sbin/restart-pproxy.sh"
+                cmd = "wepn-run 1 1"
         self.execute_cmd(cmd)
 
     def update(self):
-        cmd = "sudo /bin/sh /usr/local/sbin/update-pproxy.sh"
+        cmd = "wepn-run 1 3"
         self.execute_cmd(cmd)
 
     def update_all(self):
-        cmd = "sudo /bin/sh /usr/local/sbin/update-system.sh"
+        cmd = "wepn-run 1 4"
         self.execute_cmd(cmd)
 
     def open_port(self, port, text):
@@ -341,7 +341,7 @@ class Device():
         self.execute_cmd_output(cmd_normal, True)
         # part that should run as root:
         # copies system files, changes permissions, ...
-        cmd_sudo = "sudo /usr/local/sbin/wepn_git.sh"
+        cmd_sudo = "wepn-run 1 5"
         # TODO: while there is no injection done here, this use of sudo
         # is uncomfortable. This is currently a development tool
         # but we still need to have a better method such as a separate thread signaled here.
