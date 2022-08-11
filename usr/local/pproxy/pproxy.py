@@ -311,8 +311,10 @@ class PProxy():
             data = json.loads(msg.payload)
         except:
             data = json.loads(msg.payload.decode("utf-8"))
+            self.logger.exception("on_message: except")
         th = Thread(target=self.on_message_handler, args=(data, self.mqtt_lock))
         th.start()
+        self.logger.debug("after starting the thread for on_message")
 
     def on_message_handler(self, data, lock):
         services = Services(self.loggers['services'])
@@ -333,8 +335,10 @@ class PProxy():
             # print(unsubscribe_link)
 
         if (data['action'] == 'add_user'):
-            lock.acquire()
             try:
+                self.logger.debug("before lock acquired")
+                lock.acquire()
+                self.logger.debug("lock acquired")
                 username = self.sanitize_str(data['cert_name'])
                 try:
                     # extra sanitization to avoid path injection
@@ -390,7 +394,9 @@ class PProxy():
             except:
                 self.logger.exception("Unhandled exception adding friend")
             finally:
+                self.logger.debug("before lock released")
                 lock.release()
+                self.logger.debug("lock released")
 
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])
