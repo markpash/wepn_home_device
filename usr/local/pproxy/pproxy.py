@@ -475,7 +475,9 @@ class PProxy():
 
     def on_disconnect(self, client, userdata, reason_code):
         self.logger.info("MQTT disconnected")
-        self.leds.set_all(255, 145, 0)
+        # show solid yellow ring indicating MQTT has been 
+        # disconnected from server
+        self.leds.set_all((255, 255, 0))
         self.status.reload()
         self.mqtt_connected = 0
         self.mqtt_reason = reason_code
@@ -486,6 +488,8 @@ class PProxy():
     def start(self):
         lcd = LCD()
         lcd.set_lcd_present(self.config.get('hw', 'lcd'))
+        # show a green led ring 
+        self.leds.set_all((0, 255, 0))
         services = Services(self.loggers['services'])
         services.start()
         time.sleep(5)

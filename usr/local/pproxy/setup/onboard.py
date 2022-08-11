@@ -193,7 +193,7 @@ class OnBoard():
         self.logger.debug("Connected with result code " + str(result_code))
         if (result_code == 0):
             self.logger.critical("* setting device to claimed")
-            self.leds.set_all(0, 255, 0)
+            self.leds.set_all((0, 255, 0))
             # save the randomly generated devkey
             self.config.set('mqtt', 'password', self.rand_key)
             self.config.set('django', 'device_key', self.rand_key)
@@ -263,7 +263,7 @@ class OnBoard():
                                     password=self.rand_key)
         self.logger.debug("mqtt host:" + str(self.config.get('mqtt', 'host')))
         while self.unclaimed and not run_once_done:
-            self.leds.progress_wheel_step(0, 0, 255)
+            self.leds.progress_wheel_step((0, 0, 255))
             try:
                 self.logger.debug("password for mqtt= " + self.rand_key)
                 self.retries_so_far_screen += 1
