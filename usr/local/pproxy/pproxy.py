@@ -309,7 +309,7 @@ class PProxy():
         self.logger.debug("on_message: " + msg.topic + " " + str(msg.payload))
         try:
             data = json.loads(msg.payload)
-        except:
+        except BaseException:
             data = json.loads(msg.payload.decode("utf-8"))
             self.logger.exception("on_message: except")
         th = Thread(target=self.on_message_handler, args=(data, self.mqtt_lock))
@@ -344,12 +344,13 @@ class PProxy():
                     # extra sanitization to avoid path injection
                     lang = re.sub(r'\\\\/*\.?', "",
                                   self.sanitize_str(data['language']))
-                except:
+                except BaseException:
                     lang = 'en'
                 self.logger.debug("Adding user: " + username +
                                   " with language:" + lang)
                 ip_address = self.sanitize_str(ipw.myip())
-                if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
+                if self.config.has_section(
+                        "dyndns") and self.config.getboolean('dyndns', 'enabled'):
                     # we have good DDNS, lets use it
                     server_address = self.config.get("dyndns", "hostname")
                 else:
@@ -374,10 +375,19 @@ class PProxy():
                         # getting an add for existing user? should be an ip change
                         self.logger.debug("Update IP")
                         self.device.update_dns(ip_address)
+                    else:
+                        # light up ring LEDs in blue with fill pattern
+                        self.leds.fill_upto(color=(0, 0, 255),
+                                            percentage=1,
+                                            wait=50)
                     txt, html, attachments, subject = services.get_add_email_text(
                         username, server_address, lang, is_new_user)
-                except:
+                except BaseException:
                     logging.exception("Error occured with adding user")
+                    # blink led ring red for 6 times if add friend fails
+                    self.leds.blink(color=(255, 0, 0),
+                                    wait=50,
+                                    repetitions=6)
 
                 self.logger.debug("add_user: " + txt)
                 self.logger.debug("send_email?" + str(send_email))
@@ -391,7 +401,7 @@ class PProxy():
                                    data['passcode'] + '</b></p>' + html,
                                    files_in=attachments,
                                    unsubscribe_link=unsubscribe_link)
-            except:
+            except BaseException:
                 self.logger.exception("Unhandled exception adding friend")
             finally:
                 self.logger.debug("before lock released")
@@ -405,7 +415,20 @@ class PProxy():
                 return
             self.logger.debug("Removing user: " + username)
             ip_address = ipw.myip()
-            services.delete_user(username)
+            try:
+                # show a blue led ring fill down pattern when
+                # deleting a friend
+                self.leds.fill_downfrom(color=(0, 0, 255),
+                                        percentage=1,
+                                        wait=50)
+                services.delete_user(username)
+            except BaseException:
+                self.logger.exception("delete friend failed!")
+                # blink led red for 5 times if exception happens
+                # during delete friend
+                self.leds.blink(color=(255, 0, 0),
+                                wait=50,
+                                repetitions=5)
             if send_email:
                 self.send_mail(send_from=self.config.get('email', 'email'),
                                send_to=data['email'],
@@ -475,7 +498,7 @@ class PProxy():
 
     def on_disconnect(self, client, userdata, reason_code):
         self.logger.info("MQTT disconnected")
-        # show solid yellow ring indicating MQTT has been 
+        # show solid yellow ring indicating MQTT has been
         # disconnected from server
         self.leds.set_all((255, 255, 0))
         self.status.reload()
@@ -488,7 +511,6 @@ class PProxy():
     def start(self):
         lcd = LCD()
         lcd.set_lcd_present(self.config.get('hw', 'lcd'))
-        # show a green led ring 
         self.leds.set_all((0, 255, 0))
         services = Services(self.loggers['services'])
         services.start()
