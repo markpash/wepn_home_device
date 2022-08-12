@@ -33,11 +33,15 @@ logging.config.fileConfig(LOG_CONFIG,
 INT_EXPANDER = 5
 BUTTONS = ["0", "1", "2", "up", "down", "back", "home"]
 
-NRML_SCREEN_TIMEOUT = 20
+# Unit of time: how often it wakes from sleep
+# in seconds
+UNIT_TIMEOUT = 60
+# Multiply by unit above for all below timeouts
+NRML_SCREEN_TIMEOUT = 30
 # if an error is detected, keep screen
 # on longer
 ERR_SCREEN_TIMEOUT = 100
-MENU_TIMEOUT = 10
+MENU_TIMEOUT = 5
 
 
 class KEYPAD:
@@ -566,7 +570,7 @@ def main():
         # second, if the status of device has changed (diag code updated in heartbeat)
         # this will refresh the home screen to show the new state (thumbs down/up).
         # challenge here is that if an error message is shown, this refresh should not overwrite it
-        time.sleep(600)
+        time.sleep(UNIT_TIMEOUT)
         keypad.menu_active_countdown -= 1
         if keypad.menu_active_countdown == 0:
             # this part ensures we read status and update screen info
