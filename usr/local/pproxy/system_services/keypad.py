@@ -36,7 +36,7 @@ BUTTONS = ["0", "1", "2", "up", "down", "back", "home"]
 
 # Unit of time: how often it wakes from sleep
 # in seconds
-UNIT_TIMEOUT = 2
+UNIT_TIMEOUT = 60
 # Multiply by unit above for all below timeouts
 NRML_SCREEN_TIMEOUT = 30
 # if an error is detected, keep screen
