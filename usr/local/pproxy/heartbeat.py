@@ -94,7 +94,7 @@ class HeartBeat:
         pass
 
     # send heartbeat. if lcd_print==1, update LCD
-    def send_heartbeat(self, lcd_print=1):
+    def send_heartbeat(self, lcd_print=0):
         headers = {"Content-Type": "application/json"}
         external_ip = str(ipw.myip())
 

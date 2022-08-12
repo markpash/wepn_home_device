@@ -14,10 +14,11 @@ sys.path.append(up_dir)
 # above line is needed for following classes:
 from led_client import LEDClient  # noqa E402 need up_dir first
 from heartbeat import HeartBeat  # noqa E402 need up_dir first
-from heartbeat import HEALTHY_DIAG_CODE  # noqa E402 need up_dir first
 from device import Device  # noqa E402 need up_dir first
 from diag import WPDiag  # noqa E402 need up_dir first
 from lcd import LCD as LCD  # noqa E402 need up_dir first
+import constants as consts  # noqa E402 need up_dir first
+
 try:
     from self.configparser import configparser
 except ImportError:
@@ -36,13 +37,13 @@ BUTTONS = ["0", "1", "2", "up", "down", "back", "home"]
 
 # Unit of time: how often it wakes from sleep
 # in seconds
-UNIT_TIMEOUT = 60
+UNIT_TIMEOUT = 30
 # Multiply by unit above for all below timeouts
-NRML_SCREEN_TIMEOUT = 30
+NRML_SCREEN_TIMEOUT = 40
 # if an error is detected, keep screen
 # on longer
 ERR_SCREEN_TIMEOUT = 100
-MENU_TIMEOUT = 5
+MENU_TIMEOUT = 10
 
 
 class KEYPAD:
@@ -83,6 +84,8 @@ class KEYPAD:
         self.menu_active_countdown = MENU_TIMEOUT
         self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
         self.screen_timed_out = False
+        self.leds_turned_for_error = False
+        self.diag_code = 0
 
     def init_i2c(self):
         GPIO.setmode(GPIO.BCM)
@@ -106,42 +109,35 @@ class KEYPAD:
         buffer[1] = 0x00
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         time.sleep(0.1)
         buffer[0] = 0x01
         buffer[1] = 0x00
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         # disable interrupt for higher bits
         buffer[0] = 0x06
         buffer[1] = 0x00
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         buffer[0] = 0x07
         buffer[1] = 0xff
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         # read registers again to reset interrupt
         buffer[0] = 0x00
         buffer[1] = 0x00
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         time.sleep(0.1)
         buffer[0] = 0x01
         buffer[1] = 0x00
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         time.sleep(0.1)
         # _inputs = self.aw.inputs
-        # print("Inputs: {:016b}".format(_inputs))
-        for i in range(1):
-            print("Inputs: {:016b}".format(self.aw.inputs))
-            time.sleep(0.5)
+        # for i in range(1):
+        #    print("Inputs: {:016b}".format(self.aw.inputs))
+        #    time.sleep(0.5)
         time.sleep(0.5)
         GPIO.add_event_detect(INT_EXPANDER, GPIO.FALLING, callback=self.key_press_cb)
 
@@ -152,8 +148,6 @@ class KEYPAD:
         if inputs < 1:
             return
         index = (int)(math.log2(inputs))
-        print("index is" + str(index))
-        # return
         exit_menu = False
         menu_base_index = 0
         window_size = len(self.window_stack)
@@ -215,7 +209,6 @@ class KEYPAD:
 
     def set_current_menu(self, index):
         self.menu_index = index
-        print(self.menu[index])
 
     def round_corner(self, radius, fill):
         """Draw a round corner"""
@@ -348,7 +341,6 @@ class KEYPAD:
         return True  # stay in the menu
 
     def signal_main_wepn(self):
-        print("starting")
         with open("/var/run/pproxy.pid", "r") as f:
             wepn_pid = int(f.readline())
             self.logger.debug("Signaling main process at: " + str(wepn_pid))
@@ -362,12 +354,30 @@ class KEYPAD:
     def show_dummy_home(self, new_title, new_str):
         new_menu_location = len(self.menu)
         self.titles.insert(new_menu_location, {"text": new_title})
-        print(new_menu_location)
         self.lcd.display(new_str, 20)
 
     def append_current_title(self, new_str):
         _title = self.titles[self.menu_index]["text"] + new_str
         self.render(title=_title)
+
+    def refresh_status(self, led_update=True):
+        self.status.read(STATUS_FILE)
+        diag_code = self.status.get("status", "last_diag_code")
+        print("diag_code is " + diag_code)
+        if diag_code != "":
+            self.diag_code = int(diag_code)
+        if led_update:
+            if self.diag_code != consts.HEALTHY_DIAG_CODE:
+                self.led_client.set_all(255, 0, 0)
+                self.leds_turned_for_error = True
+            else:
+                if self.leds_turned_for_error:
+                    # turns off LEDS only if it set them previously
+                    # ideally, this will be a central place in led_manager
+                    # so one process cannot clear another ones
+                    # TODO(amir): updated to new patterns
+                    self.leds_turned_for_error = False
+                    self.led_client.set_all(0, 0, 0)
 
     def show_home_screen(self):
         self.display_active = True
@@ -379,31 +389,12 @@ class KEYPAD:
             # show the status info
             self.set_current_menu(5)
             self.titles[5]["color"] = (255, 255, 255)
-            # set title temporarily to Updating ...
-            # below steps will populate this view
-            self.titles[5]["text"] = "Updating..."
-            self.menu[5][1]["display"] = False
-            self.menu[5][1]["action"] = ()
-            self.menu[5][2]["display"] = False
-            if self.screen_timed_out is False:
-                self.render()
-            self.status.read(STATUS_FILE)
-            diag_code = self.status.get("status", "last_diag_code")
-            print("diag_code is " + diag_code)
-            # if a cached version of diag is available, show it
-            # else, run diag right now
-            if (diag_code == ""):
-                diag = WPDiag(self.logger)
-                test_port = int(self.config.get('openvpn', 'port')) + 1
-                self.diag_code = diag.get_error_code(test_port)
-            else:
-                self.diag_code = int(diag_code)
-                # self.diag_code = 127
+            self.refresh_status(led_update=True)
             self.menu[5][1]["display"] = True
             self.menu[5][1]["text"] = "Menu"
             self.menu[5][1]["action"] = self.show_main_menu
             self.menu[5][2]["display"] = True
-            if self.diag_code != HEALTHY_DIAG_CODE:
+            if self.diag_code != consts.HEALTHY_DIAG_CODE:
                 # wake up the screen, and reset the count down
                 self.screen_timed_out = False
                 # keep screen on longer
@@ -411,6 +402,8 @@ class KEYPAD:
                 color = (255, 0, 0)
                 title = "Error"
             else:
+                if self.countdown_to_turn_off_screen > NRML_SCREEN_TIMEOUT:
+                    self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
                 color = (0, 255, 0)
                 title = "OK"
 
@@ -548,7 +541,7 @@ def main():
         items[2].insert(0, {"text": "Claim Info", "action": keypad.show_claim_info})
 
     keypad.set_full_menu(items, titles)
-    keypad.set_current_menu(0)
+    keypad.set_current_menu(5)
     # default scren is QR Code
     keypad.show_home_screen()
 
@@ -571,6 +564,14 @@ def main():
         # this will refresh the home screen to show the new state (thumbs down/up).
         # challenge here is that if an error message is shown, this refresh should not overwrite it
         time.sleep(UNIT_TIMEOUT)
+        if keypad.menu_index == 5:
+            keypad.show_home_screen()
+        else:
+            # this allows showing LED error even with in different menu
+            keypad.refresh_status(True)
+        print("menu_active_countdown: " + str(keypad.menu_active_countdown) +
+              " countdown_to_turnoff_screen: " + str(keypad.countdown_to_turn_off_screen) +
+              " screen is off? " + str(keypad.screen_timed_out))
         keypad.menu_active_countdown -= 1
         if keypad.menu_active_countdown == 0:
             # this part ensures we read status and update screen info
