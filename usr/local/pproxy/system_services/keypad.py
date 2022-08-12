@@ -33,6 +33,12 @@ logging.config.fileConfig(LOG_CONFIG,
 INT_EXPANDER = 5
 BUTTONS = ["0", "1", "2", "up", "down", "back", "home"]
 
+NRML_SCREEN_TIMEOUT = 20
+# if an error is detected, keep screen
+# on longer
+ERR_SCREEN_TIMEOUT = 100
+MENU_TIMEOUT = 10
+
 
 class KEYPAD:
 
@@ -69,6 +75,9 @@ class KEYPAD:
         self.menu_index = 0
         self.led_setting_index = 0
         self.current_title = "Main"
+        self.menu_active_countdown = MENU_TIMEOUT
+        self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
+        self.screen_timed_out = False
 
     def init_i2c(self):
         GPIO.setmode(GPIO.BCM)
@@ -144,6 +153,21 @@ class KEYPAD:
         menu_base_index = 0
         window_size = len(self.window_stack)
         if inputs > -1:
+            # first set countdown for menu being active to 10
+            # this ensures while menu is actively used
+            # it is not overwritten
+            self.menu_active_countdown = MENU_TIMEOUT
+            # This below countdown will turn off screen if not used
+            # every time keys are touched, the countdown will be reset
+            self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
+            # if screen has timed out, first button press should ONLY
+            # render the screen and nothing else
+            if self.screen_timed_out is True:
+                self.screen_timed_out = False
+                # just show whatever the last menu was on screen
+                self.render()
+                return
+
             if BUTTONS[index] == "up":
                 print("Key up on " + str(index))
             if BUTTONS[index] == "down":
@@ -162,6 +186,8 @@ class KEYPAD:
                 print("Key side =" + BUTTONS[index])
                 if window_size == 0 or (self.menu_index != self.window_stack[window_size - 1]):
                     self.window_stack.append(self.menu_index)
+                print(self.menu[self.menu_index][int(
+                    BUTTONS[index]) + menu_base_index]["action"])
                 exit_menu = self.menu[self.menu_index][int(
                     BUTTONS[index]) + menu_base_index]["action"]()
                 print(self.menu[self.menu_index][int(BUTTONS[index])])
@@ -174,6 +200,9 @@ class KEYPAD:
                 self.show_home_screen()
             if exit_menu is False:
                 self.render()
+
+    def clear_screen(self):
+        self.lcd.clear()
 
     def set_full_menu(self, menu, titles):
         self.menu = menu
@@ -212,7 +241,7 @@ class KEYPAD:
         rectangle.paste(corner.rotate(270), (width - radius, 0))
         return rectangle
 
-    def render(self):
+    def render(self, title=None):
         # get a font
         base = Image.new("RGBA", (self.width, self.height), (0, 0, 0))
         fnt = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', 30)
@@ -220,19 +249,21 @@ class KEYPAD:
         txt = Image.new("RGBA", base.size, (255, 255, 255, 0))
         d = ImageDraw.Draw(txt)
         overlay = Image.new("RGBA", base.size, (255, 255, 255, 0))
-        title = self.titles[self.menu_index]["text"]
+        if (title is None):
+            title = self.titles[self.menu_index]["text"]
         if "color" in self.titles[self.menu_index]:
             color = self.titles[self.menu_index]["color"]
         else:
             color = (255, 255, 255)
-        d.text(((200 - len(title) * 8) / 2, 2), title, font=fnt, fill=(color[0], color[1], color[2], 255))
+        d.text(((200 - len(title) * 8) / 2, 2), title, font=fnt,
+               fill=(color[0], color[1], color[2], 255))
         x = 10
         y = 0
         i = 0
         corner = None
         for item in self.menu[self.menu_index]:
             if "display" in item and item["display"] is False:
-                y = y + int(self.menu_row_y_size / 2) + self.menu_row_skip
+                y = 2 * (y + int(self.menu_row_y_size / 2)) + self.menu_row_skip
                 continue
 
             if "color" in item:
@@ -249,7 +280,8 @@ class KEYPAD:
                 corner.putalpha(18)
                 cornery = y
                 overlay.paste(corner, (x, cornery))
-            d.text((x, y), "  " + item['text'], font=fnt, fill=(color[0], color[1], color[2], opacity))
+            d.text((x, y), "  " + item['text'], font=fnt,
+                   fill=(color[0], color[1], color[2], opacity))
             i = i + 1
             y = y + int(self.menu_row_y_size / 2)
         out = Image.alpha_composite(base, txt)
@@ -322,6 +354,16 @@ class KEYPAD:
                 self.logger.error("Could not find the process for main wepn: " +
                                   str(wepn_pid) + ":" + str(process_error))
 
+    def show_dummy_home(self, new_title, new_str):
+        new_menu_location = len(self.menu)
+        self.titles.insert(new_menu_location, {"text": new_title})
+        print(new_menu_location)
+        self.lcd.display(new_str, 20)
+
+    def append_current_title(self, new_str):
+        _title = self.titles[self.menu_index]["text"] + new_str
+        self.render(title=_title)
+
     def show_home_screen(self):
         self.display_active = True
         self.status = configparser.ConfigParser()
@@ -330,23 +372,54 @@ class KEYPAD:
             self.show_claim_info_qrcode()
         else:
             # show the status info
-            diag = WPDiag(self.logger)
-            test_port = int(self.config.get('openvpn', 'port')) + 1
-            self.diag_code = diag.get_error_code(test_port)
-            self.diag_code = 127
+            self.set_current_menu(5)
+            self.titles[5]["color"] = (255, 255, 255)
+            # set title temporarily to Updating ...
+            # below steps will populate this view
+            self.titles[5]["text"] = "Updating..."
+            self.menu[5][1]["display"] = False
+            self.menu[5][1]["action"] = ()
+            self.menu[5][2]["display"] = False
+            if self.screen_timed_out is False:
+                self.render()
+            self.status.read(STATUS_FILE)
+            diag_code = self.status.get("status", "last_diag_code")
+            print("diag_code is " + diag_code)
+            # if a cached version of diag is available, show it
+            # else, run diag right now
+            if (diag_code == ""):
+                diag = WPDiag(self.logger)
+                test_port = int(self.config.get('openvpn', 'port')) + 1
+                self.diag_code = diag.get_error_code(test_port)
+            else:
+                self.diag_code = diag_code
+                self.diag_code = 127
             if self.diag_code != 127:
+                # wake up the screen, and reset the count down
+                self.screen_timed_out = False
+                # keep screen on longer
+                self.countdown_to_turn_off_screen = ERR_SCREEN_TIMEOUT
                 color = (255, 0, 0)
                 title = "Error"
+                self.menu[5][2]["display"] = True
             else:
                 color = (0, 255, 0)
                 title = "OK"
-                self.menu[5][1]["display"] = False
-                self.menu[5][1]["action"] = ()
+                self.menu[5][1]["display"] = True
+                self.menu[5][1]["text"] = "Menu"
+                self.menu[5][1]["action"] = self.show_main_menu
+                self.menu[5][2]["display"] = True
 
             self.set_current_menu(5)
             self.titles[5]["color"] = color
             self.titles[5]["text"] = title
-            self.render()
+            if self.screen_timed_out is False:
+                self.render()
+
+    def show_main_menu(self):
+        self.display_active = True
+        self.set_current_menu(0)
+        self.render()
 
     def show_power_menu(self):
         self.display_active = True
@@ -462,7 +535,7 @@ def main():
          {"text": "Update", "action": keypad.update_software}, ],
         [{"text": "", "display": False, "action": 0},
             {"text": "Help", "action": keypad.run_diagnostics, "color": (255, 255, 255)},
-            {"text": "Show QR Code", "action": keypad.show_diag_qr_code}],
+            {"text": "QR Code", "action": keypad.show_diag_qr_code}],
     ]
     titles = [{"text": "Main"}, {"text": "Power"}, {"text": "About"}, {"text": "Settings"},
               {"text": "Software"}, {"text": "Home", "color": (255, 255, 255)}]
@@ -474,8 +547,36 @@ def main():
     keypad.set_current_menu(0)
     # default scren is QR Code
     keypad.show_home_screen()
+
+    ############################
+    # This is an example of how screen can show a custom message
+    # This is to be used for getting messages from another process (socket?)
+    # Advantage of showing the messager from here is that the error message
+    # will stay on (and not be overwritten by screen refreshes) until user
+    # manually dismisses them
+    # display_str = [(1, "Status Code", 0, "blue"), (2, "123", 0, "white"),
+    #                   (3, "Serial #", 0, "blue"), (4, "123", 0, "white"),
+    #                   (5, "Local IP", 0, "blue"), (6, "123", 0, "white"),
+    #                   (7, "MAC Address", 0, "blue"), (8, "123", 0, "white"), ]
+    # keypad.show_dummy_home("HOORA", display_str)
     while True:
-        time.sleep(100)
+        # this timeout serves 2 purposes
+        # first, if menu system (Keys) are not touched in some time,
+        # it will take the menu back to home
+        # second, if the status of device has changed (diag code updated in heartbeat)
+        # this will refresh the home screen to show the new state (thumbs down/up).
+        # challenge here is that if an error message is shown, this refresh should not overwrite it
+        time.sleep(600)
+        keypad.menu_active_countdown -= 1
+        if keypad.menu_active_countdown == 0:
+            # this part ensures we read status and update screen info
+            keypad.show_home_screen()
+            keypad.menu_active_countdown = MENU_TIMEOUT
+        if keypad.screen_timed_out is False:
+            keypad.countdown_to_turn_off_screen -= 1
+        if keypad.countdown_to_turn_off_screen == 0:
+            keypad.screen_timed_out = True
+            keypad.clear_screen()
 
 
 if __name__ == '__main__':

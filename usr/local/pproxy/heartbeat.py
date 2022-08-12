@@ -73,7 +73,7 @@ class HeartBeat:
                                (7, "", 1, "black")]
         else:
             icons, any_err = lcd.get_status_icons(status,
-                                              self.is_connected(), self.mqtt_connected)
+                                                  self.is_connected(), self.mqtt_connected)
             if any_err:
                 color = "red"
             else:
@@ -135,6 +135,7 @@ class HeartBeat:
         }
         self.status.set('pin', str(self.pin))
         self.status.set('local_token', str(self.local_token))
+        self.status.set('last_diag_code', str(diag_code))
         self.status.save()
 
         data_json = json.dumps(data)

@@ -102,6 +102,9 @@ class LCD:
     def set_lcd_present(self, is_lcd_present):
         self.lcd_present = int(is_lcd_present)
 
+    def clear(self):
+        self.display((), 0)
+
     def display(self, strs, size):
         if (self.lcd_present == 0):
             with open(TEXT_OUT, 'w') as out:
@@ -309,7 +312,6 @@ class LCD:
             # dvice is off
             device = chr(64)  # noqa: F841
             any_err = True
-
 
         if (any_err):
             err = chr(50)  # thumb up

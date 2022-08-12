@@ -99,7 +99,7 @@ class PProxy():
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
 
-    def save_state(self, new_state, lcd_print=1, hb_send=True):
+    def save_state(self, new_state, lcd_print=0, hb_send=True):
         self.status.reload()
         self.status.set('state', new_state)
         self.status.save()
@@ -291,7 +291,7 @@ class PProxy():
         # sending heartbeat might take too long and make MQTT fail
         # hence the False parameter for hb_send
         # self.save_state("2", 1, False)
-        th = Thread(target=self.save_state, args=("2", 1))
+        th = Thread(target=self.save_state, args=("2"))
         th.start()
 
     # prevent directory traversal attacks by checking final path
