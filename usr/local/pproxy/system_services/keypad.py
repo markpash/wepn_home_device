@@ -14,6 +14,7 @@ sys.path.append(up_dir)
 # above line is needed for following classes:
 from led_client import LEDClient  # noqa E402 need up_dir first
 from heartbeat import HeartBeat  # noqa E402 need up_dir first
+from heartbeat import HEALTHY_DIAG_CODE  # noqa E402 need up_dir first
 from device import Device  # noqa E402 need up_dir first
 from diag import WPDiag  # noqa E402 need up_dir first
 from lcd import LCD as LCD  # noqa E402 need up_dir first
@@ -33,11 +34,15 @@ logging.config.fileConfig(LOG_CONFIG,
 INT_EXPANDER = 5
 BUTTONS = ["0", "1", "2", "up", "down", "back", "home"]
 
-NRML_SCREEN_TIMEOUT = 20
+# Unit of time: how often it wakes from sleep
+# in seconds
+UNIT_TIMEOUT = 2
+# Multiply by unit above for all below timeouts
+NRML_SCREEN_TIMEOUT = 30
 # if an error is detected, keep screen
 # on longer
 ERR_SCREEN_TIMEOUT = 100
-MENU_TIMEOUT = 10
+MENU_TIMEOUT = 5
 
 
 class KEYPAD:
@@ -392,23 +397,22 @@ class KEYPAD:
                 test_port = int(self.config.get('openvpn', 'port')) + 1
                 self.diag_code = diag.get_error_code(test_port)
             else:
-                self.diag_code = diag_code
-                self.diag_code = 127
-            if self.diag_code != 127:
+                self.diag_code = int(diag_code)
+                # self.diag_code = 127
+            self.menu[5][1]["display"] = True
+            self.menu[5][1]["text"] = "Menu"
+            self.menu[5][1]["action"] = self.show_main_menu
+            self.menu[5][2]["display"] = True
+            if self.diag_code != HEALTHY_DIAG_CODE:
                 # wake up the screen, and reset the count down
                 self.screen_timed_out = False
                 # keep screen on longer
                 self.countdown_to_turn_off_screen = ERR_SCREEN_TIMEOUT
                 color = (255, 0, 0)
                 title = "Error"
-                self.menu[5][2]["display"] = True
             else:
                 color = (0, 255, 0)
                 title = "OK"
-                self.menu[5][1]["display"] = True
-                self.menu[5][1]["text"] = "Menu"
-                self.menu[5][1]["action"] = self.show_main_menu
-                self.menu[5][2]["display"] = True
 
             self.set_current_menu(5)
             self.titles[5]["color"] = color
@@ -566,7 +570,7 @@ def main():
         # second, if the status of device has changed (diag code updated in heartbeat)
         # this will refresh the home screen to show the new state (thumbs down/up).
         # challenge here is that if an error message is shown, this refresh should not overwrite it
-        time.sleep(600)
+        time.sleep(UNIT_TIMEOUT)
         keypad.menu_active_countdown -= 1
         if keypad.menu_active_countdown == 0:
             # this part ensures we read status and update screen info

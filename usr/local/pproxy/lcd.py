@@ -25,6 +25,8 @@ try:
 except ImportError:
     import configparser
 
+from heartbeat import HEALTHY_DIAG_CODE
+
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
 LOG_CONFIG = "/etc/pproxy/logging.ini"
@@ -291,7 +293,7 @@ class LCD:
         return (ret, any_err)
 
     def get_status_icons_v2(self, status, diag_code):
-        any_err = (127 != diag_code)
+        any_err = (HEALTHY_DIAG_CODE != diag_code)
         if (status == 0 or status == 1 or status == 3):
             service = "X"  # service is off, X mark
             any_err = True
