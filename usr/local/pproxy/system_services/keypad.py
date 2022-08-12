@@ -73,6 +73,7 @@ class KEYPAD:
         self.lcd = LCD()
         self.lcd.set_lcd_present(self.config.get('hw', 'lcd'))
         self.lcd.display([(1, "WEPN loading ... ", 0, "white"), ], 15)
+        self.chin = {"text": "", "color": (0, 0, 0), "opacity": 100, "errs": [False] * 7}
         self.width = 240
         self.height = 240
         self.menu_row_y_size = 37
@@ -282,6 +283,24 @@ class KEYPAD:
                    fill=(color[0], color[1], color[2], opacity))
             i = i + 1
             y = y + int(self.menu_row_y_size / 2)
+        if self.menu_index == 5:
+            # show a chin line for Home
+            font_icon = ImageFont.truetype('/usr/local/pproxy/ui/heydings_icons.ttf', 25)
+            y = y + int(self.menu_row_y_size / 2) + 6
+            x = 20
+            i = 0
+            for c in self.chin['text']:
+                if self.chin['errs'][i]:
+                    color = (255, 0, 0)
+                else:
+                    color = (0, 255, 0)
+                i += 1
+                d.text((x, y), c, font=font_icon,
+                       fill=(color[0],
+                             color[1],
+                             color[2],
+                             self.chin["opacity"]))
+                x += 30
         out = Image.alpha_composite(base, txt)
         out.paste(overlay, (0, 0), overlay)
         out = out.rotate(0)
@@ -383,6 +402,7 @@ class KEYPAD:
         self.display_active = True
         self.status = configparser.ConfigParser()
         self.status.read(STATUS_FILE)
+        state = self.status.get("status", "state")
         if int(self.status.get("status", "claimed")) == 0:
             self.show_claim_info_qrcode()
         else:
@@ -410,6 +430,11 @@ class KEYPAD:
             self.set_current_menu(5)
             self.titles[5]["color"] = color
             self.titles[5]["text"] = title
+            icons, any_err, errs = self.lcd.get_status_icons_v2(state, self.diag_code)
+            self.chin["text"] = icons
+            self.chin["errs"] = errs
+            self.chin["color"] = color
+            self.chin["opacity"] = 255
             if self.screen_timed_out is False:
                 self.render()
 

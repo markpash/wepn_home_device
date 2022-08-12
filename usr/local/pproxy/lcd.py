@@ -293,30 +293,13 @@ class LCD:
 
     def get_status_icons_v2(self, status, diag_code):
         any_err = (consts.HEALTHY_DIAG_CODE != diag_code)
-        if (status == 0 or status == 1 or status == 3):
-            service = "X"  # service is off, X mark
-            any_err = True
-        elif (status == 4):
-            service = "!"  # error in service, danger sign
-            any_err = True
-        else:
-            service = "O"  # service is on, checkmark
-
-        # TODO: device is calculated but not shown in error
-        if (status == 1 or status == 2 or status == 4):
-            # device is on
-            device = chr(114)  # noqa: F841
-        elif (status == 3):
-            # device is restarting
-            device = chr(77)  # noqa: F841
-        else:
-            # dvice is off
-            device = chr(64)  # noqa: F841
-            any_err = True
-
-        if (any_err):
-            err = chr(50)  # thumb up
-        else:
-            err = chr(56)  # thumb down
-        ret = str(err) + str(service) + str(device)
-        return (ret, any_err)
+        errs = [False] * 7
+        flag = 1
+        for i in range(7):
+            if diag_code & flag:
+                errs[i - 1] = False
+            else:
+                errs[i - 1] = True
+            flag *= 2
+        ret = chr(51) + chr(97) + chr(71) + chr(107) + chr(76) + chr(114) + chr(65)
+        return (ret, any_err, errs)
