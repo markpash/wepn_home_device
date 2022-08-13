@@ -297,9 +297,9 @@ class LCD:
         flag = 1
         for i in range(7):
             if diag_code & flag:
-                errs[i - 1] = False
+                errs[i] = False
             else:
-                errs[i - 1] = True
+                errs[i] = True
             flag *= 2
         ret = chr(51) + chr(97) + chr(71) + chr(107) + chr(76) + chr(114) + chr(65)
         return (ret, any_err, errs)

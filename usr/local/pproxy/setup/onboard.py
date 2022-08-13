@@ -280,7 +280,8 @@ class OnBoard():
                 display_str = [(1, chr(33) + '     ' + chr(33), 1, "red"),
                                (2, "Network error,", 0, "red"), (3, "check cable...", 0, "red")]
                 self.lcd.display(display_str, 18)
-                if not run_once and (int(self.config.get('hw', 'buttons'))):
+                if not run_once and (int(self.config.get('hw', 'buttons'))) \
+                        and (int(self.config.get('hw', 'button-version')) == 1):
                     if keypad is not None:
                         keypad.cleanup()
                     if gpio_up:

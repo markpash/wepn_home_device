@@ -57,7 +57,7 @@ class HeartBeat:
 
     def get_display_string_status(self, status, diag_code, lcd):
         if lcd.version > 1:
-            icons, any_err = lcd.get_status_icons_v2(status, diag_code)
+            icons, any_err, errs = lcd.get_status_icons_v2(status, diag_code)
             any_err = False
             if any_err:
                 color = "red"
