@@ -286,6 +286,7 @@ class PProxy():
         self.logger.info('subscribing to: ' + topic)
         client.subscribe(topic, qos=1)
         self.logger.info('connected to service MQTT, saving state')
+        self.leds.blink(color=(0, 255, 0), wait=500, repetitions=1)
         self.leds.blank()
         # if device has too many friends,
         # sending heartbeat might take too long and make MQTT fail
@@ -481,6 +482,8 @@ class PProxy():
         elif (data['action'] == 'wipe_device'):
             # very important action: make sure all VPN/ShadowSocks are deleted, and stopped
             # now reset the status bits
+            # set led ring color to solid yellow
+            self.leds.blink(color=(255, 255, 0), wait=250, repetitions=6)
             self.status.reload()
             self.status.set('mqtt', 0)
             self.status.set('mqtt-reason', 0)
@@ -500,7 +503,9 @@ class PProxy():
         self.logger.info("MQTT disconnected")
         # show solid yellow ring indicating MQTT has been
         # disconnected from server
-        self.leds.set_all((255, 255, 0))
+        self.leds.pulse(color=(255, 255, 0),
+                        wait=50,
+                        repetitions=50)
         self.status.reload()
         self.mqtt_connected = 0
         self.mqtt_reason = reason_code
@@ -511,7 +516,12 @@ class PProxy():
     def start(self):
         lcd = LCD()
         lcd.set_lcd_present(self.config.get('hw', 'lcd'))
-        self.leds.set_all((0, 255, 0))
+        # show a white spinning led ring
+        # self.leds.set_all(color=(255, 255, 255))
+        self.leds.spinning_wheel(color=(255, 255, 255),
+                                 length=6,
+                                 wait=50,
+                                 repetitions=100)
         services = Services(self.loggers['services'])
         services.start()
         time.sleep(5)
