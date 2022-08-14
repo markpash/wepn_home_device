@@ -87,6 +87,7 @@ class KEYPAD:
         self.screen_timed_out = False
         self.leds_turned_for_error = False
         self.diag_code = 0
+        self.prev_diag_code = 0
 
     def init_i2c(self):
         GPIO.setmode(GPIO.BCM)
@@ -384,6 +385,7 @@ class KEYPAD:
         diag_code = self.status.get("status", "last_diag_code")
         print("diag_code is " + diag_code)
         if diag_code != "":
+            self.prev_diag_code = self.diag_code
             self.diag_code = int(diag_code)
         if led_update:
             if self.diag_code != consts.HEALTHY_DIAG_CODE:
@@ -415,10 +417,13 @@ class KEYPAD:
             self.menu[5][1]["action"] = self.show_main_menu
             self.menu[5][2]["display"] = True
             if self.diag_code != consts.HEALTHY_DIAG_CODE:
-                # wake up the screen, and reset the count down
-                self.screen_timed_out = False
-                # keep screen on longer
-                self.countdown_to_turn_off_screen = ERR_SCREEN_TIMEOUT
+                if self.prev_diag_code == consts.HEALTHY_DIAG_CODE \
+                        or self.prev_diag_code == 0:
+                    # first time after diag says there's an error
+                    # wake up the screen, and reset the count down
+                    self.screen_timed_out = False
+                    # keep screen on longer
+                    self.countdown_to_turn_off_screen = ERR_SCREEN_TIMEOUT
                 color = (255, 0, 0)
                 title = "Error"
             else:
