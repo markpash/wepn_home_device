@@ -8,6 +8,7 @@ import logging.config
 from device import Device
 import os
 from shutil import copyfile
+from led_client import LEDClient
 
 try:
     from self.configparser import configparser
@@ -42,6 +43,7 @@ check_and_restore(CONFIG_FILE, CONFIG_FILE_BACKUP)
 check_and_restore(STATUS_FILE, STATUS_FILE_BACKUP)
 
 lcd = LCD()
+leds = LEDClient()
 
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
@@ -51,6 +53,11 @@ status.read(STATUS_FILE)
 lcd.set_lcd_present(config.get('hw', 'lcd'))
 lcd.show_logo()
 time.sleep(1)
+
+leds.spinning_wheel(color=(255, 255, 255),
+                    wait=50,
+                    length=6,
+                    repetitions=50)
 
 device = Device(logger)
 gateway_vendor = device.get_default_gw_vendor()
@@ -71,6 +78,9 @@ try:
     server_checkin_done = True
 except requests.exceptions.RequestException as exception_error:
     logger.exception("Error in connecting to server for claim status: " + str(exception_error))
+    leds.blink(color=(255, 0, 0),
+               wait=200,
+               repetitions=4)
 
 
 if 1 == int(status.get('status', 'claimed')):
@@ -94,6 +104,9 @@ if 1 == int(status.get('status', 'claimed')):
             logger.exception("Exception in main runner thread")
             del(PPROXY_PROCESS)
             logger.debug("Retrying in 60 seconds ....")
+            leds.blink(color=(255, 0, 0),
+                       wait=200,
+                       repetitions=10)
             time.sleep(60)
             continue
         break
@@ -112,6 +125,9 @@ else:
             if ONBOARD:
                 del(ONBOARD)
             logger.debug("Retrying in 60 seconds ....")
+            leds.blink(color=(255, 0, 0),
+                       wait=50,
+                       repetitions=20)
             time.sleep(60)
             continue
         break
