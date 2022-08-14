@@ -1,5 +1,5 @@
 
-import threading
+from threading import Thread
 import board
 import sys
 import neopixel
@@ -8,6 +8,7 @@ import os
 import socket
 import stat
 import logging.config
+
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
 
@@ -27,10 +28,8 @@ logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
 
 
-class LEDManager(threading.Thread):
+class LEDManager():
     def __init__(self):
-        super(LEDManager, self).__init__()
-        self._stop_event = threading.Event()
         self.led_ring_present = True
         self.current_color = None
         self.STOP = False
@@ -39,7 +38,13 @@ class LEDManager(threading.Thread):
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
         self.logger = logging.getLogger("leds")
-
+        if self.config.has_option('hw', 'leds_brightness'):
+            brightness = float(self.config.get('hw', 'leds_brightness'))
+            if brightness < 0 or brightness > 1:
+                self.logger.error("Invalid brightness value in config file")
+                self.brightness = 1
+            else:
+                self.brightness = brightness
         if self.config.has_option('hw', 'num_leds'):
             self.num_leds = int(self.config.get('hw', 'num_leds'))
         else:
@@ -51,13 +56,6 @@ class LEDManager(threading.Thread):
                                             bpp=3, auto_write=False,
                                             pixel_order=ORDER)
         pass
-
-    def stop(self):
-        self._stop_event.set()
-
-    def join(self, *args, **kwargs):
-        self.stop()
-        super(LEDManager, self).join(*args, **kwargs)
 
     def adjust_brightness(self, color):
         b = self.brightness
@@ -116,7 +114,7 @@ class LEDManager(threading.Thread):
     def progress_wheel_step(self, color):
         if not self.led_ring_present:
             return
-        dim_factor = 200
+        dim_factor = 20
         color = self.adjust_brightness(color)
         self.set_all((color[0] / dim_factor, color[1] / dim_factor,
                       color[2] / dim_factor))
@@ -164,7 +162,11 @@ class LEDManager(threading.Thread):
                     return
                 for i in range(self.num_leds):
                     pixel_index = (i * 256 // self.num_leds) + j
-                    self.pixels[i] = self.wheel(pixel_index & 255) * self.brightness
+                    (r, g, b) = self.wheel(pixel_index & 255)
+                    self.pixels[i] = (r * self.brightness,
+                                      g * self.brightness,
+                                      b * self.brightness
+                                      )
                 self.pixels.show()
                 time.sleep(wait / 1000)
         self.blank()
@@ -233,7 +235,7 @@ class LEDManager(threading.Thread):
             for i in range(self.num_leds):
                 if self.STOP:
                     self.blank()
-                    self.logger.info("----stopped---")
+                    print("stopped")
                     return
                 shifted = ring[i:] + ring[:i]
                 # for j in self.num_leds
@@ -252,9 +254,10 @@ class LEDManager(threading.Thread):
         self.pixels[:] = ring
         self.pixels.show()
 
-    def run(self):
-        self.logger.info("--led thread started ---")
-        incoming = self.incoming
+    def run_command(self, incoming):
+        self.logger.info("---executing command---")
+        self.incoming = incoming
+        self.STOP = False
         if incoming[0] == "set_enabled":
             if len(incoming) == 2:
                 lm.set_enabled(int(incoming[1]))
@@ -334,11 +337,10 @@ class LEDManager(threading.Thread):
 # this way, apps can be set to be in LED group for permission to control
 # the LEDs
 if __name__ == '__main__':
-    brightness = 1
-    current_bright_one = 1
     lm = LEDManager()
-    # lm.incoming = "spinning_wheel 255 255 255 50 6 100".split()
-    # lm.start()
+    lm.incoming = "spinning_wheel 255 255 255 50 6 100".split()
+    t = Thread(target=lm.run_command, args=(lm.incoming,))
+    t.start()
     if os.path.exists(LM_SOCKET_PATH):
         os.remove(LM_SOCKET_PATH)
 
@@ -352,19 +354,6 @@ if __name__ == '__main__':
              permission)
 
     print("LED Manager Listening...")
-    # lm.pulse((255, 0, 0), 50, 5)
-    # lm.blink((255, 0, 0), 200, 5)
-    # lm.spinning_wheel((255, 255, 255), 100, 10, 6)
-    # lm.progress_wheel((255, 255, 255), 10)
-    # for i in range(25):
-    #     lm.progress_wheel((0, 0, 255), i/22)
-    #     time.sleep(0.5)
-    #     lm.blank()
-    # lm.rainbow(5, 10)
-    # lm.fill_upto((255, 0, 255), 1, 25)
-    # time.sleep(1)
-    # lm.fill_downfrom((255, 0, 255), 1, 25)
-
     while True:
         try:
             datagram = server.recv(1024)
@@ -375,18 +364,20 @@ if __name__ == '__main__':
                 incoming_str = datagram.decode('utf-8')
                 print(incoming_str)
                 incoming = incoming_str.split()
-                lm.logger.info("--command receoved--")
-                lm.STOP = True
-                while lm.is_alive():
-                    time.sleep(0.1)
-                # save some data before overriding the object
-                brightness = lm.brightness
-                current_bright_one = lm.current_bright_one
-                lm = LEDManager()
-                lm.incoming = incoming
-                lm.brightness = brightness
-                lm.current_bright_one = current_bright_one
-                lm.start()
+                # set brightness of LEDs
+                if incoming[0] == "set_brightness":
+                    if len(incoming) == 2:
+                        brightness_value = float(incoming[1])
+                        if 0 < brightness_value <= 1:
+                            lm.set_brightness(brightness_value)
+                else:
+                    lm.STOP = True
+                    while t.is_alive():
+                        time.sleep(0.1)
+                    # save some data before overriding the object
+                    lm.logger.info("---starting new led thread--")
+                    t = Thread(target=lm.run_command, args=(incoming,))
+                    t.start()
         except KeyboardInterrupt:
             print('Interrupted')
             server.close()
