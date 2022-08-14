@@ -13,8 +13,9 @@ def del_user_usage(certname):
         conn = sqli.connect('/var/local/pproxy/usage.db')
         cur = conn.cursor()
         if certname:
-            cmd="delete from servers where certname like '"+ certname+ "'"
-            results = cur.execute(cmd)
+            #cmd=conn.prepare("delete from servers where certname like '?'", certname)
+            #print(cmd)
+            results = cur.execute("delete from servers where certname like ?", [certname])
             print(results)
         conn.commit()
         conn.close()
@@ -35,6 +36,11 @@ def delete_left_over_usage():
                 print("Need to delete " + server['certname'])
             else:
                 print("retain :" + server['certname'])
+        for server in usage_db['daily']:
+            if len(list(filter(lambda shadow_server:shadow_server['certname'] == server['certname'], shadow_servers))) == 0:
+                print("Need to delete " + str((server)))
+            else:
+                print("retain :" + server['certname'])
 def print_all():
         #used at service stop time
         #loop over cert files, stop all 
@@ -52,14 +58,19 @@ def print_all_usage():
         if not servers:
             print('no servers')
             return
+        print(">>------------------------------------------------------------------<<")
         for server in local_db['servers']:
             line = 'usage : {"server_port": '+str(server['server_port'])+', usage='+str(server['usage'])+', "certname": '+ str(server['certname'])+', status= '+ str(server['status'])+' }' 
             print(line)
+        print("||------------------------daily usage-------------------------------||")
+        for server in local_db['daily']:
+            print(server)
+        print("||------------------------------------------------------------------||")
 
 # add_user('abcd','1.1.1.1','kjasas../.../da',999)
 # del_user(1)
 print_all()
 print_all_usage()
-#del_user_usage("8i.vy")
+del_user_usage("8i.vy; select * from usage")
 delete_left_over_usage()
-print_all_usage()
+#print_all_usage()

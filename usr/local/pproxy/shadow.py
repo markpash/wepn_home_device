@@ -1,4 +1,3 @@
-
 from device import Device
 import tempfile
 import json
@@ -13,6 +12,7 @@ from datetime import datetime
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from random import randrange  # nosec: not used for cryptography
+import sqlite3 as sqli
 
 import logging
 
@@ -108,6 +108,15 @@ class Shadow:
             self.logger.debug("server: " + str(a))
         return is_new_user
 
+    def del_user_usage(self, certname):
+        conn = sqli.connect(self.config.get('usage', 'db-path'))
+        cur = conn.cursor()
+        if certname:
+            cur.execute("delete from servers where certname like ?", [certname])
+            cur.execute("delete from daily where certname like ?", [certname])
+        conn.commit()
+        conn.close()
+
     def delete_user(self, cname):
         # stop the service for that cert
         local_db = dataset.connect(
@@ -126,6 +135,7 @@ class Shadow:
             self.logger.info('disabling port forwarding to port ' + str(port))
             device = Device(self.logger)
             device.close_port(port)
+        self.del_user_usage(cname)
         # retrun success or failure if file doesn't exist
         if 0 and local_db is not None:
             for a in local_db['servers']:
