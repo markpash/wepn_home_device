@@ -94,6 +94,7 @@ class LEDManager():
             time.sleep(wait / 1000)
             self.pixels.show()
         time.sleep(5 * wait / 1000)
+        self.blank()
 
     def fill_downfrom(self, color, percentage, wait):
         if not self.led_ring_present:
