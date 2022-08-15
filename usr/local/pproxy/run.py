@@ -54,10 +54,10 @@ lcd.set_lcd_present(config.get('hw', 'lcd'))
 lcd.show_logo()
 time.sleep(1)
 
-leds.spinning_wheel(color=(255, 255, 255),
-                    wait=50,
-                    length=6,
-                    repetitions=50)
+# leds.spinning_wheel(color=(255, 255, 255),
+#                    wait=50,
+#                    length=6,
+#                    repetitions=50)
 
 device = Device(logger)
 gateway_vendor = device.get_default_gw_vendor()
@@ -70,18 +70,21 @@ response = None
 url_address = config.get('django', 'url') + "/api/device/is_claimed/"
 data = json.dumps({'serial_number': config.get('django', 'serial_number')})
 headers = {'Content-Type': 'application/json'}
-try:
-    response = requests.post(url_address, data=data, headers=headers)
-    is_claimed = (response.status_code == 200)
-    jresponse = json.loads(response.content)
-    logger.error("is_claimed updated to " + str(is_claimed))
-    server_checkin_done = True
-except requests.exceptions.RequestException as exception_error:
-    logger.exception("Error in connecting to server for claim status: " + str(exception_error))
-    leds.blink(color=(255, 0, 0),
-               wait=200,
-               repetitions=4)
 
+while not server_checkin_done:
+    try:
+        response = requests.post(url_address, data=data, headers=headers)
+        is_claimed = (response.status_code == 200)
+        jresponse = json.loads(response.content)
+        logger.error("is_claimed updated to " + str(is_claimed))
+        leds.progress_wheel_step(color=(255, 255, 255))
+    except requests.exceptions.RequestException as exception_error:
+        logger.exception("Error in connecting to server for claim status: " + str(exception_error))
+        # leds.blink(color=(255, 0, 0),
+        #           wait=200,
+        #           repetitions=4)
+    else:
+        server_checkin_done = True
 
 if 1 == int(status.get('status', 'claimed')):
     if not is_claimed and server_checkin_done:
