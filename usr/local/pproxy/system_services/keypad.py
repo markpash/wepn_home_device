@@ -389,7 +389,7 @@ class KEYPAD:
             self.diag_code = int(diag_code)
         if led_update:
             if self.diag_code != consts.HEALTHY_DIAG_CODE:
-                self.led_client.set_all(255, 0, 0)
+                self.led_client.set_all(color=(255, 0, 0))
                 self.leds_turned_for_error = True
             else:
                 if self.leds_turned_for_error:
@@ -398,7 +398,7 @@ class KEYPAD:
                     # so one process cannot clear another ones
                     # TODO(amir): updated to new patterns
                     self.leds_turned_for_error = False
-                    self.led_client.set_all(0, 0, 0)
+                    self.led_client.blank()
 
     def show_home_screen(self):
         self.display_active = True
@@ -477,24 +477,24 @@ class KEYPAD:
             self.led_client.set_enabled(self.led_enabled)
             if new_index == 0:
                 # yellow
-                self.led_client.set_all(255, 255, 0)
+                self.led_client.set_all(color=(255, 255, 0))
             elif new_index == 1:
                 # white
-                self.led_client.set_all(255, 255, 255)
+                self.led_client.set_all(color=(255, 255, 255))
             elif new_index == 2:
                 # red
-                self.led_client.set_all(255, 0, 0)
+                self.led_client.set_all(color=(255, 0, 0))
             elif new_index == 3:
                 # green
-                self.led_client.set_all(0, 255, 0)
+                self.led_client.set_all(color=(0, 255, 0))
             elif new_index == 4:
                 # brown
-                self.led_client.set_all(165, 42, 42)
+                self.led_client.set_all(color=(165, 42, 42))
         elif new_index == 5:
             # rainbow
             self.led_enabled = True
             self.led_client.set_enabled(self.led_enabled)
-            self.led_client.rainbow(0)  # 100ms wait
+            self.led_client.rainbow(rounds=5, wait=50)  # 100ms wait
         elif new_index == 6:
             # reset
             self.led_enabled = True
