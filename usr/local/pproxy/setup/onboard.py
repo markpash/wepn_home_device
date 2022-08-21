@@ -236,14 +236,13 @@ class OnBoard():
         if not run_once:
             self.generate_rand_key()
             self.save_temp_key()
-        self.lcd.set_logo_text("loading ...", 45, 200, "red", 25)
-        self.lcd.show_logo()
-        time.sleep(10)
-        self.display_claim_info()
         self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
         # TODO: to log this effectively for error logs,
-        # instead of actual key save a hash of it to the log file. This way WEPN staff can
-        # safely check if this is the correct key, without exposing the actual key
+        # instead of actual key save a hash of it to the log file.
+        # This way WEPN staff can
+        # safely check if this is the correct key, i
+        # without exposing the actual key
+
         self.logger.debug('Randomly generated device key: ' + self.rand_key)
         self.logger.debug('HW config: button=' + str(int(self.config.get('hw', 'buttons'))) + '  LED=' +
                           self.config.get('hw', 'lcd'))

@@ -486,8 +486,6 @@ class PProxy():
     def start(self):
         lcd = LCD()
         lcd.set_lcd_present(self.config.get('hw', 'lcd'))
-        lcd.show_logo()
-        self.leds.set_all(0, 178, 16)
         services = Services(self.loggers['services'])
         services.start()
         time.sleep(5)
