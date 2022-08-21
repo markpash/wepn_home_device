@@ -19,6 +19,8 @@ class OpenVPN:
         return
 
     def add_user(self, certname, ip_address, password, port, lang):
+        if not self.is_enabled():
+            return
         cmd = '/bin/bash ./add_user_openvpn.sh ' + certname + ' ' + \
             ip_address + ' ' + str(self.config.get('openvpn', 'port'))
         self.logger.debug(cmd)
@@ -26,12 +28,16 @@ class OpenVPN:
         return False
 
     def delete_user(self, certname):
+        if not self.is_enabled():
+            return
         cmd = '/bin/bash ./delete_user_openvpn.sh ' + certname
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return
 
     def start(self):
+        if not self.is_enabled():
+            return
         cmd = "0 0 1 "
         self.logger.debug(cmd)
         self.execute_setuid(cmd)
@@ -44,12 +50,17 @@ class OpenVPN:
         return
 
     def restart(self):
+        if not self.is_enabled():
+            self.stop()
+            return
         cmd = "0 0 2 "
         self.logger.debug(cmd)
         self.execute_setuid(cmd)
         return
 
     def reload(self):
+        if not self.is_enabled():
+            return
         cmd = "0 0 3 "
         self.logger.debug(cmd)
         self.execute_setuid(cmd)

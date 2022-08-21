@@ -44,10 +44,13 @@ if url == "we-pn.com" or url == "https://we-pn.com":
 
 if not config.has_section('openvpn'):
     config.add_section('openvpn')
-    config.set('openvpn', 'enabled', '1')
+    config.set('openvpn', 'enabled', '0')
+else:
+    config.set('openvpn', 'enabled', '0')
+
 
 if not config.has_option('openvpn', 'enabled'):
-    config.set('openvpn', 'enabled', '1')
+    config.set('openvpn', 'enabled', '0')
     config.set('openvpn', 'email', '0')
 
 if not config.has_section('shadow'):

@@ -1,4 +1,5 @@
 PPROXY_HOME=/usr/local/pproxy/
+OVPN_ENABLED=0
 
 ######################################
 ## Copy back up config files
@@ -92,40 +93,43 @@ chmod 744 /etc/pproxy/config.ini
 ######################################
 ## Add OpenVPN Users, Set it up
 ######################################
-echo -e "\nSet up OpenVPN ..."
+if [ $OVPN_ENABLED -eq 1 ]; then
 
-if [[ ! -f /etc/openvpn/server.conf ]]; then 
-  echo -e "\n\nSeems like OpenVPN is not configured, initializing that now"
-  echo -e "this can take a LONG time (hours)"
-  cd $PPROXY_HOME/setup/
-  /bin/bash $PPROXY_HOME/setup/init_vpn.sh
-  cd $PPROXY_HOME/
+	echo -e "\nSet up OpenVPN ..."
+
+	if [[ ! -f /etc/openvpn/server.conf ]]; then 
+	  echo -e "\n\nSeems like OpenVPN is not configured, initializing that now"
+	  echo -e "this can take a LONG time (hours)"
+	  cd $PPROXY_HOME/setup/
+	  /bin/bash $PPROXY_HOME/setup/init_vpn.sh
+	  cd $PPROXY_HOME/
+	fi
+	addgroup easy-rsa
+	adduser openvpn easy-rsa
+	adduser pproxy i2c
+	adduser pproxy gpio
+	adduser pproxy easy-rsa 
+	/bin/sh /etc/init.d/openvpn restart
+
+
+	chgrp easy-rsa /etc/openvpn
+	chgrp easy-rsa /etc/openvpn/ca.crt 
+	chgrp easy-rsa /etc/openvpn/crl.pem
+	chgrp easy-rsa /etc/openvpn/openvpn-status.log 
+	chgrp easy-rsa /etc/openvpn/easy-rsa/pki/* -R
+	chgrp easy-rsa /etc/openvpn/easy-rsa/pki/ -R
+	chgrp easy-rsa /etc/openvpn/easy-rsa/pki/private/ 
+	chgrp easy-rsa /etc/openvpn/easy-rsa/pki/private/* 
+	chmod g+rw /etc/openvpn/openvpn-status.log
+	chmod g+rw /etc/openvpn/easy-rsa/pki/* -R
+	chmod g+rwx /etc/openvpn/easy-rsa/pki/	
+	chmod g+rw /etc/openvpn/crl.pem 
+	chmod g+rwx /etc/openvpn/* -R
+	chmod g+rwx /etc/openvpn
+
+	chown pproxy.pproxy /etc/openvpn/easy-rsa/pki/.rnd
+	chmod 600 /etc/openvpn/easy-rsa/pki/.rnd
 fi
-addgroup easy-rsa
-adduser openvpn easy-rsa
-adduser pproxy i2c
-adduser pproxy gpio
-adduser pproxy easy-rsa 
-/bin/sh /etc/init.d/openvpn restart
-
-
-chgrp easy-rsa /etc/openvpn
-chgrp easy-rsa /etc/openvpn/ca.crt 
-chgrp easy-rsa /etc/openvpn/crl.pem
-chgrp easy-rsa /etc/openvpn/openvpn-status.log 
-chgrp easy-rsa /etc/openvpn/easy-rsa/pki/* -R
-chgrp easy-rsa /etc/openvpn/easy-rsa/pki/ -R
-chgrp easy-rsa /etc/openvpn/easy-rsa/pki/private/ 
-chgrp easy-rsa /etc/openvpn/easy-rsa/pki/private/* 
-chmod g+rw /etc/openvpn/openvpn-status.log
-chmod g+rw /etc/openvpn/easy-rsa/pki/* -R
-chmod g+rwx /etc/openvpn/easy-rsa/pki/	
-chmod g+rw /etc/openvpn/crl.pem 
-chmod g+rwx /etc/openvpn/* -R
-chmod g+rwx /etc/openvpn
-
-chown pproxy.pproxy /etc/openvpn/easy-rsa/pki/.rnd
-chmod 600 /etc/openvpn/easy-rsa/pki/.rnd
 
 # temporarily disable for UX upgrade rollout
 ##empty crontab
@@ -135,7 +139,9 @@ chmod 600 /etc/openvpn/easy-rsa/pki/.rnd
 /usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
 
 #install iptables, configure iptables for port forwarding and blocking
-/bin/bash $PPROXY_HOME/setup/openvpn-iptables.sh
+if [ $OVPN_ENABLED -eq 1 ]; then
+	/bin/bash $PPROXY_HOME/setup/openvpn-iptables.sh
+fi
 chown root.root /usr/local/sbin/ip-shadow.sh
 chmod 0755 /usr/local/sbin/ip-shadow.sh
 chown root.root /usr/local/sbin/wepn_git.sh
@@ -275,6 +281,14 @@ echo "\n done with setuid"
 usermod -a -G spi pproxy
 usermod -a -G audio pproxy
 
+
+if [ $OVPN_ENABLED -eq 1 ]; then
+	systemctl enable openvpn
+	systemctl start openvpn
+else
+	systemctl disable openvpn
+	systemctl stop openvpn
+fi
 systemctl daemon-reload 
 systemctl restart shadowsocks-libev
 systemctl restart shadowsocks-libev-manager
