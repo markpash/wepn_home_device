@@ -64,8 +64,9 @@ class Services:
         # (if user already exists.
         is_new_user = False
         for service in self.services:
-            is_new_user |= service['obj'].add_user(certname, ip_address, suggested_password,
-                                                   suggested_port, lang)
+            newly_added = service['obj'].add_user(certname, ip_address, suggested_password,
+                                                  suggested_port, lang)
+            is_new_user |= newly_added
         return is_new_user
 
     def delete_user(self, certname):

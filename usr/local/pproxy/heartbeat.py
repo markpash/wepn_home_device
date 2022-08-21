@@ -138,6 +138,8 @@ class HeartBeat:
             "public_key": signature,
         }
         self.status.set('pin', str(self.pin))
+        prev_token = self.status.get('local_token')
+        self.status.set('prev_token', str(prev_token))
         self.status.set('local_token', str(self.local_token))
         self.status.set('last_diag_code', str(diag_code))
         self.status.save()

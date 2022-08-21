@@ -20,7 +20,7 @@ class OpenVPN:
 
     def add_user(self, certname, ip_address, password, port, lang):
         if not self.is_enabled():
-            return
+            return False
         cmd = '/bin/bash ./add_user_openvpn.sh ' + certname + ' ' + \
             ip_address + ' ' + str(self.config.get('openvpn', 'port'))
         self.logger.debug(cmd)

@@ -62,9 +62,11 @@ def return_link(cname):
 def valid_token(incoming):
     status = WStatus(logger)
     valid_token = status.get_field('status', 'local_token')
+    prev_token = status.get_field('status', 'prev_token')
     print(incoming)
     print(valid_token)
-    return sanitize_str(incoming) == str(valid_token)
+    return (sanitize_str(incoming) == str(valid_token) or
+            sanitize_str(incoming) == str(prev_token))
 
 
 app = flask.Flask(__name__)

@@ -387,10 +387,11 @@ class PProxy():
                     logging.exception("Error occured with adding user")
                     # blink led ring red for 6 times if add friend fails
                     self.leds.blink(color=(255, 0, 0),
-                                    wait=50,
+                                    wait=200,
                                     repetitions=6)
 
-                self.logger.debug("add_user: " + txt)
+                if txt:
+                    self.logger.debug("add_user: " + txt)
                 self.logger.debug("send_email?" + str(send_email))
                 if send_email:
                     self.send_mail(send_from=self.config.get('email', 'email'),
