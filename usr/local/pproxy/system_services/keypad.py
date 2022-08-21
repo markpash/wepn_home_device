@@ -389,7 +389,7 @@ class KEYPAD:
             self.diag_code = int(diag_code)
         if led_update:
             if self.diag_code != consts.HEALTHY_DIAG_CODE:
-                self.led_client.set_all(color=(255, 0, 0))
+                self.led_client.pulse(color=(255, 0, 0), wait=100, repetitions=1)
                 self.leds_turned_for_error = True
             else:
                 if self.leds_turned_for_error:
