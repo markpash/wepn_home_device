@@ -263,8 +263,9 @@ class KEYPAD:
         corner = None
         for item in self.menu[self.menu_index]:
             if "display" in item and item["display"] is False:
-                y = 2 * (y + int(self.menu_row_y_size / 2)) + self.menu_row_skip
-                continue
+                skip = True
+            else:
+                skip = False
 
             if "color" in item:
                 color = item["color"]
@@ -273,21 +274,23 @@ class KEYPAD:
 
             y = y + int(self.menu_row_y_size / 2) + self.menu_row_skip
             opacity = 128
-            if True:
+            if not skip:
                 opacity = 255
                 corner = self.half_round_rectangle((200, self.menu_row_y_size), int(self.menu_row_y_size / 2),
                                                    (255, 255, 255, 128))
                 corner.putalpha(18)
                 cornery = y
                 overlay.paste(corner, (x, cornery))
-            d.text((x, y), "  " + item['text'], font=fnt,
-                   fill=(color[0], color[1], color[2], opacity))
+            if not skip:
+                d.text((x, y), "  " + item['text'], font=fnt,
+                       fill=(color[0], color[1], color[2], opacity))
             i = i + 1
             y = y + int(self.menu_row_y_size / 2)
         if self.menu_index == 5:
             # show a chin line for Home
             font_icon = ImageFont.truetype('/usr/local/pproxy/ui/heydings_icons.ttf', 25)
             y = y + int(self.menu_row_y_size / 2) + 6
+            print(y)
             x = 20
             i = 0
             for c in self.chin['text']:
@@ -412,9 +415,10 @@ class KEYPAD:
             self.set_current_menu(5)
             self.titles[5]["color"] = (255, 255, 255)
             self.refresh_status(led_update=True)
-            self.menu[5][1]["display"] = True
-            self.menu[5][1]["text"] = "Menu"
-            self.menu[5][1]["action"] = self.show_main_menu
+            self.menu[5][0]["display"] = False
+            self.menu[5][1]["display"] = False
+            self.menu[5][2]["text"] = "Menu"
+            self.menu[5][2]["action"] = self.show_main_menu
             self.menu[5][2]["display"] = True
             if self.diag_code != consts.HEALTHY_DIAG_CODE:
                 if self.prev_diag_code == consts.HEALTHY_DIAG_CODE \
@@ -426,6 +430,9 @@ class KEYPAD:
                     self.countdown_to_turn_off_screen = ERR_SCREEN_TIMEOUT
                 color = (255, 0, 0)
                 title = "Error"
+                self.menu[5][1]["text"] = "Help"
+                self.menu[5][1]["action"] = self.show_summary
+                self.menu[5][1]["display"] = True
             else:
                 if self.countdown_to_turn_off_screen > NRML_SCREEN_TIMEOUT:
                     self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
@@ -447,6 +454,34 @@ class KEYPAD:
         self.display_active = True
         self.set_current_menu(0)
         self.render()
+
+    def show_summary(self):
+        self.display_active = True
+        new_menu_location = len(self.menu)
+        self.titles.insert(new_menu_location, {"text": "Summary"})
+        self.status = configparser.ConfigParser()
+        self.status.read(STATUS_FILE)
+        state = self.status.get("status", "state")
+        icons, any_err, errs = self.lcd.get_status_icons_v2(state, self.diag_code)
+        txts = [
+            ["Network up", "Internet up", "Services up",
+                "Reachable", "Linked", "Self-tests pass", "Claimed"],
+            ["Network down", "Internet down", "Services down", "Not reachable", "Not linked", "Self-tests fail", "Not claimed"]]
+        lines = []
+        t = 1
+        for i in range(len(icons)):
+            if errs[i]:
+                icon_color = "red"
+                txt_color = "red"
+                t = 1
+            else:
+                icon_color = "green"
+                txt_color = "white"
+                t = 0
+            lines.append((txts[t][i], icons[i], txt_color, icon_color))
+        self.lcd.show_summary(lines, 28)
+        # stay in the menu
+        return True
 
     def show_power_menu(self):
         self.display_active = True
@@ -561,8 +596,8 @@ def main():
         [{"text": "Getting version ...  " + s, "action": keypad.show_git_version},
          {"text": "Update", "action": keypad.update_software}, ],
         [{"text": "", "display": False, "action": 0},
-            {"text": "Help", "action": keypad.run_diagnostics, "color": (255, 255, 255)},
-            {"text": "QR Code", "action": keypad.show_diag_qr_code}],
+            {"text": "Help", "display": False, "action": keypad.show_summary},
+            {"text": "Menu", "action": keypad.show_home_screen}],
     ]
     titles = [{"text": "Main"}, {"text": "Power"}, {"text": "About"}, {"text": "Settings"},
               {"text": "Software"}, {"text": "Home", "color": (255, 255, 255)}]

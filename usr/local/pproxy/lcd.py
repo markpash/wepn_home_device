@@ -459,7 +459,7 @@ class LCD:
         rubik_regular = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', size)
         # rubik_light = ImageFont.truetype('rubik/Rubik-Light.ttf', size)
         # rubik_medium = ImageFont.truetype('rubik/Rubik-Medium.ttf', size)
-        font_icon = ImageFont.truetype(DIR + 'heydings/heydings_icons.ttf', size)
+        font_icon = ImageFont.truetype(DIR + 'heydings_icons.ttf', size)
 
         # sort array based on 'row' field
         # Write lines of text/icon/qr code.
