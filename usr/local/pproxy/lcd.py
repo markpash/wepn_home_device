@@ -13,10 +13,11 @@ from PIL import ImageDraw
 from PIL import ImageFont
 import logging.config
 import qrcode
+import textwrap
 try:
     import RPi.GPIO as GPIO
     gpio_enable = True
-except:
+except BaseException:
     gpio_enable = False
 
 
@@ -303,3 +304,189 @@ class LCD:
             flag *= 2
         ret = chr(51) + chr(97) + chr(71) + chr(107) + chr(76) + chr(114) + chr(65)
         return (ret, any_err, errs)
+
+    def show_menu(self, title, menu_items):
+        # get a font [[MAYBE SET THE FONT GLOBALLY TOGETHER WITH BRANDING ASSETS]]
+        base = Image.new("RGBA", (self.width, self.height), (0, 0, 0))
+        fnt = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', 30)
+        # fnt_title = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', 8)
+        txt = Image.new("RGBA", base.size, (255, 255, 255, 0))
+        d = ImageDraw.Draw(txt)
+        overlay = Image.new("RGBA", base.size, (255, 255, 255, 0))
+        # title = self.titles[self.menu_index]
+        # Display the menu title
+        d.text((124, 2), title, font=fnt, anchor="ma", fill=(255, 255, 255, 255))
+        # Define some offsets
+        x = 10
+        y = 0
+        i = 0
+        corner = None
+        for item in menu_items:
+            y = y + int(self.menu_row_y_size / 2) + self.menu_row_skip
+            opacity = 128
+            if True:
+                opacity = 255
+                corner = self.half_round_rectangle((200, self.menu_row_y_size), int(self.menu_row_y_size / 2),
+                                                   (255, 255, 255, 128))
+                corner.putalpha(18)
+                cornery = y
+                overlay.paste(corner, (x, cornery))
+            d.text((x, y), "  " + item, font=fnt, fill=(255, 255, 255, opacity))
+            i = i + 1
+            y = y + int(self.menu_row_y_size / 2)
+        out = Image.alpha_composite(base, txt)
+        out.paste(overlay, (0, 0), overlay)
+        out = out.rotate(0).convert('RGB')
+        self.show_image(out)
+
+    def show_prompt(self, title, options=[
+                    {"text": "Yes", "color": "green"}, {"text": "No", "color": "red"}]):
+        # get a font [[MAYBE SET THE FONT GLOBALLY TOGETHER WITH BRANDING ASSETS]]
+        base = Image.new("RGBA", (self.width, self.height), (0, 0, 0))
+        fnt = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', 30)
+        # font_icon = ImageFont.truetype(UI_DIR + './font-icon/font-awesome/Font Awesome 6 Free-Regular-400.otf', icon_size)
+        # fnt_title = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', 8)
+        txt = Image.new("RGBA", base.size, (255, 255, 255, 0))
+        d = ImageDraw.Draw(txt)
+        overlay = Image.new("RGBA", base.size, (255, 255, 255, 0))
+        # title = self.titles[self.menu_index]
+        y_text = 10
+        # Display the menu title
+        lines = textwrap.wrap(title, width=15)
+        # width represents maximum characters. Meaning it will allow a
+        # maximum of characters before it wraps to a new line
+        if len(lines) > 2:
+            raise Exception("The title text is too long. It must be less than 30 characters")
+        for line in lines:
+            width, height = fnt.getsize(line)
+            d.text((124, y_text), line, font=fnt, anchor="ma", fill=(255, 255, 255, 255))
+            y_text += height
+        # Define some offsets
+        x = 10
+        y = 62
+        i = 0
+        corner = None
+        for item in options:
+            print(item)
+            text = item["text"]
+            color = item["color"]
+            y = y + int(self.menu_row_y_size / 2) + self.menu_row_skip
+            opacity = 128
+            if True:
+                opacity = 255
+                corner = self.half_round_rectangle((120, self.menu_row_y_size), int(self.menu_row_y_size / 2),
+                                                   color)
+                corner.putalpha(130)
+                cornery = y
+                overlay.paste(corner, (x, cornery))
+            d.text((x, y), "  " + text, font=fnt, fill=(255, 255, 255, opacity))
+            i = i + 1
+            y = y + int(self.menu_row_y_size / 2)
+        out = Image.alpha_composite(base, txt)
+        out.paste(overlay, (0, 0), overlay)
+        out = out.rotate(0).convert('RGB')
+        self.show_image(out)
+
+    def progress_wheel(self, title, degree, color):
+        """show progress circle/wheel"""
+        base = Image.new("RGBA", (self.width, self.height), (0, 0, 0))
+        fnt = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', 30)
+        txt = Image.new("RGBA", base.size, (255, 255, 255, 0))
+        d = ImageDraw.Draw(txt)
+        overlay = Image.new("RGBA", base.size, (255, 255, 255, 0))
+        # Draw a Pie Slice
+        radius = 100
+        wheel = Image.new('RGB', (radius + 5, radius + 5), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(wheel)
+        draw.arc((0, 0, radius, radius), start=0, end=degree, fill=color, width=20)
+        # title = self.titles[self.menu_index]
+        y_text = 10
+        # Display the menu title
+        lines = textwrap.wrap(title, width=15)
+        # width represents maximum characters. Meaning it will allow a
+        # maximum of characters before it wraps to a new line
+        if len(lines) > 2:
+            raise Exception("The title text is too long. It must be less than 15 characters")
+        for line in lines:
+            width, height = fnt.getsize(line)
+            d.text((124, y_text), line, font=fnt, anchor="ma", fill=(255, 255, 255, 255))
+            y_text += height
+        # Define some offsets
+        x = 70
+        y = 100
+        # opacity = 255
+        # wheel.putalpha(130)
+        overlay.paste(wheel, (x, y))
+        out = Image.alpha_composite(base, txt)
+        out.paste(overlay, (0, 0), overlay)
+        out = out.rotate(0).convert('RGB')
+        self.show_image(out)
+
+    def show_summary(self, strs, size):
+        # Draw some shapes.
+        # First define some constants to allow easy resizing of shapes.
+        padding = 1
+        top = padding
+        # Move left to right keeping track of the current x position for drawing shapes.
+        x_pad = padding
+
+        if self.version == 2 or self.version == 3:
+            width = self.width
+            height = self.height
+            pixel_size = int(size * 0.5)
+            x_offset = 15
+            image = Image.new("RGB", (width, height), "BLACK")
+        else:
+            # Note you can change the I2C address by passing an i2c_address parameter like:
+            disp = Adafruit_SSD1306.SSD1306_128_64(
+                rst=self.RST, i2c_address=0x3C)
+            # Initialize library.
+            disp.begin()
+            # Clear display.
+            disp.clear()
+            disp.display()
+            # Make sure to create image with mode '1' for 1-bit color.
+            width = disp.width
+            height = disp.height
+            x_offset = 0
+            image = Image.new('1', (width, height))
+
+        # Get drawing object to draw on image.
+        draw = ImageDraw.Draw(image)
+        # Draw a black filled box to clear the image.
+        draw.rectangle((0, 0, width, height), outline=0, fill=0)
+
+        rubik_regular = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', size)
+        # rubik_light = ImageFont.truetype('rubik/Rubik-Light.ttf', size)
+        # rubik_medium = ImageFont.truetype('rubik/Rubik-Medium.ttf', size)
+        font_icon = ImageFont.truetype(DIR + 'heydings/heydings_icons.ttf', size)
+
+        # sort array based on 'row' field
+        # Write lines of text/icon/qr code.
+        for current_str, icon, text_color, icon_color in strs:
+            if (self.version == 2 or self.version == 3):
+                curr_x = x_pad + x_offset
+                # print(curr_x)
+                # normal text
+                draw.text((curr_x, top), current_str,
+                          font=rubik_regular, fill=text_color)
+                curr_x += (len(current_str) + 1) * pixel_size
+                # print(curr_x)
+                # icon
+                # draw.text((curr_x, top), icon, font=font_icon, fill=icon_color)
+                draw.text((self.width - (x_offset + x_pad + 10), top),
+                          icon, font=font_icon, fill=icon_color)
+                # add vetical offset
+                top = top + size
+        # Display image.
+        if (self.lcd_present == 0):
+            image.save(IMG_OUT)
+        else:
+            if self.version == 3:
+                self.lcd.image(image, 0, 0)
+            elif self.version == 2:
+                image = image.rotate(270)
+                self.lcd.image(image, 0, 0)
+            else:
+                disp.image(image)
+                disp.display()
