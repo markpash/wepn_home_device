@@ -88,6 +88,7 @@ class KEYPAD:
         self.leds_turned_for_error = False
         self.diag_code = 0
         self.prev_diag_code = 0
+        self.err_pending_ack = False
 
     def init_i2c(self):
         GPIO.setmode(GPIO.BCM)
@@ -153,6 +154,7 @@ class KEYPAD:
         exit_menu = False
         menu_base_index = 0
         window_size = len(self.window_stack)
+        self.err_pending_ack = False
         if inputs > -1:
             # first set countdown for menu being active to 10
             # this ensures while menu is actively used
@@ -184,14 +186,10 @@ class KEYPAD:
                     exit_menu = True
                     self.show_home_screen()
             if BUTTONS[index] in ["1", "2", "0"]:
-                print("Key side =" + BUTTONS[index])
                 if window_size == 0 or (self.menu_index != self.window_stack[window_size - 1]):
                     self.window_stack.append(self.menu_index)
-                print(self.menu[self.menu_index][int(
-                    BUTTONS[index]) + menu_base_index]["action"])
                 exit_menu = self.menu[self.menu_index][int(
                     BUTTONS[index]) + menu_base_index]["action"]()
-                print(self.menu[self.menu_index][int(BUTTONS[index])])
                 if self.diag_shown is True:
                     self.diag_shown = False
             if BUTTONS[index] == "home":
@@ -290,7 +288,6 @@ class KEYPAD:
             # show a chin line for Home
             font_icon = ImageFont.truetype('/usr/local/pproxy/ui/heydings_icons.ttf', 25)
             y = y + int(self.menu_row_y_size / 2) + 6
-            print(y)
             x = 20
             i = 0
             for c in self.chin['text']:
@@ -386,13 +383,18 @@ class KEYPAD:
     def refresh_status(self, led_update=True):
         self.status.read(STATUS_FILE)
         diag_code = self.status.get("status", "last_diag_code")
-        print("diag_code is " + diag_code)
         if diag_code != "":
             self.prev_diag_code = self.diag_code
             self.diag_code = int(diag_code)
         if led_update:
             if self.diag_code != consts.HEALTHY_DIAG_CODE:
-                self.led_client.pulse(color=(255, 0, 0), wait=100, repetitions=1)
+                if self.prev_diag_code == consts.HEALTHY_DIAG_CODE:
+                    # new error just detected
+                    # we need to show red pulse until user interacts with device
+                    self.err_pending_ack = True
+                if self.err_pending_ack:
+                    # only pulse if no user interaction recorded since error was detected first
+                    self.led_client.pulse(color=(255, 0, 0), wait=100, repetitions=1)
                 self.leds_turned_for_error = True
             else:
                 if self.leds_turned_for_error:
@@ -634,9 +636,9 @@ def main():
         else:
             # this allows showing LED error even with in different menu
             keypad.refresh_status(True)
-        print("menu_active_countdown: " + str(keypad.menu_active_countdown) +
-              " countdown_to_turnoff_screen: " + str(keypad.countdown_to_turn_off_screen) +
-              " screen is off? " + str(keypad.screen_timed_out))
+        # print("menu_active_countdown: " + str(keypad.menu_active_countdown) +
+        #      " countdown_to_turnoff_screen: " + str(keypad.countdown_to_turn_off_screen) +
+        #      " screen is off? " + str(keypad.screen_timed_out))
         keypad.menu_active_countdown -= 1
         if keypad.menu_active_countdown == 0:
             # this part ensures we read status and update screen info
