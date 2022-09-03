@@ -15,6 +15,15 @@ AccountingMax 5 GBytes
 RelayBandwidthRate 1000 KBytes
 RelayBandwidthBurst 5000 KBytes # allow higher bursts but maintain average
 
+Transport 9040
+DNSPort 5353
+AutomapHostsOnResolve 1
+AutomapHostsSuffixes .exit,.onion
+
+ControlPort 9051
+CookieAuthentication 1
+CookieAuthFileGroupReadable 1
+
 Nickname WETor
 EOF
 
@@ -29,6 +38,12 @@ fi
 systemctl enable --now tor.service
 systemctl restart tor.service
 
+# make authcookie usable for user pi
+# helps with nyx
 
+groupadd tor-log
+usermod -a -G tor-log pi
+usermod -a -G tor-log debian-tor 
 
-
+chown debian-tor.tor-log /run/tor/control.authcookie
+chmod 660 /run/tor/control.authcookie

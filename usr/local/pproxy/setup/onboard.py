@@ -51,6 +51,7 @@ class OnBoard():
         self.config.read(CONFIG_FILE)
         self.status = configparser.ConfigParser()
         self.status.read(STATUS_FILE)
+        self.disconnect_count = 0
         if logger is not None:
             self.logger = logger
         else:
@@ -178,13 +179,21 @@ class OnBoard():
 
     def on_disconnect(self, client, userdata, reason_code):
         self.logger.debug(">>>MQTT disconnected")
+        self.disconnect_count += 1
+        sleep_delay = 60
+        if self.disconnect_count > 720:
+            self.logger.error("Too many MQTT disconnects, sleeping a bit")
+            if self.disconnect_count > 8640:
+                # if not claimed in a day, wait 10 mins between retries
+                sleep_delay = 600
+            time.sleep(sleep_delay)
 
     # The callback for when the client receives a CONNACK response from the server.
     def on_connect(self, client, userdata, flags, result_code):
         self.logger.debug("Connected with result code " + str(result_code))
         if (result_code == 0):
             self.logger.critical("* setting device to claimed")
-            self.leds.set_all(0, 255, 0)
+            self.leds.set_all((0, 255, 0))
             # save the randomly generated devkey
             self.config.set('mqtt', 'password', self.rand_key)
             self.config.set('django', 'device_key', self.rand_key)
@@ -227,14 +236,13 @@ class OnBoard():
         if not run_once:
             self.generate_rand_key()
             self.save_temp_key()
-        self.lcd.set_logo_text("loading ...", 45, 200, "red", 25)
-        self.lcd.show_logo()
-        time.sleep(10)
-        self.display_claim_info()
         self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
         # TODO: to log this effectively for error logs,
-        # instead of actual key save a hash of it to the log file. This way WEPN staff can
-        # safely check if this is the correct key, without exposing the actual key
+        # instead of actual key save a hash of it to the log file.
+        # This way WEPN staff can
+        # safely check if this is the correct key, i
+        # without exposing the actual key
+
         self.logger.debug('Randomly generated device key: ' + self.rand_key)
         self.logger.debug('HW config: button=' + str(int(self.config.get('hw', 'buttons'))) + '  LED=' +
                           self.config.get('hw', 'lcd'))
@@ -255,7 +263,7 @@ class OnBoard():
                                     password=self.rand_key)
         self.logger.debug("mqtt host:" + str(self.config.get('mqtt', 'host')))
         while self.unclaimed and not run_once_done:
-            self.leds.progress_wheel_step(0, 0, 255)
+            self.leds.progress_wheel_step((0, 0, 255))
             try:
                 self.logger.debug("password for mqtt= " + self.rand_key)
                 self.retries_so_far_screen += 1
@@ -271,7 +279,8 @@ class OnBoard():
                 display_str = [(1, chr(33) + '     ' + chr(33), 1, "red"),
                                (2, "Network error,", 0, "red"), (3, "check cable...", 0, "red")]
                 self.lcd.display(display_str, 18)
-                if not run_once and (int(self.config.get('hw', 'buttons'))):
+                if not run_once and (int(self.config.get('hw', 'buttons'))) \
+                        and (int(self.config.get('hw', 'button-version')) == 1):
                     if keypad is not None:
                         keypad.cleanup()
                     if gpio_up:

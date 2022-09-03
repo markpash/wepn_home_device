@@ -14,6 +14,10 @@ from ipw import IPW
 ipw = IPW()
 
 
+# This can be updated whenever we add a new flag
+# So other files should import and use this
+# When trying to determine if device diag code is healthy
+HEALTHY_DIAG_CODE = 127
 CONFIG_FILE = '/etc/pproxy/config.ini'
 STATUS_FILE = '/var/local/pproxy/status.ini'
 try:
@@ -53,7 +57,7 @@ class HeartBeat:
 
     def get_display_string_status(self, status, diag_code, lcd):
         if lcd.version > 1:
-            icons, any_err = lcd.get_status_icons_v2(status, diag_code)
+            icons, any_err, errs = lcd.get_status_icons_v2(status, diag_code)
             any_err = False
             if any_err:
                 color = "red"
@@ -73,7 +77,7 @@ class HeartBeat:
                                (7, "", 1, "black")]
         else:
             icons, any_err = lcd.get_status_icons(status,
-                                              self.is_connected(), self.mqtt_connected)
+                                                  self.is_connected(), self.mqtt_connected)
             if any_err:
                 color = "red"
             else:
@@ -90,7 +94,7 @@ class HeartBeat:
         pass
 
     # send heartbeat. if lcd_print==1, update LCD
-    def send_heartbeat(self, lcd_print=1):
+    def send_heartbeat(self, lcd_print=0):
         headers = {"Content-Type": "application/json"}
         external_ip = str(ipw.myip())
 
@@ -134,7 +138,10 @@ class HeartBeat:
             "public_key": signature,
         }
         self.status.set('pin', str(self.pin))
+        prev_token = self.status.get('local_token')
+        self.status.set('prev_token', str(prev_token))
         self.status.set('local_token', str(self.local_token))
+        self.status.set('last_diag_code', str(diag_code))
         self.status.save()
 
         data_json = json.dumps(data)

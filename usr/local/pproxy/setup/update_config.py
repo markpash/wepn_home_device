@@ -44,10 +44,13 @@ if url == "we-pn.com" or url == "https://we-pn.com":
 
 if not config.has_section('openvpn'):
     config.add_section('openvpn')
-    config.set('openvpn', 'enabled', '1')
+    config.set('openvpn', 'enabled', '0')
+else:
+    config.set('openvpn', 'enabled', '0')
+
 
 if not config.has_option('openvpn', 'enabled'):
-    config.set('openvpn', 'enabled', '1')
+    config.set('openvpn', 'enabled', '0')
     config.set('openvpn', 'email', '0')
 
 if not config.has_section('shadow'):
@@ -175,7 +178,7 @@ if shadowsocks_3:
 else:
     config.set('shadow', 'method', 'aes-256-cfm')
 
-status.set('status', 'sw', '1.6.0')
+status.set('status', 'sw', '1.7.0')
 
 
 with open(CONFIG_FILE, 'w') as configfile:

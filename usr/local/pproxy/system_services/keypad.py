@@ -17,6 +17,8 @@ from heartbeat import HeartBeat  # noqa E402 need up_dir first
 from device import Device  # noqa E402 need up_dir first
 from diag import WPDiag  # noqa E402 need up_dir first
 from lcd import LCD as LCD  # noqa E402 need up_dir first
+import constants as consts  # noqa E402 need up_dir first
+
 try:
     from self.configparser import configparser
 except ImportError:
@@ -32,6 +34,16 @@ logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
 INT_EXPANDER = 5
 BUTTONS = ["0", "1", "2", "up", "down", "back", "home"]
+
+# Unit of time: how often it wakes from sleep
+# in seconds
+UNIT_TIMEOUT = 30
+# Multiply by unit above for all below timeouts
+NRML_SCREEN_TIMEOUT = 40
+# if an error is detected, keep screen
+# on longer
+ERR_SCREEN_TIMEOUT = 100
+MENU_TIMEOUT = 10
 
 
 class KEYPAD:
@@ -61,6 +73,7 @@ class KEYPAD:
         self.lcd = LCD()
         self.lcd.set_lcd_present(self.config.get('hw', 'lcd'))
         self.lcd.display([(1, "WEPN loading ... ", 0, "white"), ], 15)
+        self.chin = {"text": "", "color": (0, 0, 0), "opacity": 100, "errs": [False] * 7}
         self.width = 240
         self.height = 240
         self.menu_row_y_size = 37
@@ -69,6 +82,13 @@ class KEYPAD:
         self.menu_index = 0
         self.led_setting_index = 0
         self.current_title = "Main"
+        self.menu_active_countdown = MENU_TIMEOUT
+        self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
+        self.screen_timed_out = False
+        self.leds_turned_for_error = False
+        self.diag_code = 0
+        self.prev_diag_code = 0
+        self.err_pending_ack = False
 
     def init_i2c(self):
         GPIO.setmode(GPIO.BCM)
@@ -92,42 +112,35 @@ class KEYPAD:
         buffer[1] = 0x00
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         time.sleep(0.1)
         buffer[0] = 0x01
         buffer[1] = 0x00
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         # disable interrupt for higher bits
         buffer[0] = 0x06
         buffer[1] = 0x00
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         buffer[0] = 0x07
         buffer[1] = 0xff
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         # read registers again to reset interrupt
         buffer[0] = 0x00
         buffer[1] = 0x00
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         time.sleep(0.1)
         buffer[0] = 0x01
         buffer[1] = 0x00
         new_i2c.write(buffer)
         new_i2c.write_then_readinto(buffer, buffer, out_end=1, in_start=1)
-        print(buffer)
         time.sleep(0.1)
         # _inputs = self.aw.inputs
-        # print("Inputs: {:016b}".format(_inputs))
-        for i in range(1):
-            print("Inputs: {:016b}".format(self.aw.inputs))
-            time.sleep(0.5)
+        # for i in range(1):
+        #    print("Inputs: {:016b}".format(self.aw.inputs))
+        #    time.sleep(0.5)
         time.sleep(0.5)
         GPIO.add_event_detect(INT_EXPANDER, GPIO.FALLING, callback=self.key_press_cb)
 
@@ -138,12 +151,26 @@ class KEYPAD:
         if inputs < 1:
             return
         index = (int)(math.log2(inputs))
-        print("index is" + str(index))
-        # return
         exit_menu = False
         menu_base_index = 0
         window_size = len(self.window_stack)
+        self.err_pending_ack = False
         if inputs > -1:
+            # first set countdown for menu being active to 10
+            # this ensures while menu is actively used
+            # it is not overwritten
+            self.menu_active_countdown = MENU_TIMEOUT
+            # This below countdown will turn off screen if not used
+            # every time keys are touched, the countdown will be reset
+            self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
+            # if screen has timed out, first button press should ONLY
+            # render the screen and nothing else
+            if self.screen_timed_out is True:
+                self.screen_timed_out = False
+                # just show whatever the last menu was on screen
+                self.render()
+                return
+
             if BUTTONS[index] == "up":
                 print("Key up on " + str(index))
             if BUTTONS[index] == "down":
@@ -159,12 +186,10 @@ class KEYPAD:
                     exit_menu = True
                     self.show_home_screen()
             if BUTTONS[index] in ["1", "2", "0"]:
-                print("Key side =" + BUTTONS[index])
                 if window_size == 0 or (self.menu_index != self.window_stack[window_size - 1]):
                     self.window_stack.append(self.menu_index)
                 exit_menu = self.menu[self.menu_index][int(
                     BUTTONS[index]) + menu_base_index]["action"]()
-                print(self.menu[self.menu_index][int(BUTTONS[index])])
                 if self.diag_shown is True:
                     self.diag_shown = False
             if BUTTONS[index] == "home":
@@ -175,13 +200,15 @@ class KEYPAD:
             if exit_menu is False:
                 self.render()
 
+    def clear_screen(self):
+        self.lcd.clear()
+
     def set_full_menu(self, menu, titles):
         self.menu = menu
         self.titles = titles
 
     def set_current_menu(self, index):
         self.menu_index = index
-        print(self.menu[index])
 
     def round_corner(self, radius, fill):
         """Draw a round corner"""
@@ -212,7 +239,7 @@ class KEYPAD:
         rectangle.paste(corner.rotate(270), (width - radius, 0))
         return rectangle
 
-    def render(self):
+    def render(self, title=None):
         # get a font
         base = Image.new("RGBA", (self.width, self.height), (0, 0, 0))
         fnt = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf', 30)
@@ -220,20 +247,23 @@ class KEYPAD:
         txt = Image.new("RGBA", base.size, (255, 255, 255, 0))
         d = ImageDraw.Draw(txt)
         overlay = Image.new("RGBA", base.size, (255, 255, 255, 0))
-        title = self.titles[self.menu_index]["text"]
+        if (title is None):
+            title = self.titles[self.menu_index]["text"]
         if "color" in self.titles[self.menu_index]:
             color = self.titles[self.menu_index]["color"]
         else:
             color = (255, 255, 255)
-        d.text(((200 - len(title) * 8) / 2, 2), title, font=fnt, fill=(color[0], color[1], color[2], 255))
+        d.text(((200 - len(title) * 8) / 2, 2), title, font=fnt,
+               fill=(color[0], color[1], color[2], 255))
         x = 10
         y = 0
         i = 0
         corner = None
         for item in self.menu[self.menu_index]:
-            if "display" in item and item["display"] == False:
-                y = y + int(self.menu_row_y_size / 2) + self.menu_row_skip
-                continue
+            if "display" in item and item["display"] is False:
+                skip = True
+            else:
+                skip = False
 
             if "color" in item:
                 color = item["color"]
@@ -242,16 +272,36 @@ class KEYPAD:
 
             y = y + int(self.menu_row_y_size / 2) + self.menu_row_skip
             opacity = 128
-            if True:
+            if not skip:
                 opacity = 255
                 corner = self.half_round_rectangle((200, self.menu_row_y_size), int(self.menu_row_y_size / 2),
                                                    (255, 255, 255, 128))
                 corner.putalpha(18)
                 cornery = y
                 overlay.paste(corner, (x, cornery))
-            d.text((x, y), "  " + item['text'], font=fnt, fill=(color[0], color[1], color[2], opacity))
+            if not skip:
+                d.text((x, y), "  " + item['text'], font=fnt,
+                       fill=(color[0], color[1], color[2], opacity))
             i = i + 1
             y = y + int(self.menu_row_y_size / 2)
+        if self.menu_index == 5:
+            # show a chin line for Home
+            font_icon = ImageFont.truetype('/usr/local/pproxy/ui/heydings_icons.ttf', 25)
+            y = y + int(self.menu_row_y_size / 2) + 6
+            x = 20
+            i = 0
+            for c in self.chin['text']:
+                if self.chin['errs'][i]:
+                    color = (255, 0, 0)
+                else:
+                    color = (0, 255, 0)
+                i += 1
+                d.text((x, y), c, font=font_icon,
+                       fill=(color[0],
+                             color[1],
+                             color[2],
+                             self.chin["opacity"]))
+                x += 30
         out = Image.alpha_composite(base, txt)
         out.paste(overlay, (0, 0), overlay)
         out = out.rotate(0)
@@ -270,7 +320,7 @@ class KEYPAD:
         current_key = self.status.get('status', 'temporary_key')
         serial_number = self.config.get('django', 'serial_number')
         display_str = [(1, "https://red.we-pn.com/?pk=NONE&s=" +
-                        str(serial_number) + "&k =" + str(current_key), 2, "white")]
+                        str(serial_number) + "&k=" + str(current_key), 2, "white")]
         self.lcd.display(display_str, 20)
         return True  # exit the menu
 
@@ -311,7 +361,6 @@ class KEYPAD:
         return True  # stay in the menu
 
     def signal_main_wepn(self):
-        print("starting")
         with open("/var/run/pproxy.pid", "r") as f:
             wepn_pid = int(f.readline())
             self.logger.debug("Signaling main process at: " + str(wepn_pid))
@@ -322,32 +371,119 @@ class KEYPAD:
                 self.logger.error("Could not find the process for main wepn: " +
                                   str(wepn_pid) + ":" + str(process_error))
 
+    def show_dummy_home(self, new_title, new_str):
+        new_menu_location = len(self.menu)
+        self.titles.insert(new_menu_location, {"text": new_title})
+        self.lcd.display(new_str, 20)
+
+    def append_current_title(self, new_str):
+        _title = self.titles[self.menu_index]["text"] + new_str
+        self.render(title=_title)
+
+    def refresh_status(self, led_update=True):
+        self.status.read(STATUS_FILE)
+        diag_code = self.status.get("status", "last_diag_code")
+        if diag_code != "":
+            self.prev_diag_code = self.diag_code
+            self.diag_code = int(diag_code)
+        if led_update:
+            if self.diag_code != consts.HEALTHY_DIAG_CODE:
+                if self.prev_diag_code == consts.HEALTHY_DIAG_CODE:
+                    # new error just detected
+                    # we need to show red pulse until user interacts with device
+                    self.err_pending_ack = True
+                if self.err_pending_ack:
+                    # only pulse if no user interaction recorded since error was detected first
+                    self.led_client.pulse(color=(255, 0, 0), wait=100, repetitions=1)
+                self.leds_turned_for_error = True
+            else:
+                if self.leds_turned_for_error:
+                    # turns off LEDS only if it set them previously
+                    # ideally, this will be a central place in led_manager
+                    # so one process cannot clear another ones
+                    # TODO(amir): updated to new patterns
+                    self.leds_turned_for_error = False
+                    self.led_client.blank()
+
     def show_home_screen(self):
         self.display_active = True
         self.status = configparser.ConfigParser()
         self.status.read(STATUS_FILE)
+        state = self.status.get("status", "state")
         if int(self.status.get("status", "claimed")) == 0:
             self.show_claim_info_qrcode()
         else:
             # show the status info
-            status = int(self.status.get("status", 'state'))
-            diag = WPDiag(self.logger)
-            test_port = int(self.config.get('openvpn', 'port')) + 1
-            self.diag_code = diag.get_error_code(test_port)
-            self.diag_code = 127
-            if self.diag_code != 127:
+            self.set_current_menu(5)
+            self.titles[5]["color"] = (255, 255, 255)
+            self.refresh_status(led_update=True)
+            self.menu[5][0]["display"] = False
+            self.menu[5][1]["display"] = False
+            self.menu[5][2]["text"] = "Menu"
+            self.menu[5][2]["action"] = self.show_main_menu
+            self.menu[5][2]["display"] = True
+            if self.diag_code != consts.HEALTHY_DIAG_CODE:
+                if self.prev_diag_code == consts.HEALTHY_DIAG_CODE \
+                        or self.prev_diag_code == 0:
+                    # first time after diag says there's an error
+                    # wake up the screen, and reset the count down
+                    self.screen_timed_out = False
+                    # keep screen on longer
+                    self.countdown_to_turn_off_screen = ERR_SCREEN_TIMEOUT
                 color = (255, 0, 0)
                 title = "Error"
+                self.menu[5][1]["text"] = "Help"
+                self.menu[5][1]["action"] = self.show_summary
+                self.menu[5][1]["display"] = True
             else:
+                if self.countdown_to_turn_off_screen > NRML_SCREEN_TIMEOUT:
+                    self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
                 color = (0, 255, 0)
                 title = "OK"
-                self.menu[5][1]["display"] = False
-                self.menu[5][1]["action"] = ()
 
             self.set_current_menu(5)
             self.titles[5]["color"] = color
             self.titles[5]["text"] = title
-            self.render()
+            icons, any_err, errs = self.lcd.get_status_icons_v2(state, self.diag_code)
+            self.chin["text"] = icons
+            self.chin["errs"] = errs
+            self.chin["color"] = color
+            self.chin["opacity"] = 255
+            if self.screen_timed_out is False:
+                self.render()
+
+    def show_main_menu(self):
+        self.display_active = True
+        self.set_current_menu(0)
+        self.render()
+
+    def show_summary(self):
+        self.display_active = True
+        new_menu_location = len(self.menu)
+        self.titles.insert(new_menu_location, {"text": "Summary"})
+        self.status = configparser.ConfigParser()
+        self.status.read(STATUS_FILE)
+        state = self.status.get("status", "state")
+        icons, any_err, errs = self.lcd.get_status_icons_v2(state, self.diag_code)
+        txts = [
+            ["Network up", "Internet up", "Services up",
+                "Reachable", "Linked", "Self-tests pass", "Claimed"],
+            ["Network down", "Internet down", "Services down", "Not reachable", "Not linked", "Self-tests fail", "Not claimed"]]
+        lines = []
+        t = 1
+        for i in range(len(icons)):
+            if errs[i]:
+                icon_color = "red"
+                txt_color = "red"
+                t = 1
+            else:
+                icon_color = "green"
+                txt_color = "white"
+                t = 0
+            lines.append((txts[t][i], icons[i], txt_color, icon_color))
+        self.lcd.show_summary(lines, 28)
+        # stay in the menu
+        return True
 
     def show_power_menu(self):
         self.display_active = True
@@ -378,24 +514,24 @@ class KEYPAD:
             self.led_client.set_enabled(self.led_enabled)
             if new_index == 0:
                 # yellow
-                self.led_client.set_all(255, 255, 0)
+                self.led_client.set_all(color=(255, 255, 0))
             elif new_index == 1:
                 # white
-                self.led_client.set_all(255, 255, 255)
+                self.led_client.set_all(color=(255, 255, 255))
             elif new_index == 2:
                 # red
-                self.led_client.set_all(255, 0, 0)
+                self.led_client.set_all(color=(255, 0, 0))
             elif new_index == 3:
                 # green
-                self.led_client.set_all(0, 255, 0)
+                self.led_client.set_all(color=(0, 255, 0))
             elif new_index == 4:
                 # brown
-                self.led_client.set_all(165, 42, 42)
+                self.led_client.set_all(color=(165, 42, 42))
         elif new_index == 5:
             # rainbow
             self.led_enabled = True
             self.led_client.set_enabled(self.led_enabled)
-            self.led_client.rainbow(0)  # 100ms wait
+            self.led_client.rainbow(rounds=5, wait=50)  # 100ms wait
         elif new_index == 6:
             # reset
             self.led_enabled = True
@@ -443,8 +579,6 @@ class KEYPAD:
         self.show_git_version()
 
 
-
-
 def main():
     keypad = KEYPAD()
     if keypad.enabled is False:
@@ -463,21 +597,58 @@ def main():
         [{"text": "LED ring: " + s, "action": keypad.toggle_led_setting}, ],
         [{"text": "Getting version ...  " + s, "action": keypad.show_git_version},
          {"text": "Update", "action": keypad.update_software}, ],
-        [   {"text": "", "display": False, "action": 0},
-            {"text": "Help", "action": keypad.run_diagnostics, "color":(255,255,255)}, 
-            {"text": "Show QR Code", "action": keypad.show_diag_qr_code},],
+        [{"text": "", "display": False, "action": 0},
+            {"text": "Help", "display": False, "action": keypad.show_summary},
+            {"text": "Menu", "action": keypad.show_home_screen}],
     ]
-    titles = [{"text":"Main"}, {"text":"Power"}, {"text":"About"}, {"text":"Settings"}, {"text":"Software"}, {"text":"Home","color":(255,255,255)}]
+    titles = [{"text": "Main"}, {"text": "Power"}, {"text": "About"}, {"text": "Settings"},
+              {"text": "Software"}, {"text": "Home", "color": (255, 255, 255)}]
 
     if 0 == int(keypad.status.get('status', 'claimed')):
         items[2].insert(0, {"text": "Claim Info", "action": keypad.show_claim_info})
 
     keypad.set_full_menu(items, titles)
-    keypad.set_current_menu(0)
+    keypad.set_current_menu(5)
     # default scren is QR Code
     keypad.show_home_screen()
+
+    ############################
+    # This is an example of how screen can show a custom message
+    # This is to be used for getting messages from another process (socket?)
+    # Advantage of showing the messager from here is that the error message
+    # will stay on (and not be overwritten by screen refreshes) until user
+    # manually dismisses them
+    # display_str = [(1, "Status Code", 0, "blue"), (2, "123", 0, "white"),
+    #                   (3, "Serial #", 0, "blue"), (4, "123", 0, "white"),
+    #                   (5, "Local IP", 0, "blue"), (6, "123", 0, "white"),
+    #                   (7, "MAC Address", 0, "blue"), (8, "123", 0, "white"), ]
+    # keypad.show_dummy_home("HOORA", display_str)
     while True:
-        time.sleep(100)
+        # this timeout serves 2 purposes
+        # first, if menu system (Keys) are not touched in some time,
+        # it will take the menu back to home
+        # second, if the status of device has changed (diag code updated in heartbeat)
+        # this will refresh the home screen to show the new state (thumbs down/up).
+        # challenge here is that if an error message is shown, this refresh should not overwrite it
+        time.sleep(UNIT_TIMEOUT)
+        if keypad.menu_index == 5:
+            keypad.show_home_screen()
+        else:
+            # this allows showing LED error even with in different menu
+            keypad.refresh_status(True)
+        # print("menu_active_countdown: " + str(keypad.menu_active_countdown) +
+        #      " countdown_to_turnoff_screen: " + str(keypad.countdown_to_turn_off_screen) +
+        #      " screen is off? " + str(keypad.screen_timed_out))
+        keypad.menu_active_countdown -= 1
+        if keypad.menu_active_countdown == 0:
+            # this part ensures we read status and update screen info
+            keypad.show_home_screen()
+            keypad.menu_active_countdown = MENU_TIMEOUT
+        if keypad.screen_timed_out is False:
+            keypad.countdown_to_turn_off_screen -= 1
+        if keypad.countdown_to_turn_off_screen == 0:
+            keypad.screen_timed_out = True
+            keypad.clear_screen()
 
 
 if __name__ == '__main__':

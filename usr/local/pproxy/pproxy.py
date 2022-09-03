@@ -7,7 +7,7 @@ import os
 import re
 import atexit
 import logging.config
-import threading
+from threading import Thread, Lock
 
 
 try:
@@ -81,6 +81,7 @@ class PProxy():
             self.logger = logging.getLogger("pproxy")
         self.status = WStatus(self.loggers['wstatus'])
         self.device = Device(self.loggers['device'])
+        self.mqtt_lock = Lock()
         return
 
     def cleanup(self):
@@ -98,7 +99,7 @@ class PProxy():
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
 
-    def save_state(self, new_state, lcd_print=1, hb_send=True):
+    def save_state(self, new_state, lcd_print=0, hb_send=True):
         self.status.reload()
         self.status.set('state', new_state)
         self.status.save()
@@ -285,12 +286,13 @@ class PProxy():
         self.logger.info('subscribing to: ' + topic)
         client.subscribe(topic, qos=1)
         self.logger.info('connected to service MQTT, saving state')
+        self.leds.blink(color=(0, 255, 0), wait=500, repetitions=1)
         self.leds.blank()
         # if device has too many friends,
         # sending heartbeat might take too long and make MQTT fail
         # hence the False parameter for hb_send
         # self.save_state("2", 1, False)
-        th = threading.Thread(target=self.save_state, args=("2", 1))
+        th = Thread(target=self.save_state, args=("2"))
         th.start()
 
     # prevent directory traversal attacks by checking final path
@@ -308,12 +310,14 @@ class PProxy():
         self.logger.debug("on_message: " + msg.topic + " " + str(msg.payload))
         try:
             data = json.loads(msg.payload)
-        except:
+        except BaseException:
             data = json.loads(msg.payload.decode("utf-8"))
-        th = threading.Thread(target=self.on_message_handler, args=(data,))
+            self.logger.exception("on_message: except")
+        th = Thread(target=self.on_message_handler, args=(data, self.mqtt_lock))
         th.start()
+        self.logger.debug("after starting the thread for on_message")
 
-    def on_message_handler(self, data):
+    def on_message_handler(self, data, lock):
         services = Services(self.loggers['services'])
         unsubscribe_link = None
         send_email = True
@@ -332,59 +336,79 @@ class PProxy():
             # print(unsubscribe_link)
 
         if (data['action'] == 'add_user'):
-            username = self.sanitize_str(data['cert_name'])
             try:
-                # extra sanitization to avoid path injection
-                lang = re.sub(r'\\\\/*\.?', "",
-                              self.sanitize_str(data['language']))
-            except:
-                lang = 'en'
-            self.logger.debug("Adding user: " + username +
-                              " with language:" + lang)
-            ip_address = self.sanitize_str(ipw.myip())
-            if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
-                # we have good DDNS, lets use it
-                self.logger.debug(self.config['dydns'])
-                server_address = self.config.get("dydns", "hostname")
-            else:
-                server_address = ip_address
-            password = random.SystemRandom().randint(1111111111, 9999999999)
-            if 'passcode' in data and 'email' in data:
-                if data['passcode'] and data['email']:
-                    # TODO why re cannot remove \ even with escape?
-                    # print("data=" + str(data))
-                    data['passcode'] = re.sub(
-                        r'[\\\\/*?:"<>|.]', "", data['passcode'][:25].replace("\n", ''))
+                self.logger.debug("before lock acquired")
+                lock.acquire()
+                self.logger.debug("lock acquired")
+                username = self.sanitize_str(data['cert_name'])
+                try:
+                    # extra sanitization to avoid path injection
+                    lang = re.sub(r'\\\\/*\.?', "",
+                                  self.sanitize_str(data['language']))
+                except BaseException:
+                    lang = 'en'
+                self.logger.debug("Adding user: " + username +
+                                  " with language:" + lang)
+                ip_address = self.sanitize_str(ipw.myip())
+                if self.config.has_section(
+                        "dyndns") and self.config.getboolean('dyndns', 'enabled'):
+                    # we have good DDNS, lets use it
+                    server_address = self.config.get("dyndns", "hostname")
                 else:
+                    server_address = ip_address
+                password = random.SystemRandom().randint(1111111111, 9999999999)
+                if 'passcode' in data and 'email' in data:
+                    if data['passcode'] and data['email']:
+                        # TODO why re cannot remove \ even with escape?
+                        # print("data=" + str(data))
+                        data['passcode'] = re.sub(
+                            r'[\\\\/*?:"<>|.]', "", data['passcode'][:25].replace("\n", ''))
+                    else:
+                        send_email = False
+                else:
+                    # if email not present or familiar phrase not set, no email!
                     send_email = False
-            else:
-                # if email not present or familiar phrase not set, no email!
-                send_email = False
-            port = self.config.get('shadow', 'start-port')
-            try:
-                is_new_user = services.add_user(
-                    username, server_address, password, int(port), lang)
-                if not is_new_user:
-                    # getting an add for existing user? should be an ip change
-                    self.logger.debug("Update IP")
-                    self.device.update_dns(ip_address)
-                txt, html, attachments, subject = services.get_add_email_text(
-                    username, ip_address, lang, is_new_user)
-            except:
-                logging.exception("Error occured with adding user")
+                port = self.config.get('shadow', 'start-port')
+                try:
+                    is_new_user = services.add_user(
+                        username, server_address, password, int(port), lang)
+                    if not is_new_user:
+                        # getting an add for existing user? should be an ip change
+                        self.logger.debug("Update IP")
+                        self.device.update_dns(ip_address)
+                    else:
+                        # light up ring LEDs in blue with fill pattern
+                        self.leds.fill_upto(color=(0, 0, 255),
+                                            percentage=1,
+                                            wait=50)
+                    txt, html, attachments, subject = services.get_add_email_text(
+                        username, server_address, lang, is_new_user)
+                except BaseException:
+                    logging.exception("Error occured with adding user")
+                    # blink led ring red for 6 times if add friend fails
+                    self.leds.blink(color=(255, 0, 0),
+                                    wait=200,
+                                    repetitions=6)
 
-            self.logger.debug("add_user: " + txt)
-            self.logger.debug("send_email?" + str(send_email))
-            if send_email:
-                self.send_mail(send_from=self.config.get('email', 'email'),
-                               send_to=data['email'],
-                               subject=subject,
-                               text='The familiar phrase you have arranged with your friend is: ' +
-                               data['passcode'] + '\n' + txt,
-                               html='<p>The familiar phrase you have arranged with your friend is: <b>' +
-                               data['passcode'] + '</b></p>' + html,
-                               files_in=attachments,
-                               unsubscribe_link=unsubscribe_link)
+                if txt:
+                    self.logger.debug("add_user: " + txt)
+                self.logger.debug("send_email?" + str(send_email))
+                if send_email:
+                    self.send_mail(send_from=self.config.get('email', 'email'),
+                                   send_to=data['email'],
+                                   subject=subject,
+                                   text='The familiar phrase you have arranged with your friend is: ' +
+                                   data['passcode'] + '\n' + txt,
+                                   html='<p>The familiar phrase you have arranged with your friend is: <b>' +
+                                   data['passcode'] + '</b></p>' + html,
+                                   files_in=attachments,
+                                   unsubscribe_link=unsubscribe_link)
+            except BaseException:
+                self.logger.exception("Unhandled exception adding friend")
+            finally:
+                self.logger.debug("before lock released")
+                lock.release()
+                self.logger.debug("lock released")
 
         elif (data['action'] == 'delete_user'):
             username = self.sanitize_str(data['cert_name'])
@@ -393,7 +417,20 @@ class PProxy():
                 return
             self.logger.debug("Removing user: " + username)
             ip_address = ipw.myip()
-            services.delete_user(username)
+            try:
+                # show a blue led ring fill down pattern when
+                # deleting a friend
+                self.leds.fill_downfrom(color=(0, 0, 255),
+                                        percentage=1,
+                                        wait=50)
+                services.delete_user(username)
+            except BaseException:
+                self.logger.exception("delete friend failed!")
+                # blink led red for 5 times if exception happens
+                # during delete friend
+                self.leds.blink(color=(255, 0, 0),
+                                wait=50,
+                                repetitions=5)
             if send_email:
                 self.send_mail(send_from=self.config.get('email', 'email'),
                                send_to=data['email'],
@@ -434,9 +471,20 @@ class PProxy():
                             self.sanitize_str(data['password']))
             with open(CONFIG_FILE, 'w') as configfile:
                 self.config.write(configfile)
+
+        elif (data['action'] == 'set_ddns'):
+            for item in ['enabled', 'hostname', 'url', 'username', 'password']:
+                if (item in data):
+                    self.config.set('dyndns', item,
+                                    self.sanitize_str(data[item]))
+            with open(CONFIG_FILE, 'w') as configfile:
+                self.config.write(configfile)
+
         elif (data['action'] == 'wipe_device'):
             # very important action: make sure all VPN/ShadowSocks are deleted, and stopped
             # now reset the status bits
+            # set led ring color to solid yellow
+            self.leds.blink(color=(255, 255, 0), wait=250, repetitions=6)
             self.status.reload()
             self.status.set('mqtt', 0)
             self.status.set('mqtt-reason', 0)
@@ -454,7 +502,11 @@ class PProxy():
 
     def on_disconnect(self, client, userdata, reason_code):
         self.logger.info("MQTT disconnected")
-        self.leds.set_all(255, 145, 0)
+        # show solid yellow ring indicating MQTT has been
+        # disconnected from server
+        self.leds.pulse(color=(255, 255, 0),
+                        wait=50,
+                        repetitions=50)
         self.status.reload()
         self.mqtt_connected = 0
         self.mqtt_reason = reason_code
@@ -465,8 +517,12 @@ class PProxy():
     def start(self):
         lcd = LCD()
         lcd.set_lcd_present(self.config.get('hw', 'lcd'))
-        lcd.show_logo()
-        self.leds.set_all(0, 178, 16)
+        # show a white spinning led ring
+        # self.leds.set_all(color=(255, 255, 255))
+        self.leds.spinning_wheel(color=(255, 255, 255),
+                                 length=6,
+                                 wait=50,
+                                 repetitions=100)
         services = Services(self.loggers['services'])
         services.start()
         time.sleep(5)
@@ -497,14 +553,15 @@ class PProxy():
                            int(self.config.get('mqtt', 'port')),
                            int(self.config.get('mqtt', 'timeout')))
             heart_beat = HeartBeat(self.loggers["heartbeat"])
-            heart_beat.send_heartbeat(1)
+            heart_beat.send_heartbeat()
 
         except Exception as error:
             self.logger.error("MQTT connect failed: " + str(error))
             display_str = [(1, chr(33) + '     ' + chr(33), 1, "red"),
                            (2, "Network error,", 0, "red"), (3, "check cable...", 0, "red")]
             lcd.display(display_str, 15)
-            if (int(self.config.get('hw', 'buttons')) == 1):
+            if (int(self.config.get('hw', 'buttons')) == 1) and \
+                    (int(self.config.get('hw', 'button-version')) == 1):
                 keypad.cleanup()
                 if gpio_up:
                     GPIO.cleanup()
