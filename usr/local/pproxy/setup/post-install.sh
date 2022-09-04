@@ -106,8 +106,6 @@ if [ $OVPN_ENABLED -eq 1 ]; then
 	fi
 	addgroup easy-rsa
 	adduser openvpn easy-rsa
-	adduser pproxy i2c
-	adduser pproxy gpio
 	adduser pproxy easy-rsa 
 	/bin/sh /etc/init.d/openvpn restart
 
@@ -229,6 +227,8 @@ systemctl enable shadowsocks-libev-manager
 
 
 echo -e "\n enabling i2c"
+adduser pproxy i2c
+adduser pproxy gpio
 if grep -Fxq "dtparam=i2c_arm=on" /boot/config.txt 
 then
    echo "i2c aleady enabled"
