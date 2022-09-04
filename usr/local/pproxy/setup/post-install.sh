@@ -236,6 +236,14 @@ else
    echo -e 'dtparam=i2c_arm=on' >> /boot/config.txt
 fi
 
+if grep -Fxq "hdmi_force_hotplug=1" /boot/config.txt 
+then
+   echo "audio already rerouted"
+else
+   echo -e 'hdmi_force_hotplug=1' >> /boot/config.txt
+   echo -e 'hdmi_force_edid_audio=1' >> /boot/config.txt
+fi
+
 if ! grep -Fq "i2c" /etc/modules 
 then
    echo -e 'i2c-bcm2708' >> /etc/modules
@@ -254,6 +262,8 @@ echo -e "\n#### Restarting services ####"
 modprobe i2c_dev
 modprobe i2c_bcm2708
 modprobe spi-bcm2835
+chmod 0655 /etc/modprobe.d/snd-bcm2835.conf
+chown root.root /etc/modprobe.d/snd-bcm2835.conf
 
 
 
