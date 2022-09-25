@@ -7,6 +7,8 @@
 #sudo systemctl stop wg-quick@wg0
 
 ip=`curl -s https://ip.we-pn.com`
+# remove trailing new line
+ip=${ip//[$'\r\n ']/}
 name=$1
 
 CLEAN=${name//_/}
@@ -32,10 +34,11 @@ AllowedIPs = 0.0.0.0/0
 Endpoint = $ip:51820
 EOF
 
-echo sudo wg set wg0 peer $pub allowed-ips 0.0.0.0/0
+#sudo wg set wg0 peer $pub allowed-ips 0.0.0.0/0
+wepn-run 1 6 $pub
 
-
-wg set wg0 peer $pub allowed-ips 0.0.0.0/0
-wg-quick save wg0
+#sudo wg-quick save wg0
+#wg-quick save wg0
+wepn-run 1 7
 
 wepn-run 0 2 2
