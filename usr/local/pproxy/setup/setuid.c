@@ -3,42 +3,64 @@
 #include <string.h>
 #include <stdlib.h>
 
-int len(void* arr) {
-	int size = sizeof arr / sizeof *arr;
-	return size;
+#define SRV_CNT 3
+#define CMD_CNT 4
+#define SPECIAL_CMD_CNT 8
+
+int sanitize(char* input) {
+	static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"1234567890_-.@+=/";
+	char user_data[] = "Bad char 1:} Bad char 2:{ bad char3: /  char4:\\";
+	char *cp = user_data; /* Cursor into string */
+	const char *end = user_data + strlen( user_data);
+	int i = 0;
+	while (input[i] != '\0') {
+		if (strchr(ok_chars, input[i]) == NULL) {
+			//illegal character, remove
+			input[i] = '_';
+		}
+		i++;
+	}
+	printf(input);
+	return i;
 }
+
+
 
 int main(int argc, char * argv[])
 {
 	FILE *p;
 	int ch;
 	int i = 0;
-	const char* services[3];
+	const char* services[SRV_CNT];
 	services[0]="openvpn";
 	services[1]="shadowsocks-libev";
 	services[2]="wg-quick@wg0";
 
 
-	const char* commands[4];
+	const char* commands[CMD_CNT];
 	commands[0]="stop";
 	commands[1]="start";
 	commands[2]="restart";
 	commands[3]="reload";
 
 
-	const char* scommands[6];
+	const char* scommands[SPECIAL_CMD_CNT];
 	scommands[0]="/sbin/poweroff";
 	scommands[1]="/bin/sh /usr/local/sbin/restart-pproxy.sh";
 	scommands[2]="/sbin/reboot";
 	scommands[3]="/bin/sh /usr/local/sbin/update-pproxy.sh";
 	scommands[4]="/bin/sh /usr/local/sbin/update-system.sh";
 	scommands[5]= "/usr/local/sbin/wepn_git.sh";
+	scommands[6]= "wg set wg0 peer %s allowed-ips 0.0.0.0/0";
+	scommands[7]= "wg-quick save wg0";
 
 	int c,s,t;
 
-	char cmd[100];    
+	char cmd[255];
 
-	if (argc != 4 && argc != 3) {
+	if (argc != 4 && argc != 3 && argc != 5) {
 		printf(" usage: ./run type service_identifier command_identifier");
 		printf("\n* type: \n 0: services 1: special commands");
 
@@ -46,48 +68,58 @@ int main(int argc, char * argv[])
 		for (i=0; i < 3; i++){
 			printf("%d: ", i);
 			printf(services[i]);
-			printf("\t ");
+			printf("\t\t\n");
 		}
 		printf("\n* commands:\n");
-		for (i=0; i < 3; i++){
+		for (i=0; i < CMD_CNT; i++){
 			printf("%d: ", i);
 			printf(": ");
 			printf(commands[i]);
-			printf("\t ");
+			printf("\t\t\n");
 		}
 		printf("\n* special commands: \n");
-		for (i=0; i < 3; i++){
+		for (i=0; i < SPECIAL_CMD_CNT; i++){
 			printf("%d: ", i);
 			printf(": ");
 			printf(scommands[i]);
-			printf("\t ");
+			printf("\t\t\n");
 		}
 		printf("\n");
 		return(0);
 	}
 	char* ptr;
 	t = strtol(argv[1], &ptr, 10);
-	s = strtol(argv[2], & ptr, 10);
+	s = strtol(argv[2], &ptr, 10);
 
 
 
-	if (s > len(scommands) || t > 3) {
-		printf("Out of range index");
+
+	if (s > SPECIAL_CMD_CNT || t > 3) {
+		printf("S=%d T=%d\n", s, t);
+		printf("# commands = %d\n", SPECIAL_CMD_CNT);
+		printf("Out of range index\n");
 		return(-1);
 	}
 
 	if (t == 0) {
 		c = strtol(argv[3], &ptr, 10);
-		if (c > len(commands)) {
-			printf("Out of range commands index");
+		if (c > CMD_CNT) {
+			printf("Out of range commands index\n");
 			return(-1);
 		}
 		sprintf(cmd, "systemctl %s %s", commands[c], services[s]); 
 	}
 	if (t == 1) {
-		sprintf(cmd, "%s", scommands[s]); 
+		if (argc == 4 && s == 6) {
+			printf("\noriginal: %s\nduring: \n", argv[3]);
+			sanitize(argv[3]);
+			printf("\nafter: %s\n", argv[3]);
+			sprintf(cmd, scommands[6], argv[3]);
+		 } else {
+			sprintf(cmd, "%s", scommands[s]);
+		 }
 	}
-	printf(cmd);
+	printf("\ncmd= %s\n", cmd);
 	printf("\n");
 	setuid(0);
 	p = popen(cmd,"r");
