@@ -165,6 +165,13 @@ if not config.has_section('dyndns'):
     config.set('dyndns', 'hostname', "")
     config.set('dyndns', 'url', "https://{}:{}@domains.google.com/nic/update?hostname={}&myip={}")
     # config.set('dyndns','url', "http://{}:{}@dynupdate.no-ip.com/nic/update?hostname={}&myip={}")
+# Tor installation and config
+
+if not config.has_section('tor'):
+    config.add_section('tor')
+    config.set('tor', 'enabled', "1")
+    config.set('tor', 'email', "1")
+    config.set('tor', 'orport', "8991")
 
 # GCM is required, but older shadowsocks doesn't support it
 cache = apt.Cache()
@@ -178,7 +185,7 @@ if shadowsocks_3:
 else:
     config.set('shadow', 'method', 'aes-256-cfm')
 
-status.set('status', 'sw', '1.7.0')
+status.set('status', 'sw', '1.9.0')
 
 
 with open(CONFIG_FILE, 'w') as configfile:

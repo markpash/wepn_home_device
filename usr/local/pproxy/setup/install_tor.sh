@@ -10,6 +10,10 @@ ServerTransportPlugin obfs4 exec /usr/bin/obfs4proxy
 ServerTransportListenAddr obfs4 0.0.0.0:8992
 ExtORPort auto
 
+PublishServerDescriptor 0
+BridgeDistribution none
+ExitPolicy reject *:*
+
 AccountingStart day 0:00
 AccountingMax 5 GBytes
 RelayBandwidthRate 1000 KBytes
