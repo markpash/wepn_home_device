@@ -280,6 +280,13 @@ echo "\n done with setuid"
 ######################################
 #/bin/bash install_seeedstudio.sh
 
+
+
+#######################################
+# Install Tor
+#######################################
+/bin/bash install_tor.sh
+
 usermod -a -G spi pproxy
 usermod -a -G audio pproxy
 
