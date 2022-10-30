@@ -19,7 +19,7 @@ EnvironmentFile=/etc/default/shadowsocks-libev-manager
 User=pproxy
 Group=shadow-runners
 LimitNOFILE=32768
-ExecStart=/usr/bin/ss-manager -c $CONFFILE $DAEMON_ARGS --manager-address /var/local/pproxy/shadow/shadow.sock 
+ExecStart=/usr/bin/ss-manager -c $CONFFILE $DAEMON_ARGS --manager-address /var/local/pproxy/shadow/shadow.sock  --acl=/etc/pproxy/acl.conf
 
 [Install]
 WantedBy=multi-user.target

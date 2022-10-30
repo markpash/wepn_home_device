@@ -51,7 +51,11 @@ class Tor:
         return
 
     def start(self):
+        device = Device(self.logger)
         self.start_all()
+        # add tor redirects for go.we-pn.com/wrong-location
+        device.execute_setuid("1 8")
+        device.execute_setuid("1 9")
         return
 
     def stop(self):
@@ -73,6 +77,9 @@ class Tor:
 
     def get_service_creds_summary(self, ip_address):
         return ""
+
+    def get_usage_status_summary(self):
+        return {}
 
     def get_usage_daily(self):
         return ""

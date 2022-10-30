@@ -8,11 +8,16 @@
 
 # See https://go.we-pn.com/wrong-location
 
-
+ORPORT=`cat /etc/pproxy/config.ini  | grep orport | awk '{print $3}'`
+ORPORT=${ORPORT:=8991}
 USER=pproxy
-iptables -t nat -F
-ip6tables -t nat -F
-iptables -A OUTPUT -p icmp -j REJECT
+
+# we don't want to redirect traffic if Tor is not active
+# TODO: need to replace this with flags. What if Tor fails?
+#if ! [[ $(netstat -tulpn | grep LISTEN | grep $ORPORT) ]]; then
+#	echo "Tor not running, no need to redirect traffic"
+#	exit
+#fi
 
 wget https://www.gstatic.com/ipranges/goog.txt -O goog.txt
 wget https://www.gstatic.com/ipranges/cloud.json -O cloud.json
@@ -23,19 +28,19 @@ do_iptables() {
 		exit
 	fi
 
-	if [[ ! $ip == *:* ]]; then
-		iptables -t nat -A OUTPUT ! -o lo -p tcp -m owner --uid-owner $USER --dst $ip -m tcp -j REDIRECT --to-ports 9040
-		#iptables -t nat -A OUTPUT ! -o lo -p tcp --dst $ip -m tcp -j REDIRECT --to-ports 9040
-	else
-		ip6tables -t nat -A OUTPUT ! -o lo -p tcp -m owner --uid-owner $USER --dst $ip -m tcp -j REDIRECT --to-ports 9040
-		#ip6tables -t nat -A OUTPUT ! -o lo -p tcp  --dst $ip -m tcp -j REDIRECT --to-ports 9040
+	for proto in tcp udp; do
+		if [[ ! $ip == *:* ]]; then
+			iptables -t nat -A OUTPUT ! -o lo -p $proto -m owner --uid-owner $USER --dst $ip -m $proto -j REDIRECT --to-ports $ORPORT
+		else
+			ip6tables -t nat -A OUTPUT ! -o lo -p $proto -m owner --uid-owner $USER --dst $ip -m $proto -j REDIRECT --to-ports $ORPORT
 
-	fi
+		fi
+	done
 }
 
 # google ones
 
-for ip in `cat goog.txt`; do
+for ip in `cat goog.txt | grep -v 8\.8\.`; do
 	do_iptables $ip
 done
 

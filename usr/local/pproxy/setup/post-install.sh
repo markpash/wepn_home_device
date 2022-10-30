@@ -12,7 +12,7 @@ if [ ! -f "/var/local/pproxy/status.bak" ]; then
     cp /var/local/pproxy/status.ini /var/local/pproxy/status.bak
 fi
 
-chown pproxy.pproxy /var/local/pproxy/config.bak
+ch wn pproxy.pproxy /var/local/pproxy/config.bak
 chmod 0600 /var/local/pproxy/config.bak
 chown pproxy.pproxy /var/local/pproxy/status.bak
 chmod 0600 /var/local/pproxy/status.bak
@@ -48,7 +48,7 @@ chown pproxy.pproxy /var/local/pproxy/.*
 chown pproxy.pproxy /var/local/pproxy/shadow/*
 
 echo -e "correcting scripts that run as sudo"
-for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system wepn_git run_iptables prevent_location_issue
+for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system wepn_git prevent_location_issue iptables-flush
 do
 	chown root.root /usr/local/sbin/$SCRIPT.sh
 	chmod 755 /usr/local/sbin/$SCRIPT.sh
@@ -142,14 +142,6 @@ fi
 if [ $OVPN_ENABLED -eq 1 ]; then
 	/bin/bash $PPROXY_HOME/setup/openvpn-iptables.sh
 fi
-chown root.root /usr/local/sbin/ip-shadow.sh
-chmod 0755 /usr/local/sbin/ip-shadow.sh
-chown root.root /usr/local/sbin/wepn_git.sh
-chmod 0755 /usr/local/sbin/wepn_git.sh
-chown root.root /usr/local/sbin/restart-pproxy.sh
-chmod 0755 /usr/local/sbin/restart-pproxy.sh
-chmod 0755 /etc/network/if-up.d/wepn
-chmod 0755 /etc/network/if-down.d/wepn
 
 ##################################
 # Setup DNS
