@@ -1,14 +1,21 @@
 apt update
 apt-get --yes  -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install tor obfs4proxy
 
+ORPORT=`cat /etc/pproxy/config.ini  | grep orport | awk '{print $3}'`
+ORPORT=${ORPORT:=8991}
+
 cat > /etc/tor/torrc <<EOF
 
-BridgeRelay 0
+BridgeRelay 1
 ExitRelay 0
-ORPort 8991
+ORPort $ORPORT
 ServerTransportPlugin obfs4 exec /usr/bin/obfs4proxy
 ServerTransportListenAddr obfs4 0.0.0.0:8992
 ExtORPort auto
+
+PublishServerDescriptor 0
+BridgeDistribution none
+ExitPolicy reject *:*
 
 AccountingStart day 0:00
 AccountingMax 5 GBytes

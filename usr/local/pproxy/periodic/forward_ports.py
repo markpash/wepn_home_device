@@ -12,9 +12,13 @@ sys.path.append(up_dir)
 
 from shadow import Shadow
 from wstatus import WStatus
+from tor import Tor
 
 s = Shadow(logger)
 s.forward_all()
+
+t = Tor(logger)
+t.forward_all()
 
 # Check that the API is not externally exposed.
 # If so, APIs should shut down

@@ -1,6 +1,7 @@
 from shadow import Shadow
 from openvpn import OpenVPN
 from wireguard import Wireguard
+from tor import Tor
 
 try:
     from self.configparser import configparser
@@ -18,6 +19,7 @@ class Services:
         self.services.append({'name': 'openvpn', 'obj': OpenVPN(logger)})
         self.services.append({'name': 'shadow', 'obj': Shadow(logger)})
         self.services.append({'name': 'wireguard', 'obj': Wireguard(logger)})
+        self.services.append({'name': 'tor', 'obj': Tor(logger)})
         self.logger = logger
         return
 

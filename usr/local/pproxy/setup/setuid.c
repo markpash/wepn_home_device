@@ -5,7 +5,7 @@
 
 #define SRV_CNT 3
 #define CMD_CNT 4
-#define SPECIAL_CMD_CNT 8
+#define SPECIAL_CMD_CNT 11
 
 int sanitize(char* input) {
 	static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
@@ -55,6 +55,9 @@ int main(int argc, char * argv[])
 	scommands[5]= "/usr/local/sbin/wepn_git.sh";
 	scommands[6]= "wg set wg0 peer %s allowed-ips 0.0.0.0/0";
 	scommands[7]= "wg-quick save wg0";
+	scommands[8]= "/bin/sh /usr/local/sbin/iptables-flush.sh";
+	scommands[9]= "/bin/bash /usr/local/sbin/prevent_location_issue.sh";
+	scommands[10]= "/bin/bash /usr/local/sbin/ip-shadow.sh";
 
 	int c,s,t;
 
