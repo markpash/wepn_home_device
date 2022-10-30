@@ -99,8 +99,12 @@ class KEYPAD:
             self.aw = adafruit_aw9523.AW9523(i2c, 0x58)
             new_i2c = i2c_device.I2CDevice(i2c, 0x58)
         except:
-            self.aw = adafruit_aw9523.AW9523(i2c, 0x5b)
-            new_i2c = i2c_device.I2CDevice(i2c, 0x5b)
+            try:
+                self.aw = adafruit_aw9523.AW9523(i2c, 0x5b)
+                new_i2c = i2c_device.I2CDevice(i2c, 0x5b)
+            except:
+                self.aw = adafruit_aw9523.AW9523(i2c, 0x5a)
+                new_i2c = i2c_device.I2CDevice(i2c, 0x5a)
         self.aw.reset()
         # print("Inputs: {:016b}".format(self.aw.inputs))
         self.aw.directions = 0xff00
