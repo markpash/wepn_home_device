@@ -37,6 +37,7 @@ int main(int argc, char * argv[])
 	services[0]="openvpn";
 	services[1]="shadowsocks-libev";
 	services[2]="wg-quick@wg0";
+	services[3]="tor";
 
 
 	const char* commands[CMD_CNT];

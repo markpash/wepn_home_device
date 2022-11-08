@@ -336,6 +336,7 @@ class PProxy():
             # print(unsubscribe_link)
 
         if (data['action'] == 'add_user'):
+            txt = None
             try:
                 self.logger.debug("before lock acquired")
                 lock.acquire()
@@ -390,19 +391,19 @@ class PProxy():
                                     wait=200,
                                     repetitions=6)
 
-                if txt:
+                if txt is not None:
                     self.logger.debug("add_user: " + txt)
-                self.logger.debug("send_email?" + str(send_email))
-                if send_email:
-                    self.send_mail(send_from=self.config.get('email', 'email'),
-                                   send_to=data['email'],
-                                   subject=subject,
-                                   text='The familiar phrase you have arranged with your friend is: ' +
-                                   data['passcode'] + '\n' + txt,
-                                   html='<p>The familiar phrase you have arranged with your friend is: <b>' +
-                                   data['passcode'] + '</b></p>' + html,
-                                   files_in=attachments,
-                                   unsubscribe_link=unsubscribe_link)
+                    self.logger.debug("send_email?" + str(send_email))
+                    if send_email:
+                        self.send_mail(send_from=self.config.get('email', 'email'),
+                                       send_to=data['email'],
+                                       subject=subject,
+                                       text='The familiar phrase you have arranged with your friend is: ' +
+                                       data['passcode'] + '\n' + txt,
+                                       html='<p>The familiar phrase you have arranged with your friend is: <b>' +
+                                       data['passcode'] + '</b></p>' + html,
+                                       files_in=attachments,
+                                       unsubscribe_link=unsubscribe_link)
             except BaseException:
                 self.logger.exception("Unhandled exception adding friend")
             finally:

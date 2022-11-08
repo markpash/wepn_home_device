@@ -1,5 +1,7 @@
-apt update
-apt-get --yes  -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install tor obfs4proxy
+# These two lines are only used when directly insalling this script
+# not as part of post-install pacakge
+# apt update
+# apt-get --yes  -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" install tor obfs4proxy
 
 ORPORT=`cat /etc/pproxy/config.ini  | grep orport | awk '{print $3}'`
 ORPORT=${ORPORT:=8991}
