@@ -558,9 +558,7 @@ class PProxy():
 
         except Exception as error:
             self.logger.error("MQTT connect failed: " + str(error))
-            display_str = [(1, chr(33) + '     ' + chr(33), 1, "red"),
-                           (2, "Network error,", 0, "red"), (3, "check cable...", 0, "red")]
-            lcd.display(display_str, 15)
+            lcd.long_text("COnnection to server disrupted, please check cable.")
             if (int(self.config.get('hw', 'buttons')) == 1) and \
                     (int(self.config.get('hw', 'button-version')) == 1):
                 keypad.cleanup()

@@ -21,6 +21,7 @@ STATUS_FILE = '/var/local/pproxy/status.ini'
 STATUS_FILE_BACKUP = '/var/local/pproxy/status.bak'
 LOG_CONFIG = "/etc/pproxy/logging.ini"
 UPDATE_SCRIPT = "/usr/local/pproxy/setup/update_config.py"
+MAX_UPDATE_RETRIES = 5
 
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
@@ -36,7 +37,7 @@ def check_and_restore(conf, backup):
             copyfile(backup, conf)
         # backup might have been created before
         # new changes were made. Do upgrades
-        exec(open(UPDATE_SCRIPT).read())  # nosec: fixed file path
+        exec(open(UPDATE_SCRIPT).read())
 
 
 check_and_restore(CONFIG_FILE, CONFIG_FILE_BACKUP)
@@ -50,19 +51,45 @@ config.read(CONFIG_FILE)
 status = configparser.ConfigParser()
 
 status.read(STATUS_FILE)
-lcd.set_lcd_present(config.get('hw', 'lcd'))
-lcd.show_logo()
-time.sleep(1)
-
-# leds.spinning_wheel(color=(255, 255, 255),
-#                    wait=50,
-#                    length=6,
-#                    repetitions=50)
 
 device = Device(logger)
 gateway_vendor = device.get_default_gw_vendor()
 logger.critical("Gateway vendor= " + str(gateway_vendor))
 device.check_port_mapping_igd()
+
+lcd.set_lcd_present(config.get('hw', 'lcd'))
+lcd.set_logo_text("Loading ...")
+lcd.show_logo()
+
+# below section will block until connected to the internet
+# AND the software version on device is latest.
+# If not the same, it will run software update in background
+# and keep the message and wheel going until version is the same.
+
+update_was_needed = False
+retries = 0
+while device.needs_package_update() and retries < MAX_UPDATE_RETRIES:
+    update_was_needed = True
+    retries += 1
+    leds.rainbow(10000, 2)
+    lcd.long_text("Do not unplug. Searching for updates.", "i", "red")
+    if device.get_local_ip() == "127.0.0.1":
+        # network has not local IP?
+        lcd.long_text("Is network cable connected? Searching for updates.", "M", "red")
+    elif not device.reached_repo:
+        lcd.long_text("Device cannot reach the internet. Are cables plugged in?", "X", "red")
+    device.execute_setuid("1 3")  # run pproxy-update detached
+    time.sleep(30)
+
+if update_was_needed:
+    if retries == MAX_UPDATE_RETRIES:
+        lcd.long_text("Could not finish update. Booting regardless.", "i", "orange")
+    else:
+        lcd.long_text("Software updated to " + device.get_installed_package_version(), "O", "green")
+        # let the service restart
+        time.sleep(15)
+    leds.blank()
+time.sleep(1)
 
 is_claimed = False
 server_checkin_done = False

@@ -415,6 +415,12 @@ class KEYPAD:
         self.status.read(STATUS_FILE)
         state = self.status.get("status", "state")
         if int(self.status.get("status", "claimed")) == 0:
+            if self.device.needs_package_update():
+                # Disable showing QR Code when software needs upgrade
+                # This way the update screen will not be covered
+                # Other menus work though.
+                # TODO: We need a proper WindowManager
+                return
             self.show_claim_info_qrcode()
         else:
             # show the status info
