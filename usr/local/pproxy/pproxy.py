@@ -432,7 +432,7 @@ class PProxy():
                 self.leds.blink(color=(255, 0, 0),
                                 wait=50,
                                 repetitions=5)
-            if send_email:
+            if send_email and 'email' in data.keys() and data['email'] is not None:
                 self.send_mail(send_from=self.config.get('email', 'email'),
                                send_to=data['email'],
                                subject="Your VPN details",

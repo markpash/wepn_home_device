@@ -84,6 +84,7 @@ class Device():
 
     # this method is just used for checking upnp capabilities
     # primarily used at boot, to add to the error log
+    # True result means IGD found
     def check_port_mapping_igd(self):
         self.find_igds()
         if self.igds:
@@ -91,15 +92,18 @@ class Device():
                 try:
                     self.logger.critical("IGD found: {" + str(d.model_name) +
                                          ", " + str(d.manufacturer) + ", " + str(d.location) + "}")
-                    self.check_igd_supports_portforward(d)
+                    return self.check_igd_supports_portforward(d)
                 except Exception as err:
                     self.logger.critical("IGD found, missing attributes")
                     print(err)
                     pass
         else:
             self.logger.error("No IGDs found")
+            return False
         if not self.port_mappers:
             self.logger.error("No port mappers found")
+            return False
+        return True
 
     def correct_port_status_file(self):
         if not self.status.has_section('port-fwd'):

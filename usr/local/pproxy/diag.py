@@ -366,6 +366,9 @@ class WPDiag:
         retries = 0
         undecided = True
         # if no UPnP, then just return port
+        if not self.device.check_port_mapping_igd():
+            # don't bother
+            return in_port, 404
 
         # if tried more than 10 ports and failed, just return port
         while retries < 10 and undecided:
@@ -411,6 +414,7 @@ class WPDiag:
                             rport += 1
                             # go to the very beginnging of these tests for next port
                             # so exit this While loop
+                            retries += 1
                             break
                 attempts += 1
                 if pending:
