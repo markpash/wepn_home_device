@@ -22,6 +22,7 @@ KEYPAD = [
 ]
 CONFIG_FILE = '/etc/pproxy/config.ini'
 PORT_STATUS_FILE = '/var/local/pproxy/port.ini'
+MAX_UPDATE_RETRIES = 5
 
 
 # setuid command runner
@@ -416,6 +417,35 @@ class Device():
             if self.repo_pkg_version is not None and current == self.repo_pkg_version:
                 needs = False
         return needs
+
+    def software_update_blocking(self, lcd=None, leds=None):
+        # if on a git build, use git
+        # if on release branch, do via apt
+        retries = 0
+        update_was_needed = False
+        while self.needs_package_update() and retries < MAX_UPDATE_RETRIES:
+            update_was_needed = True
+            retries += 1
+            if leds is not None and lcd is not None:
+                leds.rainbow(10000, 2)
+                lcd.long_text("Do not unplug. Searching for updates.", "i", "red")
+                if self.get_local_ip() == "127.0.0.1":
+                    # network has not local IP?
+                    lcd.long_text("Is network cable connected? Searching for updates.", "M", "red")
+                elif not self.reached_repo:
+                    lcd.long_text("Device cannot reach the internet. Are cables plugged in?", "X", "red")
+            self.execute_setuid("1 3")  # run pproxy-update detached
+            time.sleep(30)
+
+        if leds is not None and lcd is not None:
+            if update_was_needed:
+                if retries == MAX_UPDATE_RETRIES:
+                    lcd.long_text("Could not finish update. Booting regardless.", "i", "orange")
+                else:
+                    lcd.long_text("Software updated to " + self.get_installed_package_version(), "O", "green")
+                    # let the service restart
+                    time.sleep(15)
+                leds.blank()
 
     def software_update_from_git(self):
         # first, the git pull in /var/local/pproxy/git/

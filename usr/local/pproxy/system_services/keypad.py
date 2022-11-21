@@ -342,8 +342,8 @@ class KEYPAD:
 
     def run_diagnostics(self):
         diag = WPDiag(self.logger)
-        display_str = [(1, "Starting Diagnostics", 0, "white"), (2, "please wait ...", 0, "green")]
-        self.lcd.display(display_str, 15)
+        display_str = "Starting Diagnostics, please wait."
+        self.lcd.long_text(display_str, "i", "green")
         test_port = int(self.config.get('openvpn', 'port')) + 1
         self.diag_code = diag.get_error_code(test_port)
         serial_number = self.config.get('django', 'serial_number')
@@ -584,7 +584,7 @@ class KEYPAD:
         self.display_active = True
         self.menu[4][1]["text"] = "checking ..."
         self.render()
-        self.device.software_update_from_git()
+        self.device.software_update_blocking(self.lcd, self.led_client)
         self.menu[4][1]["text"] = "Update"
         self.show_git_version()
 
@@ -603,7 +603,7 @@ def main():
         [{"text": "Restart", "action": keypad.restart},
          {"text": "Power off", "action": keypad.power_off}, ],
         [{"text": "Diagnostics", "action": keypad.run_diagnostics},
-         {"text": "Git version", "action": keypad.show_git_version}],
+         {"text": "Software", "action": keypad.show_git_version}],
         [{"text": "LED ring: " + s, "action": keypad.toggle_led_setting}, ],
         [{"text": "Getting version ...  " + s, "action": keypad.show_git_version},
          {"text": "Update", "action": keypad.update_software}, ],
