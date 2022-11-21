@@ -106,8 +106,6 @@ if [ $OVPN_ENABLED -eq 1 ]; then
 	fi
 	addgroup easy-rsa
 	adduser openvpn easy-rsa
-	adduser pproxy i2c
-	adduser pproxy gpio
 	adduser pproxy easy-rsa 
 	/bin/sh /etc/init.d/openvpn restart
 
@@ -200,6 +198,8 @@ adduser shadowsocks --disabled-password --disabled-login  --quiet --gecos "Shado
 addgroup shadow-runners
 adduser pproxy shadow-runners
 adduser shadowsocks shadow-runners
+addgroup wireguard-runners
+adduser pproxy wireguard-runners
 cp $PPROXY_HOME/setup/shadowsocks-libev-manager.service /lib/systemd/system/
 cp $PPROXY_HOME/setup/shadowsocks-libev.service /lib/systemd/system/
 cp $PPROXY_HOME/setup/shadowsocks-libev-manager /etc/default/
@@ -221,11 +221,21 @@ systemctl enable shadowsocks-libev-manager
 
 
 echo -e "\n enabling i2c"
+adduser pproxy i2c
+adduser pproxy gpio
 if grep -Fxq "dtparam=i2c_arm=on" /boot/config.txt 
 then
    echo "i2c aleady enabled"
 else
    echo -e 'dtparam=i2c_arm=on' >> /boot/config.txt
+fi
+
+if grep -Fxq "hdmi_force_hotplug=1" /boot/config.txt 
+then
+   echo "audio already rerouted"
+else
+   echo -e 'hdmi_force_hotplug=1' >> /boot/config.txt
+   echo -e 'hdmi_force_edid_audio=1' >> /boot/config.txt
 fi
 
 if ! grep -Fq "i2c" /etc/modules 
@@ -246,6 +256,8 @@ echo -e "\n#### Restarting services ####"
 modprobe i2c_dev
 modprobe i2c_bcm2708
 modprobe spi-bcm2835
+chmod 0655 /etc/modprobe.d/snd-bcm2835.conf
+chown root.root /etc/modprobe.d/snd-bcm2835.conf
 
 
 
@@ -276,6 +288,11 @@ echo "\n done with setuid"
 # Install Tor
 #######################################
 /bin/bash install_tor.sh
+
+#######################################
+# Install Wireguard
+#######################################
+#/bin/bash install_wireguard.sh
 
 usermod -a -G spi pproxy
 usermod -a -G audio pproxy

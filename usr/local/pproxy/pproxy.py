@@ -336,6 +336,7 @@ class PProxy():
             # print(unsubscribe_link)
 
         if (data['action'] == 'add_user'):
+            txt = None
             try:
                 self.logger.debug("before lock acquired")
                 lock.acquire()
@@ -390,19 +391,19 @@ class PProxy():
                                     wait=200,
                                     repetitions=6)
 
-                if txt:
+                if txt is not None:
                     self.logger.debug("add_user: " + txt)
-                self.logger.debug("send_email?" + str(send_email))
-                if send_email:
-                    self.send_mail(send_from=self.config.get('email', 'email'),
-                                   send_to=data['email'],
-                                   subject=subject,
-                                   text='The familiar phrase you have arranged with your friend is: ' +
-                                   data['passcode'] + '\n' + txt,
-                                   html='<p>The familiar phrase you have arranged with your friend is: <b>' +
-                                   data['passcode'] + '</b></p>' + html,
-                                   files_in=attachments,
-                                   unsubscribe_link=unsubscribe_link)
+                    self.logger.debug("send_email?" + str(send_email))
+                    if send_email:
+                        self.send_mail(send_from=self.config.get('email', 'email'),
+                                       send_to=data['email'],
+                                       subject=subject,
+                                       text='The familiar phrase you have arranged with your friend is: ' +
+                                       data['passcode'] + '\n' + txt,
+                                       html='<p>The familiar phrase you have arranged with your friend is: <b>' +
+                                       data['passcode'] + '</b></p>' + html,
+                                       files_in=attachments,
+                                       unsubscribe_link=unsubscribe_link)
             except BaseException:
                 self.logger.exception("Unhandled exception adding friend")
             finally:
@@ -557,9 +558,7 @@ class PProxy():
 
         except Exception as error:
             self.logger.error("MQTT connect failed: " + str(error))
-            display_str = [(1, chr(33) + '     ' + chr(33), 1, "red"),
-                           (2, "Network error,", 0, "red"), (3, "check cable...", 0, "red")]
-            lcd.display(display_str, 15)
+            lcd.long_text("COnnection to server disrupted, please check cable.")
             if (int(self.config.get('hw', 'buttons')) == 1) and \
                     (int(self.config.get('hw', 'button-version')) == 1):
                 keypad.cleanup()

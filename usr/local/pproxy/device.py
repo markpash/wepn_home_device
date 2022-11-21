@@ -4,6 +4,7 @@ import netifaces
 import atexit
 import upnpclient as upnp
 import requests
+import re
 
 try:
     from self.configparser import configparser
@@ -38,6 +39,8 @@ class Device():
         self.port_mappers = []
         self.igd_names = []
         self.iface = str(self.config.get('hw', 'iface'))
+        self.repo_pkg_version = None
+        self.reached_repo = False
         atexit.register(self.cleanup)
 
     def find_igds(self):
@@ -55,7 +58,8 @@ class Device():
                         d.device_type, d.friendly_name, d.manufacturer, d.model_description, d.model_name, d.model_number, d.serial_number))
                 except:
                     # mainly if friendly name is not there
-                    self.logger.debug("InternetGatewayDevice likely did not have proper UPnP fields")
+                    self.logger.debug(
+                        "InternetGatewayDevice likely did not have proper UPnP fields")
                     pass
                 # Here we find the actual service provider that can forward ports
                 # the default name is different for different routers
@@ -359,6 +363,56 @@ class Device():
                 if r.find(key.encode('utf-8')) == 0:
                     self.logger.error(message)
 
+    def wait_for_internet(self, retries=100, timeout=10):
+        tries = 0
+        self.reached_repo = False
+        while tries < retries:
+            try:
+                if self.get_repo_package_version() is not None:
+                    self.reached_repo = True
+                    return True
+                else:
+                    tries += 1
+                    time.sleep(timeout)
+            except Exception:
+                self.logger.exception("Exception met")
+                tries += 1
+                time.sleep(timeout)
+        return False
+
+    def get_installed_package_version(self):
+        version = None
+        pkg_name = "pproxy-rpi"
+        result = self.execute_cmd_output("dpkg -l " + pkg_name)
+        r = str(result[0]).split("\\n")
+        for i in r:
+            if pkg_name in i:
+                res = re.findall(".*" + pkg_name + r"\s+((\d+)\.(\d+)\.(\d+))\S*", i)
+                if len(res) > 0 and len(res[0]) > 0:
+                    version = res[0][0]
+                    return version
+
+    def get_repo_package_version(self):
+        self.repo_pkg_version = None
+        dist = "bullseye"
+        url = "https://repo.we-pn.com/debian/dists/" + dist + "/main/binary-armhf/Packages"
+        resp = requests.get(url)
+        res = re.findall(r"Version: ((\d+)\.(\d+)\.(\d+)).*", resp.text)
+        if len(res) > 0 and len(res[0]) > 0:
+            self.repo_pkg_version = res[0][0]
+            return self.repo_pkg_version
+
+    def needs_package_update(self):
+        needs = True
+        current = self.get_installed_package_version()
+        if self.wait_for_internet(10, 10):
+            # only gets here is internet is connected
+            # and could get the repo version
+            # repo package version is checked there
+            if self.repo_pkg_version is not None and current == self.repo_pkg_version:
+                needs = False
+        return needs
+
     def software_update_from_git(self):
         # first, the git pull in /var/local/pproxy/git/
         cmd_normal = "/bin/bash /usr/local/pproxy/setup/sync.sh"
@@ -366,8 +420,4 @@ class Device():
         # part that should run as root:
         # copies system files, changes permissions, ...
         cmd_sudo = SRUN + " 1 5"
-        # TODO: while there is no injection done here, this use of sudo
-        # is uncomfortable. This is currently a development tool
-        # but we still need to have a better method such as a separate thread signaled here.
-
-        self.execute_cmd_output(cmd_sudo, True)  # nosec static input go.we-pn.com/waiver-1)
+        self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
