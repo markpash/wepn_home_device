@@ -22,6 +22,7 @@ except ImportError:
     import configparser
 
 from ipw import IPW
+from diag import WPDiag
 ipw = IPW()
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
@@ -33,6 +34,7 @@ class Shadow:
         self.config.read('/etc/pproxy/config.ini')
         self.logger = logger
 
+        self.diag = WPDiag(logger)
         atexit.register(self.cleanup)
         fd, self.socket_path = tempfile.mkstemp()
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
@@ -83,6 +85,7 @@ class Shadow:
             self.logger.info("New port assigned is " + str(max_port + 1) +
                              " was " + str(unused_port))
             port = max_port + 1
+            port, err = self.diag.find_next_good_port(port)
         else:
             port = server['server_port']
             # also reuse the same password, making it easier for end user

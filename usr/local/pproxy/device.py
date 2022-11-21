@@ -36,15 +36,27 @@ class Device():
         self.correct_port_status_file()
         self.igds = []
         self.port_mappers = []
+        self.igd_names = []
         self.iface = str(self.config.get('hw', 'iface'))
         atexit.register(self.cleanup)
 
     def find_igds(self):
         devices = upnp.discover()
         self.logger.info("upnp devices:" + str(devices))
+        # for i in devices:
+        # print(dir(i))
+        # print("https://www.google.com/search?q=%s+port+forward" % (urllib.parse.quote_plus(i.friendly_name)))
         for d in devices:
             if "InternetGatewayDevice" in d.device_type:
                 self.igds.append(d)
+                try:
+                    self.ig_names.append(d.friendly_name)
+                    print("Type: %s name: %s manufacturer:%s model:%s model:%s model:%s serial:%s" % (
+                        d.device_type, d.friendly_name, d.manufacturer, d.model_description, d.model_name, d.model_number, d.serial_number))
+                except:
+                    # mainly if friendly name is not there
+                    self.logger.debug("InternetGatewayDevice likely did not have proper UPnP fields")
+                    pass
                 # Here we find the actual service provider that can forward ports
                 # the default name is different for different routers
                 for service in d.services:
@@ -159,7 +171,9 @@ class Device():
         cmd = "1 4"
         self.execute_setuid(cmd)
 
-    def open_port(self, port, text):
+    def open_port(self, port, text, outside_port=None, timeout=500000):
+        if outside_port is None:
+            outside_port = port
         skip = int(self.status.get_field('port-fwd', 'skipping'))
         skip_count = int(self.status.get_field('port-fwd', 'skips'))
         if skip:
@@ -173,7 +187,7 @@ class Device():
                 self.status.set_field('port-fwd', 'skips', '0')
         else:
             # no skipping, just try opening port normally with UPNP
-            self.set_port_forward("open", port, text)
+            self.set_port_forward("open", port, text, outside_port, timeout)
         self.logger.info("skipping? " + str(skip) +
                          " count=" + str(skip_count))
 
@@ -195,7 +209,9 @@ class Device():
             self.set_port_forward("close", port, "")
         self.logger.info("skipping?" + str(skip) + " count=" + str(skip_count))
 
-    def set_port_forward(self, open_close, port, text):
+    def set_port_forward(self, open_close, port, text, outside_port=None, timeout=500000):
+        if outside_port is None:
+            outside_port = port
         failed = 0
         local_ip = self.get_local_ip()
         if not self.igds:
@@ -209,26 +225,26 @@ class Device():
                 if open_close == "open":
                     ret = port_mapper.AddPortMapping(
                         NewRemoteHost='',
-                        NewExternalPort=port,
+                        NewExternalPort=outside_port,
                         NewProtocol='TCP',
                         NewInternalPort=port,
                         NewInternalClient=str(local_ip),
                         NewEnabled='1',
                         NewPortMappingDescription=str(text),
-                        NewLeaseDuration=500000)
+                        NewLeaseDuration=timeout)
                     if ret:
                         self.logger.critical(
                             "return of port forward" + str(ret))
 
                     ret = port_mapper.AddPortMapping(
                         NewRemoteHost='',
-                        NewExternalPort=port,
+                        NewExternalPort=outside_port,
                         NewProtocol='UDP',
                         NewInternalPort=port,
                         NewInternalClient=str(local_ip),
                         NewEnabled='1',
                         NewPortMappingDescription=str(text),
-                        NewLeaseDuration=500000)
+                        NewLeaseDuration=timeout)
                     if ret:
                         self.logger.critical(
                             "return of port forward" + str(ret))

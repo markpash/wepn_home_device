@@ -11,6 +11,7 @@ import atexit
 import datetime as datetime
 from datetime import timedelta
 import dateutil.parser
+import os
 
 try:
     from self.configparser import configparser
@@ -88,7 +89,7 @@ class WPDiag:
             target=self.open_listener, args=['', port])
         self.listener.setDaemon(True)
         self.listener.start()
-        self.device.open_port(port, 'pproxy test port')
+        self.device.open_port(port=port, text='pproxy test port', timeout=1000)
 
     def close_test_port(self, port):
         self.shutdown_listener = True
@@ -165,7 +166,7 @@ class WPDiag:
         }
         data_json = json.dumps(data)
         url = self.config.get('django', 'url') + \
-            "/api/experiment/" + experiment_number + "/result/"
+            "/api/experiment/" + str(experiment_number) + "/result/"
         try:
             response = requests.post(url, data=data_json, headers=headers)
             self.logger.info("server experiment results"
@@ -334,3 +335,97 @@ class WPDiag:
             self.logger.error(
                 "Error is parsing server's diag analysis: " + str(exception_error))
             pass
+
+    def check_port_locally_in_use(self, port):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        ret = sock.connect_ex(("127.0.0.1", port))
+        if ret == 0:
+            print("Port " + str(port) + " is open")  # Connected successfully
+        else:
+            # Failed to connect because port is in use (or bad host)
+            print("Port " + str(port) + " is closedi: " + os.strerror(ret))
+        sock.close()
+        return (ret == 0)
+
+    def check_port_in_blocked(self, port):
+        # List of ports we do not want to be used,
+        # even if they are currently free
+        # This is useful for known "bad" ports, etc.
+        # Later can turn into a separate list
+
+        blocked = [5000, 9050, 9051, 9040, 8991]
+        return (port in blocked)
+
+    # this returns port, status.
+    # status will be 0 if all is well, an integer if not
+
+    def find_next_good_port(self, in_port):
+        rport, errno = in_port, 0
+        print(rport)
+        self.logger.error("-----" + str(rport))
+        retries = 0
+        undecided = True
+        # if no UPnP, then just return port
+
+        # if tried more than 10 ports and failed, just return port
+        while retries < 10 and undecided:
+            # if next port is in blocked, skip
+            if self.check_port_in_blocked(rport):
+                self.logger.error("Port %d is not allowed" % rport)
+                rport += 1
+                retries += 1
+                errno = 1
+                continue
+
+            # if port is already open locally, skip
+            if self.check_port_locally_in_use(rport):
+                self.logger.error("Port %d is in use" % rport)
+                rport += 1
+                retries += 1
+                errno = 2
+
+            # if port is already forwarded for someone else, skip
+            # if port cannot be forwarded, skip
+            res = False
+            pending = True
+            self.open_test_port(rport)
+            experiment_number = self.request_port_check(rport)
+            attempts = 0
+            while pending:
+                self.logger.error("Pending ..." + str(rport))
+                result = self.fetch_port_check_results(experiment_number)
+                if 'completed' in result.keys() and (str(result["completed"]) == "True"):
+                    self.logger.info("Got results ..." + str(result))
+                    pending = False
+                    result = result["result"]
+                    if 'experiment_result' in result.keys():
+                        res = ("True" == str(result['experiment_result']))
+                        # it could forward this port
+                        if res:
+                            self.logger.error("Success for port ..." + str(rport))
+                            pending = False
+                            undecided = False
+                            errno = 0
+                        else:
+                            self.logger.error("Failed remote test for " + str(rport))
+                            rport += 1
+                            # go to the very beginnging of these tests for next port
+                            # so exit this While loop
+                            break
+                attempts += 1
+                if pending:
+                    time.sleep(5)
+                if attempts > 10:
+                    rport += 1
+                    retries += 1
+                    pending = False
+                    errno = 3
+            self.logger.error("Closing port " + str(rport))
+            self.close_test_port(rport)
+        if retries > 10:
+            # tried 10 different ports
+            errno = 1010
+            rport = in_port
+
+        self.logger.error("Port: " + str(rport))
+        return rport, errno
