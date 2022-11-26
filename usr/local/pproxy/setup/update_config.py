@@ -145,11 +145,7 @@ if config.has_option('hw', 'led'):
 if not config.has_option('hw', 'button-version'):
     config.set('hw', 'button-version', '1')
 
-if not config.has_option('hw', 'disable-reboot') or True:
-    # 7/8/2021: an earlier mistake means all device
-    # have this set to disable
-    # change back once all restored
-    # meant only for development devices
+if not config.has_option('hw', 'disable-reboot'):
     config.set('hw', 'disable-reboot', '0')
 
 if not config.has_section('usage'):
