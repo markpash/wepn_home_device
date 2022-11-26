@@ -298,7 +298,13 @@ class KEYPAD:
             i = 0
             for c in self.chin['text']:
                 if self.chin['errs'][i]:
-                    color = (255, 0, 0)
+                    if i == 5:
+                        # for self-test, just show orange not red
+                        # self test is sadly unreliable
+                        # TODO: remove this once self test is reliable
+                        color = (255, 105, 0)
+                    else:
+                        color = (255, 0, 0)
                 else:
                     color = (0, 255, 0)
                 i += 1
@@ -434,7 +440,8 @@ class KEYPAD:
             self.menu[5][2]["text"] = "Menu"
             self.menu[5][2]["action"] = self.show_main_menu
             self.menu[5][2]["display"] = True
-            if self.diag_code != consts.HEALTHY_DIAG_CODE:
+            # TODO: self test is unreliable, so ignore bit 2
+            if (self.diag_code | 2) != consts.HEALTHY_DIAG_CODE:
                 if self.prev_diag_code == consts.HEALTHY_DIAG_CODE \
                         or self.prev_diag_code == 0:
                     # first time after diag says there's an error
