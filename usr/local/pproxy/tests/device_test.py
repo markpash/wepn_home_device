@@ -5,10 +5,8 @@ import os
 import sys
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
-import device
-import logging
-import logging.config
-from device import Device
+from device import Device  # NOQA
+import device  # NOQA
 
 LOG_CONFIG = "/etc/pproxy/logging-debug.ini"
 
@@ -25,4 +23,5 @@ device.wait_for_internet()
 print("Repo has version: " + device.repo_pkg_version)
 print("Device has version: " + device.get_installed_package_version())
 print("Needs update? " + str(device.needs_package_update()))
-#print(device.get_repo_package_version())
+print("0day? " + str(device.get_min_ota_version()))
+print(device.get_repo_package_version())
