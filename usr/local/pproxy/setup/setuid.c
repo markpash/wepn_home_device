@@ -22,7 +22,7 @@ int sanitize(char* input) {
 		}
 		i++;
 	}
-	printf(input);
+	puts(input);
 	return i;
 }
 
