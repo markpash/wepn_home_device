@@ -70,22 +70,17 @@ int main(int argc, char * argv[])
 
 		printf("\n* services:\n");
 		for (i=0; i < 3; i++){
-			printf("%d: ", i);
-			printf(services[i]);
-			printf("\t\t\n");
+			printf("%d: %s \t\t\n", i, services[i]);
 		}
 		printf("\n* commands:\n");
 		for (i=0; i < CMD_CNT; i++){
-			printf("%d: ", i);
-			printf(": ");
-			printf(commands[i]);
-			printf("\t\t\n");
+			printf("%d: %s\t\t\n", i, commands[i]);
 		}
 		printf("\n* special commands: \n");
 		for (i=0; i < SPECIAL_CMD_CNT; i++){
 			printf("%d: ", i);
 			printf(": ");
-			printf(scommands[i]);
+			puts(scommands[i]);
 			printf("\t\t\n");
 		}
 		printf("\n");
