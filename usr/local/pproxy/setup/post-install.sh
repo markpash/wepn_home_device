@@ -86,8 +86,10 @@ else
 	/usr/bin/python3 $PPROXY_HOME/setup/update_config.py
 fi
 
-chown pproxy.pproxy /etc/pproxy/config.ini
-chmod 744 /etc/pproxy/config.ini
+# this was missing when using git and not dpkg
+cp /var/local/pproxy/git/home_device/etc/pproxy/acl.conf /etc/pproxy/acl.conf
+chown pproxy.pproxy /etc/pproxy/*
+chmod 644 /etc/pproxy/*
 
 
 ######################################
