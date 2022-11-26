@@ -82,6 +82,7 @@ class PProxy():
         self.status = WStatus(self.loggers['wstatus'])
         self.device = Device(self.loggers['device'])
         self.mqtt_lock = Lock()
+        self.lcd = None
         return
 
     def cleanup(self):
@@ -122,32 +123,31 @@ class PProxy():
             self.save_state(str(new_state))
         # Run Diagnostics
         elif (key == "2"):
-            lcd = LCD()
             diag = WPDiag(self.loggers['diag'])
-            lcd.set_lcd_present(self.config.get('hw', 'lcd'))
+            self.lcd.set_lcd_present(self.config.get('hw', 'lcd'))
             display_str = [(1, "Starting Diagnostics", 0, "green"),
                            (2, "please wait ...", 0, "green")]
-            lcd.display(display_str, 15)
+            self.lcd.display(display_str, 15)
             diag.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
             test_port = int(self.config.get('openvpn', 'port')) + 1
             display_str = [(1, "Status Code", 0, "blue"), (2, str(
                 diag.get_error_code(test_port)), 0, "blue")]
-            lcd.display(display_str, 20)
+            self.lcd.display(display_str, 20)
             time.sleep(3)
             serial_number = self.config.get('django', 'serial_number')
             display_str = [(1, "Serial #", 0, "blue"),
                            (2, serial_number, 0, "white"), ]
-            lcd.display(display_str, 19)
+            self.lcd.display(display_str, 19)
             time.sleep(5)
             display_str = [(1, "Local IP", 0, "blue"),
                            (2, self.device.get_local_ip(), 0, "white"), ]
             self.logger.info(display_str)
-            lcd.display(display_str, 19)
+            self.lcd.display(display_str, 19)
             time.sleep(5)
             display_str = [(1, "MAC Address", 0, "blue"),
                            (2, self.device.get_local_mac(), 0, "white"), ]
             self.logger.debug(display_str)
-            lcd.display(display_str, 19)
+            self.lcd.display(display_str, 19)
             time.sleep(5)
             heart_beat = HeartBeat(self.loggers["heartbeat"])
             heart_beat.set_mqtt_state(self.mqtt_connected, self.mqtt_reason)
@@ -156,16 +156,15 @@ class PProxy():
         # Power off
         elif (key == "3"):
             services.stop()
-            lcd = LCD()
-            lcd.set_lcd_present(self.config.get('hw', 'lcd'))
+            self.lcd.set_lcd_present(self.config.get('hw', 'lcd'))
             display_str = [(1, "Powering down", 0, "red"), ]
-            lcd.display(display_str, 15)
+            self.lcd.display(display_str, 15)
             time.sleep(2)
             self.save_state("0", 0)
-            lcd.show_logo()
+            self.lcd.show_logo()
             display_str = [(1, "", 0, "black"), ]
             time.sleep(2)
-            lcd.display(display_str, 20)
+            self.lcd.display(display_str, 20)
             self.device.turn_off()
 
     def get_messages(self):
@@ -339,6 +338,10 @@ class PProxy():
             txt = None
             try:
                 self.logger.debug("before lock acquired")
+                # light up ring LEDs in blue with fill pattern
+                self.leds.spinning_wheel(color=(0, 0, 255),
+                                         length=1,
+                                         repetitions=100)
                 lock.acquire()
                 self.logger.debug("lock acquired")
                 username = self.sanitize_str(data['cert_name'])
@@ -516,8 +519,8 @@ class PProxy():
         self.status.save()
 
     def start(self):
-        lcd = LCD()
-        lcd.set_lcd_present(self.config.get('hw', 'lcd'))
+        self.lcd = LCD()
+        self.lcd.set_lcd_present(self.config.get('hw', 'lcd'))
         # show a white spinning led ring
         # self.leds.set_all(color=(255, 255, 255))
         self.leds.spinning_wheel(color=(255, 255, 255),
@@ -558,7 +561,7 @@ class PProxy():
 
         except Exception as error:
             self.logger.error("MQTT connect failed: " + str(error))
-            lcd.long_text("COnnection to server disrupted, please check cable.")
+            self.lcd.long_text("Connection to server disrupted, please check cable.")
             if (int(self.config.get('hw', 'buttons')) == 1) and \
                     (int(self.config.get('hw', 'button-version')) == 1):
                 keypad.cleanup()
