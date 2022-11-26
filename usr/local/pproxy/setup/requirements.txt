@@ -58,7 +58,7 @@ numpy==1.22.3
 packaging==21.3
 pad4pi==1.1.5
 paho-mqtt==1.6.1
-Pillow==9.0.1
+Pillow==9.3.0
 platformdirs==2.4.0
 pre-commit==2.15.0
 pyasn1==0.4.8
