@@ -50,7 +50,6 @@ class Shadow:
             self.sock.connect(self.config.get('shadow', 'server-socket'))
         except Exception as err:
             self.logger.error("Caught exception socket.error : %s" % err)
-            print("Caught exception socket.error : %s" % err)
 
     def cleanup(self):
         self.clear()
@@ -82,10 +81,10 @@ class Shadow:
                 max_port = None
             if max_port is None:
                 max_port = int(self.config.get('shadow', 'start-port'))
-            self.logger.info("New port assigned is " + str(max_port + 1) +
-                             " was " + str(unused_port))
             port = max_port + 1
             port, err = self.diag.find_next_good_port(port)
+            if err != 0:
+                self.logger.error("Error while finding next good port: " + str(err))
         else:
             port = server['server_port']
             # also reuse the same password, making it easier for end user
@@ -306,7 +305,6 @@ class Shadow:
                 self.logger.error("Certname is empty, skipping")
                 continue
             self.logger.debug("current server name is " + server['certname'])
-            print("current server name is " + server['certname'])
             try:
                 usage_value = -1
                 usage_server = None
@@ -324,12 +322,9 @@ class Shadow:
                     usage_value = current_usage
                     self.logger.debug(
                         "Usage not in db yet. value=" + str(usage_value))
-                    print("Usage not in db yet. value=" + str(usage_value))
                 else:
                     self.logger.debug(
                         "Current usage in db = " + str(usage_server['usage']))
-                    print("Current usage in db = " +
-                          str(usage_server['usage']))
 
                     # already has some value in usage db
                     if usage_server['usage'] > current_usage:
@@ -378,7 +373,6 @@ class Shadow:
                         print("wrap around: " + str(fake_start))
                     else:
                         # all is normal, just update the end
-                        print("normal update")
                         usage_daily.upsert({'certname': server['certname'],
                                             'date': today,
                                             'server_port': server['server_port'],

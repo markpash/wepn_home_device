@@ -60,6 +60,21 @@ class PProxy():
         self.config.read(CONFIG_FILE)
         self.mqtt_connected = 0
         self.mqtt_reason = 0
+        self.loggers = {}
+        if logger is not None:
+            self.logger = logger
+            self.loggers["heartbeat"] = logger
+            self.loggers["diag"] = logger
+            self.loggers["services"] = logger
+            self.loggers["wstatus"] = logger
+            self.loggers["device"] = logger
+        else:
+            self.logger = logging.getLogger("pproxy")
+            self.loggers["heartbeat"] = logging.getLogger("heartbeat")
+            self.loggers["diag"] = logging.getLogger("diag")
+            self.loggers["services"] = logging.getLogger("services")
+            self.loggers["wstatus"] = logging.getLogger("wstatus")
+            self.loggers["device"] = logging.getLogger("device")
         if gpio_up:
             GPIO.cleanup()
             if GPIO.getmode() != 11:
@@ -67,18 +82,8 @@ class PProxy():
             self.factory = rpi_gpio.KeypadFactory()
         else:
             self.factory = None
-        self.loggers = {}
-        self.loggers["heartbeat"] = logging.getLogger("heartbeat")
-        self.loggers["diag"] = logging.getLogger("diag")
-        self.loggers["services"] = logging.getLogger("services")
-        self.loggers["wstatus"] = logging.getLogger("wstatus")
-        self.loggers["device"] = logging.getLogger("device")
         self.leds = LEDClient()
         atexit.register(self.cleanup)
-        if logger is not None:
-            self.logger = logger
-        else:
-            self.logger = logging.getLogger("pproxy")
         self.status = WStatus(self.loggers['wstatus'])
         self.device = Device(self.loggers['device'])
         self.mqtt_lock = Lock()
