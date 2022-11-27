@@ -89,7 +89,8 @@ class WPDiag:
             target=self.open_listener, args=['', port])
         self.listener.setDaemon(True)
         self.listener.start()
-        self.device.open_port(port=port, text='pproxy test port', timeout=1000)
+        return self.device.open_port(port=port,
+                                     text='pproxy test port', timeout=1000)
 
     def close_test_port(self, port):
         self.shutdown_listener = True
@@ -136,7 +137,8 @@ class WPDiag:
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "device_key": self.config.get('django', 'device_key'),
-            "input": {"port": str(port), "experiment_name": "port_test"},
+            "input": {"port": str(port), "experiment_name": "port_test",
+                      "debug": str(self.device.igd_names)},
         }
         data_json = json.dumps(data)
         self.logger.debug("Port check data to send: " + data_json)
@@ -372,6 +374,9 @@ class WPDiag:
 
         # if tried more than 10 ports and failed, just return port
         while retries < 10 and undecided:
+            if retries == 5:
+                # 5 blocked, skip 50
+                rport += 50
             # if next port is in blocked, skip
             if self.check_port_in_blocked(rport):
                 self.logger.error("Port %d is not allowed" % rport)
@@ -391,7 +396,14 @@ class WPDiag:
             # if port cannot be forwarded, skip
             res = False
             pending = True
-            self.open_test_port(rport)
+            fwd_result = self.open_test_port(rport)
+            if fwd_result is False:
+                self.logger.error("Error in port forwarding, skipping this port: " + str(rport))
+                rport += 1
+                retries += 1
+                errno = 3
+                continue
+
             experiment_number = self.request_port_check(rport)
             attempts = 0
             while pending:

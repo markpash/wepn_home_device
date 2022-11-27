@@ -56,13 +56,14 @@ class Device():
             if "InternetGatewayDevice" in d.device_type:
                 self.igds.append(d)
                 try:
-                    self.ig_names.append(d.friendly_name)
+                    self.igd_names.append(d.friendly_name)
                     print("Type: %s name: %s manufacturer:%s model:%s model:%s model:%s serial:%s" % (
                         d.device_type, d.friendly_name, d.manufacturer, d.model_description, d.model_name, d.model_number, d.serial_number))
-                except:
+                except Exception as e:
                     # mainly if friendly name is not there
                     self.logger.debug(
                         "InternetGatewayDevice likely did not have proper UPnP fields")
+                    self.logger.exception("Error: " + str(e))
                     pass
                 # Here we find the actual service provider that can forward ports
                 # the default name is different for different routers
@@ -75,7 +76,7 @@ class Device():
         l3forward_supported = False
         wanipconn_supported = False
         for service in igd.services:
-            if "Layer3Forwardingg" in service.service_id:
+            if "Layer3Forwarding" in service.service_id or "L3Forwarding" in service.service_id:
                 l3forward_supported = True
             if "WANIPConn" in service.service_id:
                 wanipconn_supported = True
@@ -97,7 +98,7 @@ class Device():
                                          ", " + str(d.manufacturer) + ", " + str(d.location) + "}")
                     return self.check_igd_supports_portforward(d)
                 except Exception as err:
-                    self.logger.critical("IGD found, missing attributes")
+                    self.logger.critical("IGD found, missing attributes: " + str(err))
                     print(err)
                     pass
         else:
@@ -183,6 +184,7 @@ class Device():
         self.execute_setuid(cmd)
 
     def open_port(self, port, text, outside_port=None, timeout=500000):
+        result = True
         if outside_port is None:
             outside_port = port
         skip = int(self.status.get_field('port-fwd', 'skipping'))
@@ -198,9 +200,10 @@ class Device():
                 self.status.set_field('port-fwd', 'skips', '0')
         else:
             # no skipping, just try opening port normally with UPNP
-            self.set_port_forward("open", port, text, outside_port, timeout)
+            result = self.set_port_forward("open", port, text, outside_port, timeout)
         self.logger.info("skipping? " + str(skip) +
-                         " count=" + str(skip_count))
+                         " count=" + str(skip_count) + " result=" + str(result))
+        return result
 
     def close_port(self, port):
         skip = int(self.status.get_field('port-fwd', 'skipping'))
@@ -221,6 +224,7 @@ class Device():
         self.logger.info("skipping?" + str(skip) + " count=" + str(skip_count))
 
     def set_port_forward(self, open_close, port, text, outside_port=None, timeout=500000):
+        result = True
         if outside_port is None:
             outside_port = port
         failed = 0
@@ -259,6 +263,7 @@ class Device():
                     if ret:
                         self.logger.critical(
                             "return of port forward" + str(ret))
+
                 else:
                     ret = port_mapper.DeletePortMapping(
                         NewRemoteHost='',
@@ -277,6 +282,7 @@ class Device():
             except Exception as err:
                 self.logger.error("Port forward operation failed: " + str(err))
                 failed += 1
+                result = False
 
         # if we failed, check to see if max-fails has passed
         fails = int(self.status.get_field('port-fwd', 'fails'))
@@ -291,6 +297,7 @@ class Device():
                 # failed, but has not passed the threshold
                 fails += failed
                 self.status.set_field('port-fwd', 'fails', str(fails))
+        return result
 
     def get_local_ip(self):
         ip = "127.0.0.1"

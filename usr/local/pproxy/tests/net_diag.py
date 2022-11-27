@@ -1,8 +1,5 @@
 
-from device import Device
-from diag import WPDiag
 import threading
-from lcd import LCD
 import time
 import socket
 import sys
@@ -11,6 +8,9 @@ import os
 import logging
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
+from device import Device # NOQA
+from diag import WPDiag # NOQA
+from lcd import LCD # NOQA
 
 try:
     from self.configparser import configparser
@@ -48,6 +48,8 @@ print("--------------------------------5003-------------------------------------
 WPD.open_test_port(5001)
 # redirect port 5002 to another port so that fails too
 D.open_port(80, "Unit Test", 5002, 1000)
+print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+D.check_port_mapping_igd()
 # assert next good port is port 5003
 assert(WPD.find_next_good_port(5000) == (5003, 0))
 
