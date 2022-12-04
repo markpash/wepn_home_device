@@ -441,7 +441,7 @@ class KEYPAD:
             self.menu[5][2]["action"] = self.show_main_menu
             self.menu[5][2]["display"] = True
             # TODO: self test is unreliable, so ignore bit 2
-            if (self.diag_code | 2) != consts.HEALTHY_DIAG_CODE:
+            if (self.diag_code | 32) != consts.HEALTHY_DIAG_CODE:
                 if self.prev_diag_code == consts.HEALTHY_DIAG_CODE \
                         or self.prev_diag_code == 0:
                     # first time after diag says there's an error
