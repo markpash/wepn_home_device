@@ -104,10 +104,10 @@ class HeartBeat:
         except Exception as e:
             print(e)
             local_ip = "127.0.0.1"
-        test_port = int(self.config.get('openvpn', 'port')) + 1
+        test_port = int(self.config.get('openvpn', 'port')) + 10
         if int(self.config.get('shadow', 'enabled')) == 1:
             shadow = Shadow(self.logger)
-            test_port = int(shadow.get_max_port()) + 2
+            test_port = int(shadow.get_max_port()) + 12
         # this line can update the status file contents
         diag_code = self.diag.get_error_code(test_port)
         self.status.reload()

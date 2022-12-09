@@ -14,6 +14,7 @@ from PIL import ImageFont
 import logging.config
 import qrcode
 import textwrap
+import re
 try:
     import RPi.GPIO as GPIO
     gpio_enable = True
@@ -225,7 +226,7 @@ class LCD:
             img = DIR + 'wepn_240_240.png'
             image = Image.open(img)
             if self.logo_text is not None:
-                rubik_regular = ImageFont.truetype(DIR + 'rubik/Rubik-Bold.ttf',
+                rubik_regular = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf',
                                                    self.logo_text_size)
                 draw = ImageDraw.Draw(image)
                 draw.text((self.logo_text_x, self.logo_text_y), self.logo_text,
@@ -490,3 +491,14 @@ class LCD:
             else:
                 disp.image(image)
                 disp.display()
+
+    def long_text(self, txt, top_icon="i", color="red"):
+        strs = [(1, str(top_icon).center(7), 1, color)]
+        txt = textwrap.fill(txt, width=15, expand_tabs=True, tabsize=8)
+        i = 2
+        subs = txt.split("\n")
+        for s in subs:
+            strs.append((i, s.center(15), 0, "white"))
+            i += 1
+
+        self.display(strs, 20)

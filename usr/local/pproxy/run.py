@@ -36,7 +36,7 @@ def check_and_restore(conf, backup):
             copyfile(backup, conf)
         # backup might have been created before
         # new changes were made. Do upgrades
-        exec(open(UPDATE_SCRIPT).read())  # nosec: fixed file path
+        exec(open(UPDATE_SCRIPT).read())
 
 
 check_and_restore(CONFIG_FILE, CONFIG_FILE_BACKUP)
@@ -50,19 +50,24 @@ config.read(CONFIG_FILE)
 status = configparser.ConfigParser()
 
 status.read(STATUS_FILE)
-lcd.set_lcd_present(config.get('hw', 'lcd'))
-lcd.show_logo()
-time.sleep(1)
-
-# leds.spinning_wheel(color=(255, 255, 255),
-#                    wait=50,
-#                    length=6,
-#                    repetitions=50)
 
 device = Device(logger)
 gateway_vendor = device.get_default_gw_vendor()
 logger.critical("Gateway vendor= " + str(gateway_vendor))
 device.check_port_mapping_igd()
+
+lcd.set_lcd_present(config.get('hw', 'lcd'))
+lcd.set_logo_text("Loading ...")
+lcd.show_logo()
+
+# below section will block until connected to the internet
+# AND the software version on device is latest.
+# If not the same, it will run software update in background
+# and keep the message and wheel going until version is the same.
+
+# this blocks boot until version is updated to latest
+device.software_update_blocking(lcd, leds)
+time.sleep(1)
 
 is_claimed = False
 server_checkin_done = False

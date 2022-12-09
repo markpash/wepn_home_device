@@ -4,6 +4,9 @@ import netifaces
 import atexit
 import upnpclient as upnp
 import requests
+import re
+from json import JSONDecodeError
+from packaging import version
 
 try:
     from self.configparser import configparser
@@ -21,6 +24,7 @@ KEYPAD = [
 ]
 CONFIG_FILE = '/etc/pproxy/config.ini'
 PORT_STATUS_FILE = '/var/local/pproxy/port.ini'
+MAX_UPDATE_RETRIES = 5
 
 
 # setuid command runner
@@ -36,15 +40,31 @@ class Device():
         self.correct_port_status_file()
         self.igds = []
         self.port_mappers = []
+        self.igd_names = []
         self.iface = str(self.config.get('hw', 'iface'))
+        self.repo_pkg_version = None
+        self.reached_repo = False
         atexit.register(self.cleanup)
 
     def find_igds(self):
         devices = upnp.discover()
         self.logger.info("upnp devices:" + str(devices))
+        # for i in devices:
+        # print(dir(i))
+        # print("https://www.google.com/search?q=%s+port+forward" % (urllib.parse.quote_plus(i.friendly_name)))
         for d in devices:
             if "InternetGatewayDevice" in d.device_type:
                 self.igds.append(d)
+                try:
+                    self.igd_names.append(d.friendly_name)
+                    print("Type: %s name: %s manufacturer:%s model:%s model:%s model:%s serial:%s" % (
+                        d.device_type, d.friendly_name, d.manufacturer, d.model_description, d.model_name, d.model_number, d.serial_number))
+                except Exception as e:
+                    # mainly if friendly name is not there
+                    self.logger.debug(
+                        "InternetGatewayDevice likely did not have proper UPnP fields")
+                    self.logger.exception("Error: " + str(e))
+                    pass
                 # Here we find the actual service provider that can forward ports
                 # the default name is different for different routers
                 for service in d.services:
@@ -56,7 +76,7 @@ class Device():
         l3forward_supported = False
         wanipconn_supported = False
         for service in igd.services:
-            if "Layer3Forwardingg" in service.service_id:
+            if "Layer3Forwarding" in service.service_id or "L3Forwarding" in service.service_id:
                 l3forward_supported = True
             if "WANIPConn" in service.service_id:
                 wanipconn_supported = True
@@ -68,6 +88,7 @@ class Device():
 
     # this method is just used for checking upnp capabilities
     # primarily used at boot, to add to the error log
+    # True result means IGD found
     def check_port_mapping_igd(self):
         self.find_igds()
         if self.igds:
@@ -75,15 +96,18 @@ class Device():
                 try:
                     self.logger.critical("IGD found: {" + str(d.model_name) +
                                          ", " + str(d.manufacturer) + ", " + str(d.location) + "}")
-                    self.check_igd_supports_portforward(d)
+                    return self.check_igd_supports_portforward(d)
                 except Exception as err:
-                    self.logger.critical("IGD found, missing attributes")
+                    self.logger.critical("IGD found, missing attributes: " + str(err))
                     print(err)
                     pass
         else:
             self.logger.error("No IGDs found")
+            return False
         if not self.port_mappers:
             self.logger.error("No port mappers found")
+            return False
+        return True
 
     def correct_port_status_file(self):
         if not self.status.has_section('port-fwd'):
@@ -159,7 +183,10 @@ class Device():
         cmd = "1 4"
         self.execute_setuid(cmd)
 
-    def open_port(self, port, text):
+    def open_port(self, port, text, outside_port=None, timeout=500000):
+        result = True
+        if outside_port is None:
+            outside_port = port
         skip = int(self.status.get_field('port-fwd', 'skipping'))
         skip_count = int(self.status.get_field('port-fwd', 'skips'))
         if skip:
@@ -173,9 +200,10 @@ class Device():
                 self.status.set_field('port-fwd', 'skips', '0')
         else:
             # no skipping, just try opening port normally with UPNP
-            self.set_port_forward("open", port, text)
+            result = self.set_port_forward("open", port, text, outside_port, timeout)
         self.logger.info("skipping? " + str(skip) +
-                         " count=" + str(skip_count))
+                         " count=" + str(skip_count) + " result=" + str(result))
+        return result
 
     def close_port(self, port):
         skip = int(self.status.get_field('port-fwd', 'skipping'))
@@ -195,7 +223,10 @@ class Device():
             self.set_port_forward("close", port, "")
         self.logger.info("skipping?" + str(skip) + " count=" + str(skip_count))
 
-    def set_port_forward(self, open_close, port, text):
+    def set_port_forward(self, open_close, port, text, outside_port=None, timeout=500000):
+        result = True
+        if outside_port is None:
+            outside_port = port
         failed = 0
         local_ip = self.get_local_ip()
         if not self.igds:
@@ -209,29 +240,30 @@ class Device():
                 if open_close == "open":
                     ret = port_mapper.AddPortMapping(
                         NewRemoteHost='',
-                        NewExternalPort=port,
+                        NewExternalPort=outside_port,
                         NewProtocol='TCP',
                         NewInternalPort=port,
                         NewInternalClient=str(local_ip),
                         NewEnabled='1',
                         NewPortMappingDescription=str(text),
-                        NewLeaseDuration=500000)
+                        NewLeaseDuration=timeout)
                     if ret:
                         self.logger.critical(
                             "return of port forward" + str(ret))
 
                     ret = port_mapper.AddPortMapping(
                         NewRemoteHost='',
-                        NewExternalPort=port,
+                        NewExternalPort=outside_port,
                         NewProtocol='UDP',
                         NewInternalPort=port,
                         NewInternalClient=str(local_ip),
                         NewEnabled='1',
                         NewPortMappingDescription=str(text),
-                        NewLeaseDuration=500000)
+                        NewLeaseDuration=timeout)
                     if ret:
                         self.logger.critical(
                             "return of port forward" + str(ret))
+
                 else:
                     ret = port_mapper.DeletePortMapping(
                         NewRemoteHost='',
@@ -250,6 +282,7 @@ class Device():
             except Exception as err:
                 self.logger.error("Port forward operation failed: " + str(err))
                 failed += 1
+                result = False
 
         # if we failed, check to see if max-fails has passed
         fails = int(self.status.get_field('port-fwd', 'fails'))
@@ -264,6 +297,7 @@ class Device():
                 # failed, but has not passed the threshold
                 fails += failed
                 self.status.set_field('port-fwd', 'fails', str(fails))
+        return result
 
     def get_local_ip(self):
         ip = "127.0.0.1"
@@ -343,6 +377,123 @@ class Device():
                 if r.find(key.encode('utf-8')) == 0:
                     self.logger.error(message)
 
+    def wait_for_internet(self, retries=100, timeout=10):
+        tries = 0
+        self.reached_repo = False
+        while tries < retries:
+            try:
+                if self.get_min_ota_version() is not None:
+                    self.reached_repo = True
+                    return True
+                else:
+                    tries += 1
+                    time.sleep(timeout)
+            except Exception:
+                self.logger.exception("Exception met")
+                tries += 1
+                time.sleep(timeout)
+        return False
+
+    def get_installed_package_version(self):
+        version = None
+        pkg_name = "pproxy-rpi"
+        result = self.execute_cmd_output("dpkg -l " + pkg_name)
+        r = str(result[0]).split("\\n")
+        for i in r:
+            if pkg_name in i:
+                res = re.findall(".*" + pkg_name + r"\s+((\d+)\.(\d+)\.(\d+))\S*", i)
+                if len(res) > 0 and len(res[0]) > 0:
+                    version = res[0][0]
+                    return version
+
+    def get_repo_package_version(self):
+        self.repo_pkg_version = None
+        dist = "bullseye"
+        url = "https://repo.we-pn.com/debian/dists/" + dist + "/main/binary-armhf/Packages"
+        try:
+            resp = requests.get(url)
+            res = re.findall(r"Version: ((\d+)\.(\d+)\.(\d+)).*", resp.text)
+            if len(res) > 0 and len(res[0]) > 0:
+                self.repo_pkg_version = res[0][0]
+                return self.repo_pkg_version
+        except requests.exceptions.ConnectionError:
+            self.logger.debug("Connection error in getting OTA version")
+            return None
+        except:
+            return None
+
+    def get_min_ota_version(self):
+        self.repo_pkg_version = None
+        url = "https://repo.we-pn.com/ota.json"
+        try:
+            resp = requests.get(url)
+            if resp.status_code == 200:
+                try:
+                    data = resp.json()
+                    self.repo_pkg_version = data["min"]
+                    return self.repo_pkg_version
+                except JSONDecodeError:
+                    self.logger.debug('Response could not be serialized')
+                    return "0.0.0"
+                except:
+                    # malformed JSON, invalid HTTPS cert, ...
+                    self.logger.debug("Some unknown error happend in getting OTA")
+                    return None
+        except requests.exceptions.ConnectionError:
+            self.logger.debug("Connection error in getting OTA version")
+            return None
+        except:
+            return None
+
+    def needs_package_update(self):
+        needs = True
+        current = self.get_installed_package_version()
+        if self.wait_for_internet(10, 10):
+            # only gets here is internet is connected
+            # and could get the repo version
+            # repo package version is checked there
+            if self.repo_pkg_version is not None \
+                    and version.parse(current) >= version.parse(self.repo_pkg_version):
+                needs = False
+        return needs
+
+    def software_update_blocking(self, lcd=None, leds=None):
+        # if on a git build, use git
+        # if on release branch, do via apt
+        retries = 0
+        update_was_needed = False
+        try:
+            while self.needs_package_update() and retries < MAX_UPDATE_RETRIES:
+                update_was_needed = True
+                retries += 1
+                if leds is not None and lcd is not None:
+                    leds.rainbow(10000, 2)
+                    lcd.long_text("Do not unplug. Searching for updates.", "i", "red")
+                    if self.get_local_ip() == "127.0.0.1":
+                        # network has not local IP?
+                        lcd.long_text(
+                            "Is network cable connected? Searching for updates.", "M", "red")
+                    elif not self.reached_repo:
+                        lcd.long_text(
+                            "Device cannot reach the internet. Are cables plugged in?", "X", "red")
+                self.execute_setuid("1 3")  # run pproxy-update detached
+                time.sleep(30)
+
+            if leds is not None and lcd is not None:
+                if update_was_needed:
+                    if retries == MAX_UPDATE_RETRIES:
+                        lcd.long_text("Could not finish update. Booting regardless.", "i", "orange")
+                    else:
+                        lcd.long_text("Software updated to " +
+                                      self.get_installed_package_version(), "O", "green")
+                        # let the service restart
+                        time.sleep(15)
+                    leds.blank()
+        except:
+            # this is meant to catch all unhandled exceptions
+            # this function can block WEPN boot, so cannot keep failing
+            return
+
     def software_update_from_git(self):
         # first, the git pull in /var/local/pproxy/git/
         cmd_normal = "/bin/bash /usr/local/pproxy/setup/sync.sh"
@@ -350,8 +501,4 @@ class Device():
         # part that should run as root:
         # copies system files, changes permissions, ...
         cmd_sudo = SRUN + " 1 5"
-        # TODO: while there is no injection done here, this use of sudo
-        # is uncomfortable. This is currently a development tool
-        # but we still need to have a better method such as a separate thread signaled here.
-
-        self.execute_cmd_output(cmd_sudo, True)  # nosec static input go.we-pn.com/waiver-1)
+        self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)

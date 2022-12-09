@@ -86,8 +86,10 @@ else
 	/usr/bin/python3 $PPROXY_HOME/setup/update_config.py
 fi
 
-chown pproxy.pproxy /etc/pproxy/config.ini
-chmod 744 /etc/pproxy/config.ini
+# this was missing when using git and not dpkg
+cp /var/local/pproxy/git/home_device/etc/pproxy/acl.conf /etc/pproxy/acl.conf
+chown pproxy.pproxy /etc/pproxy/*
+chmod 644 /etc/pproxy/*
 
 
 ######################################
@@ -198,6 +200,8 @@ adduser shadowsocks --disabled-password --disabled-login  --quiet --gecos "Shado
 addgroup shadow-runners
 adduser pproxy shadow-runners
 adduser shadowsocks shadow-runners
+addgroup wireguard-runners
+adduser pproxy wireguard-runners
 cp $PPROXY_HOME/setup/shadowsocks-libev-manager.service /lib/systemd/system/
 cp $PPROXY_HOME/setup/shadowsocks-libev.service /lib/systemd/system/
 cp $PPROXY_HOME/setup/shadowsocks-libev-manager /etc/default/
@@ -286,6 +290,11 @@ echo "\n done with setuid"
 # Install Tor
 #######################################
 /bin/bash install_tor.sh
+
+#######################################
+# Install Wireguard
+#######################################
+#/bin/bash install_wireguard.sh
 
 usermod -a -G spi pproxy
 usermod -a -G audio pproxy

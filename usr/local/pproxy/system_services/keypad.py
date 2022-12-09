@@ -89,6 +89,8 @@ class KEYPAD:
         self.diag_code = 0
         self.prev_diag_code = 0
         self.err_pending_ack = False
+        self.dev_remaining = 7
+        self.channel = "prod"
 
     def init_i2c(self):
         GPIO.setmode(GPIO.BCM)
@@ -296,7 +298,13 @@ class KEYPAD:
             i = 0
             for c in self.chin['text']:
                 if self.chin['errs'][i]:
-                    color = (255, 0, 0)
+                    if i == 5:
+                        # for self-test, just show orange not red
+                        # self test is sadly unreliable
+                        # TODO: remove this once self test is reliable
+                        color = (255, 105, 0)
+                    else:
+                        color = (255, 0, 0)
                 else:
                     color = (0, 255, 0)
                 i += 1
@@ -342,8 +350,8 @@ class KEYPAD:
 
     def run_diagnostics(self):
         diag = WPDiag(self.logger)
-        display_str = [(1, "Starting Diagnostics", 0, "white"), (2, "please wait ...", 0, "green")]
-        self.lcd.display(display_str, 15)
+        display_str = "Starting Diagnostics, please wait."
+        self.lcd.long_text(display_str, "i", "green")
         test_port = int(self.config.get('openvpn', 'port')) + 1
         self.diag_code = diag.get_error_code(test_port)
         serial_number = self.config.get('django', 'serial_number')
@@ -415,6 +423,12 @@ class KEYPAD:
         self.status.read(STATUS_FILE)
         state = self.status.get("status", "state")
         if int(self.status.get("status", "claimed")) == 0:
+            if self.device.needs_package_update():
+                # Disable showing QR Code when software needs upgrade
+                # This way the update screen will not be covered
+                # Other menus work though.
+                # TODO: We need a proper WindowManager
+                return
             self.show_claim_info_qrcode()
         else:
             # show the status info
@@ -426,7 +440,8 @@ class KEYPAD:
             self.menu[5][2]["text"] = "Menu"
             self.menu[5][2]["action"] = self.show_main_menu
             self.menu[5][2]["display"] = True
-            if self.diag_code != consts.HEALTHY_DIAG_CODE:
+            # TODO: self test is unreliable, so ignore bit 2
+            if (self.diag_code | 32) != consts.HEALTHY_DIAG_CODE:
                 if self.prev_diag_code == consts.HEALTHY_DIAG_CODE \
                         or self.prev_diag_code == 0:
                     # first time after diag says there's an error
@@ -557,30 +572,57 @@ class KEYPAD:
         self.led_setting_index = new_index
         self.render()
 
-    def show_git_version(self):
+    def channel_update(self):
+        print("channel_update:" + str(self.dev_remaining) + " channel: " + self.channel)
+        if self.channel == "prod":
+            if self.dev_remaining == 0:
+                # 7 clicks done already, switch
+                self.channel = "dev"
+                self.chin = {"text": "Development", "color": (255, 255, 255), "opacity": 50, "errs": [False] * 7}
+                self.show_software_version()
+            else:
+                self.dev_remaining -= 1
+        else:
+            if self.dev_remaining == 7:
+                self.channel = "prod"
+                self.chin = {"text": "Production", "color": (255, 255, 255), "opacity": 50, "errs": [False] * 7}
+                self.show_software_version()
+            else:
+                self.dev_remaining += 1
+        self.render()
+
+    def show_software_version(self):
+        print("show_software_version")
         self.display_active = True
         self.set_current_menu(4)
         # ONLY FOR UX DEVELOPMENT, show the git hash
         import subprocess  # nosec: dev only, static command = no injection
         label = "production"
-        git_cmd = "git log -1 --format=format:\"%H\""
-        try:
-            label = subprocess.check_output(  # nosec: static command, go.we-pn.com/waiver-1
-                git_cmd.split()).strip()
-            label = label.decode("utf-8")[1:8]
-        except subprocess.CalledProcessError:
-            # self.logger.error(e.output)
-            label = "no git hash"
+        if self.channel == "dev":
+            git_cmd = "git log -1 --format=format:\"%H\""
+            try:
+                label = subprocess.check_output(  # nosec: static command, go.we-pn.com/waiver-1
+                    git_cmd.split()).strip()
+                label = label.decode("utf-8")[1:8]
+            except subprocess.CalledProcessError:
+                # self.logger.error(e.output)
+                label = "no git hash"
+        else:
+            label = self.device.get_installed_package_version()
         self.menu[4][0]["text"] = label
+        self.menu[4][0]["action"] = self.channel_update
         self.render()
 
     def update_software(self):
         self.display_active = True
         self.menu[4][1]["text"] = "checking ..."
         self.render()
-        self.device.software_update_from_git()
+        if self.channel == "prod":
+            self.device.software_update_blocking(self.lcd, self.led_client)
+        else:
+            self.device.software_update_from_git()
         self.menu[4][1]["text"] = "Update"
-        self.show_git_version()
+        self.show_software_version()
 
 
 def main():
@@ -597,9 +639,9 @@ def main():
         [{"text": "Restart", "action": keypad.restart},
          {"text": "Power off", "action": keypad.power_off}, ],
         [{"text": "Diagnostics", "action": keypad.run_diagnostics},
-         {"text": "Git version", "action": keypad.show_git_version}],
+         {"text": "Software", "action": keypad.show_software_version}],
         [{"text": "LED ring: " + s, "action": keypad.toggle_led_setting}, ],
-        [{"text": "Getting version ...  " + s, "action": keypad.show_git_version},
+        [{"text": "Getting version ...  " + s, "action": keypad.show_software_version},
          {"text": "Update", "action": keypad.update_software}, ],
         [{"text": "", "display": False, "action": 0},
             {"text": "Help", "display": False, "action": keypad.show_summary},
