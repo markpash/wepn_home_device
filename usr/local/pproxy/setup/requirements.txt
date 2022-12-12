@@ -19,6 +19,7 @@ asn1crypto==0.24.0
 autopep8==1.6.0
 backports.entry-points-selectable==1.1.0
 banal==1.0.6
+boto3==1.26.27
 blinker==1.4
 certifi==2018.8.24
 cffi==1.15.0
