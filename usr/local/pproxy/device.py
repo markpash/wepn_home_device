@@ -7,6 +7,7 @@ import requests
 import re
 from json import JSONDecodeError
 from packaging import version
+import sys
 
 try:
     from self.configparser import configparser
@@ -502,3 +503,27 @@ class Device():
         # copies system files, changes permissions, ...
         cmd_sudo = SRUN + " 1 5"
         self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
+
+    def generate_new_config(self):
+        # check if the current config is valid
+        # if so, abort
+        try:
+            # mount USB drive
+            cmd_sudo = SRUN + " 1 11"
+            self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
+
+            # use the setup file there to generate the config, get contents
+            sys.path.append("/mnt/device_setup/")
+            # write to the current config
+            from setup_mod import create_config
+            new_config_str = create_config()
+            print(new_config_str)
+            config_file = open("/etc/pproxy/config.ini", 'w')
+            config_file.write(new_config_str)
+            config_file.close()
+        except Exception:
+            self.logger.exception("Error generating new config file")
+        finally:
+            # umount USB drive
+            cmd_sudo = SRUN + " 1 12"
+            self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)

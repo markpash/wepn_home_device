@@ -320,6 +320,8 @@ class KEYPAD:
         self.lcd.show_image(out)
 
     def show_claim_info(self):
+        self.config.read(CONFIG_FILE)
+        self.status.read(STATUS_FILE)
         current_key = self.status.get('status', 'temporary_key')
         serial_number = self.config.get('django', 'serial_number')
         display_str = [(1, "Device Key:", 0, "blue"), (2, str(current_key), 0, "white"),
@@ -332,7 +334,7 @@ class KEYPAD:
         current_key = self.status.get('status', 'temporary_key')
         serial_number = self.config.get('django', 'serial_number')
         display_str = [(1, "https://red.we-pn.com/?pk=NONE&s=" +
-                        str(serial_number) + "&k=" + str(current_key), 2, "white")]
+                        str(serial_number) + "&k=" + str(current_key), 2, "white"), ]
         self.lcd.display(display_str, 20)
         return True  # exit the menu
 
@@ -516,6 +518,12 @@ class KEYPAD:
         self.set_current_menu(3)
         self.render()
 
+    def show_config_menu(self):
+        self.display_active = True
+        self.current_title = "Config"
+        self.set_current_menu(6)
+        self.render()
+
     def show_about_menu(self):
         self.display_active = True
         self.current_title = "About"
@@ -578,14 +586,16 @@ class KEYPAD:
             if self.dev_remaining == 0:
                 # 7 clicks done already, switch
                 self.channel = "dev"
-                self.chin = {"text": "Development", "color": (255, 255, 255), "opacity": 50, "errs": [False] * 7}
+                self.chin = {"text": "Development", "color": (
+                    255, 255, 255), "opacity": 50, "errs": [False] * 7}
                 self.show_software_version()
             else:
                 self.dev_remaining -= 1
         else:
             if self.dev_remaining == 7:
                 self.channel = "prod"
-                self.chin = {"text": "Production", "color": (255, 255, 255), "opacity": 50, "errs": [False] * 7}
+                self.chin = {"text": "Production", "color": (
+                    255, 255, 255), "opacity": 50, "errs": [False] * 7}
                 self.show_software_version()
             else:
                 self.dev_remaining += 1
@@ -624,6 +634,19 @@ class KEYPAD:
         self.menu[4][1]["text"] = "Update"
         self.show_software_version()
 
+    def generate_config(self):
+        self.display_active = True
+        # this should only run if device has not real config
+        # while initial provisioning is happening
+        self.device.generate_new_config()
+        self.config.read(CONFIG_FILE)
+        self.render()
+        self.show_claim_info()
+
+    def togggle_ssh_server(self):
+        # not implemented yet
+        self.lcd.long_text("Not implemented yet")
+
 
 def main():
     keypad = KEYPAD()
@@ -632,6 +655,7 @@ def main():
     s = "OFF"
     if keypad.led_enabled:
         s = "ON"
+
     items = [
         [{"text": "Settings", "action": keypad.show_settings_menu},
          {"text": "Power", "action": keypad.show_power_menu},
@@ -640,18 +664,29 @@ def main():
          {"text": "Power off", "action": keypad.power_off}, ],
         [{"text": "Diagnostics", "action": keypad.run_diagnostics},
          {"text": "Software", "action": keypad.show_software_version}],
-        [{"text": "LED ring: " + s, "action": keypad.toggle_led_setting}, ],
+        [{"text": "LED ring: " + s, "action": keypad.toggle_led_setting},
+         {"text": "Config", "action": keypad.show_config_menu}, ],
         [{"text": "Getting version ...  " + s, "action": keypad.show_software_version},
          {"text": "Update", "action": keypad.update_software}, ],
         [{"text": "", "display": False, "action": 0},
             {"text": "Help", "display": False, "action": keypad.show_summary},
             {"text": "Menu", "action": keypad.show_home_screen}],
+        [{"text": "", "display": False, "action": 0},
+            {"text": "", "display": False, "action": 0},
+            {"text": "", "display": False, "action": 0},
+         ],
     ]
     titles = [{"text": "Main"}, {"text": "Power"}, {"text": "About"}, {"text": "Settings"},
-              {"text": "Software"}, {"text": "Home", "color": (255, 255, 255)}]
+              {"text": "Software"}, {"text": "Home", "color": (255, 255, 255)}, {"text": "Config", "color": (255, 0, 0)}]
 
     if 0 == int(keypad.status.get('status', 'claimed')):
         items[2].insert(0, {"text": "Claim Info", "action": keypad.show_claim_info})
+    if keypad.config.get('django', 'serial_number') == "CHANGE_SERIALNUM":
+        items[6].insert(0, {"text": "Generate", "display": True, "action": keypad.generate_config})
+    if False:
+        ssh_server = "OFF"
+        items[6].insert(1, {"text": "SSH: " + ssh_server, display: False,
+                        "action": keypad.toggle_ssh_server})
 
     keypad.set_full_menu(items, titles)
     keypad.set_current_menu(5)
