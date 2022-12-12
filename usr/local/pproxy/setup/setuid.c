@@ -5,7 +5,7 @@
 
 #define SRV_CNT 3
 #define CMD_CNT 4
-#define SPECIAL_CMD_CNT 11
+#define SPECIAL_CMD_CNT 13
 
 int sanitize(char* input) {
 	static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
@@ -59,6 +59,9 @@ int main(int argc, char * argv[])
 	scommands[8]= "/bin/sh /usr/local/sbin/iptables-flush.sh";
 	scommands[9]= "/bin/bash /usr/local/sbin/prevent_location_issue.sh";
 	scommands[10]= "/bin/bash /usr/local/sbin/ip-shadow.sh";
+	// hard coding sda1 since this command is primarily used in factory for provisioning configs
+	scommands[11]= "mount -o umask=0022,gid=1001,uid=1001 /dev/sda1 /mnt/";
+	scommands[12]= "umount /mnt/";
 
 	int c,s,t;
 
