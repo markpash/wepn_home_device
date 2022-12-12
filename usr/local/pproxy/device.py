@@ -511,6 +511,7 @@ class Device():
             # mount USB drive
             cmd_sudo = SRUN + " 1 11"
             self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
+            time.sleep(5)
 
             # use the setup file there to generate the config, get contents
             sys.path.append("/mnt/device_setup/")
