@@ -9,7 +9,8 @@ import socket
 import time
 from lcd import LCD
 import threading
-from diag import WPDiag
+from diag import WPDiag # NOQA
+from device import Device  # NOQA
 try:
     from self.configparser import configparser
 except ImportError:
@@ -53,7 +54,8 @@ listener.setDaemon(True)
 listener.start()
 while True:
       WPD = WPDiag(logger)
-      local_ip = Device.get_local_ip()
+      device = Device(logger)
+      local_ip = device.get_local_ip()
       print('local ip='+local_ip)
       
       internet = WPD.is_connected_to_internet()

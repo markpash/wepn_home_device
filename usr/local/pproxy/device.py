@@ -8,6 +8,7 @@ import re
 from json import JSONDecodeError
 from packaging import version
 import sys
+from pystemd.systemd1 import Unit
 
 try:
     from self.configparser import configparser
@@ -527,4 +528,51 @@ class Device():
         finally:
             # umount USB drive
             cmd_sudo = SRUN + " 1 12"
-            self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
+            self.execute_cmd_output(cmd_sudo, True)
+
+    def generate_ssh_host_keys(self):
+        cmd_sudo = SRUN + " 1 13"
+        self.execute_cmd_output(cmd_sudo, True)
+
+    def set_sshd_service(self, enabled=True):
+        common = SRUN + " 0 4 "
+        print("set_sshd = " + str(enabled))
+        if enabled:
+            # enable service
+            cmd_sudo = common + "4"
+            self.execute_cmd_output(cmd_sudo, True)
+            # restart it on too
+            cmd_sudo = common + "2"
+            self.execute_cmd_output(cmd_sudo, True)
+        else:
+            # disable service
+            cmd_sudo = common + "5"
+            self.execute_cmd_output(cmd_sudo, True)
+            # turn it off too
+            cmd_sudo = common + "0"
+            self.execute_cmd_output(cmd_sudo, True)
+
+    def set_vnc_service(self, enabled=True):
+        common = SRUN + " 0 5 "
+        if enabled:
+            # disable service
+            cmd_sudo = common + "5"
+            self.execute_cmd_output(cmd_sudo, True)
+            # turn it off too
+            cmd_sudo = common + "0"
+            self.execute_cmd_output(cmd_sudo, True)
+        else:
+            # disable service
+            cmd_sudo = common + "4"
+            self.execute_cmd_output(cmd_sudo, True)
+            # turn it off too
+            cmd_sudo = common + "2"
+            self.execute_cmd_output(cmd_sudo, True)
+
+    def is_service_active(self, service_name):
+        unit = Unit(service_name)
+        unit.load()
+        if unit.Unit.ActiveState == b'active':
+            return True
+        else:
+            return False
