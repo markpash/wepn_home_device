@@ -645,7 +645,10 @@ class KEYPAD:
 
     def togggle_ssh_server(self):
         # not implemented yet
-        self.lcd.long_text("Not implemented yet")
+        self.lcd.long_text("Working on SSHd")
+        self.device.generate_ssh_host_keys()
+        self.device.set_sshd_service(not
+                                     self.device.is_service_active(b'sshd.service'))
 
 
 def main():
@@ -683,9 +686,11 @@ def main():
         items[2].insert(0, {"text": "Claim Info", "action": keypad.show_claim_info})
     if keypad.config.get('django', 'serial_number') == "CHANGE_SERIALNUM":
         items[6].insert(0, {"text": "Generate", "display": True, "action": keypad.generate_config})
-    if False:
+    if True:
         ssh_server = "OFF"
-        items[6].insert(1, {"text": "SSH: " + ssh_server, display: False,
+        if keypad.device.is_service_active(b'sshd.service'):
+            ssh_server = "ON"
+        items[6].insert(1, {"text": "SSH: " + ssh_server, display: True,
                         "action": keypad.toggle_ssh_server})
 
     keypad.set_full_menu(items, titles)

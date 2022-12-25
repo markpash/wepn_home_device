@@ -3,9 +3,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define SRV_CNT 3
-#define CMD_CNT 4
-#define SPECIAL_CMD_CNT 13
+#define SRV_CNT 5
+#define CMD_CNT 6
+#define SPECIAL_CMD_CNT 14
 
 int sanitize(char* input) {
 	static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
@@ -38,6 +38,7 @@ int main(int argc, char * argv[])
 	services[1]="shadowsocks-libev";
 	services[2]="wg-quick@wg0";
 	services[3]="tor";
+	services[4]="sshd";
 
 
 	const char* commands[CMD_CNT];
@@ -45,6 +46,8 @@ int main(int argc, char * argv[])
 	commands[1]="start";
 	commands[2]="restart";
 	commands[3]="reload";
+	commands[4]="enable";
+	commands[5]="disable";
 
 
 	const char* scommands[SPECIAL_CMD_CNT];
@@ -62,6 +65,7 @@ int main(int argc, char * argv[])
 	// hard coding sda1 since this command is primarily used in factory for provisioning configs
 	scommands[11]= "mount -o umask=0022,gid=1001,uid=1001 /dev/sda1 /mnt/";
 	scommands[12]= "umount /mnt/";
+	scommands[13]= "ssh-keygen -A";
 
 	int c,s,t;
 

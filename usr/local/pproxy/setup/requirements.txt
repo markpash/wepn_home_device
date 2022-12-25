@@ -21,7 +21,7 @@ backports.entry-points-selectable==1.1.0
 banal==1.0.6
 boto3==1.26.27
 blinker==1.4
-certifi==2018.8.24
+certifi==2022.12.7
 cffi==1.15.0
 cfgv==3.3.1
 chardet==3.0.4
@@ -76,6 +76,7 @@ pyOpenSSL==21.0.0
 pyparsing==3.0.4
 pyserial==3.5
 PySocks==1.7.1
+pystemd==0.11.0
 python-dateutil==2.8.2
 python-json-logger==2.0.2
 pyusb==1.2.1
