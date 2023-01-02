@@ -536,7 +536,6 @@ class Device():
 
     def set_sshd_service(self, enabled=True):
         common = SRUN + " 0 4 "
-        print("set_sshd = " + str(enabled))
         if enabled:
             # enable service
             cmd_sudo = common + "4"
@@ -553,7 +552,7 @@ class Device():
             self.execute_cmd_output(cmd_sudo, True)
 
     def set_vnc_service(self, enabled=True):
-        common = SRUN + " 0 5 "
+        common = SRUN + "0 4 "
         if enabled:
             # disable service
             cmd_sudo = common + "5"

@@ -649,7 +649,6 @@ class KEYPAD:
         ssh_server = "ON"
         if self.device.is_service_active(b'ssh.service'):
             ssh_server = "OFF"
-        print("SSH IS: " + str(self.device.is_service_active(b'ssh.service')))
         self.menu[6][1]["text"] = "SSH: " + ssh_server
         self.device.generate_ssh_host_keys()
         self.device.set_sshd_service(not
