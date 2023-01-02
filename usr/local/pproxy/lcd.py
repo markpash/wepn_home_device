@@ -14,7 +14,6 @@ from PIL import ImageFont
 import logging.config
 import qrcode
 import textwrap
-import re
 try:
     import RPi.GPIO as GPIO
     gpio_enable = True
@@ -498,7 +497,7 @@ class LCD:
         i = 2
         subs = txt.split("\n")
         for s in subs:
-            strs.append((i, s.center(15), 0, "white"))
+            strs.append((i, s.center(16), 0, "white"))
             i += 1
 
         self.display(strs, 20)

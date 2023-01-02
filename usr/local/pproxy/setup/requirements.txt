@@ -76,6 +76,7 @@ pyOpenSSL==21.0.0
 pyparsing==3.0.4
 pyserial==3.5
 PySocks==1.7.1
+pystemd==0.11.0
 python-dateutil==2.8.2
 python-json-logger==2.0.2
 pyusb==1.2.1
