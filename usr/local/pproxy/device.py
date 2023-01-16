@@ -9,6 +9,7 @@ from json import JSONDecodeError
 from packaging import version
 import sys
 from pystemd.systemd1 import Unit
+import psutil
 
 try:
     from self.configparser import configparser
@@ -550,6 +551,33 @@ class Device():
             # turn it off too
             cmd_sudo = common + "0"
             self.execute_cmd_output(cmd_sudo, True)
+
+    # This routine SSHs out to remote server, open a reverse
+    # tunnel to the device. Helps bypass network issues.
+    def set_remote_ssh_session(self, enabled=True):
+        if enabled:
+            server = "remote@relay.we-pn.com"
+            key = "/var/local/pproxy/shared_remote_key.priv"
+            port = 9000 + 567
+            cmd = "ssh -R *:" + str(port) + ":localhost:22 -i " + key + " " + server
+            cmd += " -fTN -o StrictHostKeyChecking=accept-new"
+            print(cmd)
+            self.execute_cmd_output(cmd, True)
+        else:
+            for proc in psutil.process_iter():
+                if "ssh" in proc.name():
+                    for c in proc.cmdline():
+                        if c == "remote@relay.we-pn.com":
+                            proc.kill()
+
+    def is_remote_session_running(self):
+        found = False
+        for i in psutil.process_iter():
+            if i.name() == "ssh":
+                for c in i.cmdline():
+                    if c == "remote@relay.we-pn.com":
+                        found = True
+        return found
 
     def set_vnc_service(self, enabled=True):
         common = SRUN + "0 4 "
