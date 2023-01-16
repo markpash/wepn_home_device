@@ -644,7 +644,6 @@ class KEYPAD:
         self.show_claim_info()
 
     def toggle_ssh_server(self):
-        # not implemented yet
         self.lcd.long_text("Working on SSH")
         ssh_server = "ON"
         if self.device.is_service_active(b'ssh.service'):
@@ -653,6 +652,32 @@ class KEYPAD:
         self.device.generate_ssh_host_keys()
         self.device.set_sshd_service(not
                                      self.device.is_service_active(b'ssh.service'))
+        self.render()
+
+    def toggle_remote_ssh_session(self):
+        self.lcd.long_text("Working on Remote SSH")
+        if not self.device.is_remote_session_running():
+            # if session is not running, start
+            if not self.device.is_service_active(b'ssh.service'):
+                # if local ssh server is off, first turn it on
+                self.menu[6][1]["text"] = "SSH: ON"
+                self.menu[6][2]["text"] = "Remote: ON"
+                self.device.generate_ssh_host_keys()
+                self.device.set_sshd_service(True)
+            # ssh to the remote server, open local port
+            # note: the remote server is exclusively for this
+            # connect to relay.we-pn.com
+            self.device.set_remote_ssh_session(enabled=True)
+        else:
+            # Provider might have enabled SSH server before
+            # To be safe we will turn that off too, worst case they
+            # will need to enable manually again.
+            self.menu[6][1]["text"] = "SSH: OFF"
+            self.menu[6][2]["text"] = "Remote: OFF"
+            self.device.set_sshd_service(False)
+            # Disabling SSH serve would NOT terminate session too
+            self.device.set_remote_ssh_session(enabled=False)
+
         self.render()
 
 
@@ -697,10 +722,16 @@ def main():
             ssh_server = "ON"
         items[6].insert(1, {"text": "SSH: " + ssh_server, display: True,
                         "action": keypad.toggle_ssh_server})
+    if True:
+        remote = "OFF"
+        if keypad.device.is_remote_session_running():
+            remote = "ON"
+        items[6].insert(2, {"text": "Remote: " + remote, display: True,
+                        "action": keypad.toggle_remote_ssh_session})
 
     keypad.set_full_menu(items, titles)
     keypad.set_current_menu(5)
-    # default scren is QR Code
+    # default screen is QR Code
     keypad.show_home_screen()
 
     ############################

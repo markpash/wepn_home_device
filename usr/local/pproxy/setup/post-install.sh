@@ -92,6 +92,9 @@ cp /var/local/pproxy/git/home_device/etc/pproxy/acl.conf /etc/pproxy/acl.conf
 chown pproxy.pproxy /etc/pproxy/*
 chmod 644 /etc/pproxy/*
 
+REMOTE_KEY=/var/local/pproxy/shared_remote_key.priv
+chown pproxy.pproxy $REMOTE_KEY
+chmod 0600 $REMOTE_KEY
 
 ######################################
 ## Add OpenVPN Users, Set it up
