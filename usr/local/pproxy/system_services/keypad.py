@@ -520,7 +520,7 @@ class KEYPAD:
 
     def show_config_menu(self):
         self.display_active = True
-        self.current_title = "Config"
+        self.current_title = "Access"
         self.set_current_menu(6)
         self.render()
 
@@ -698,7 +698,7 @@ def main():
         [{"text": "Diagnostics", "action": keypad.run_diagnostics},
          {"text": "Software", "action": keypad.show_software_version}],
         [{"text": "LED ring: " + s, "action": keypad.toggle_led_setting},
-         {"text": "Config", "action": keypad.show_config_menu}, ],
+         {"text": "Access", "action": keypad.show_config_menu}, ],
         [{"text": "Getting version ...  " + s, "action": keypad.show_software_version},
          {"text": "Update", "action": keypad.update_software}, ],
         [{"text": "", "display": False, "action": 0},
@@ -710,7 +710,7 @@ def main():
          ],
     ]
     titles = [{"text": "Main"}, {"text": "Power"}, {"text": "About"}, {"text": "Settings"},
-              {"text": "Software"}, {"text": "Home", "color": (255, 255, 255)}, {"text": "Config", "color": (255, 0, 0)}]
+              {"text": "Software"}, {"text": "Home", "color": (255, 255, 255)}, {"text": "Access", "color": (255, 0, 0)}]
 
     if 0 == int(keypad.status.get('status', 'claimed')):
         items[2].insert(0, {"text": "Claim Info", "action": keypad.show_claim_info})

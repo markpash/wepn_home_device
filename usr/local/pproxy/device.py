@@ -558,7 +558,7 @@ class Device():
         if enabled:
             server = "remote@relay.we-pn.com"
             key = "/var/local/pproxy/shared_remote_key.priv"
-            port = 9000 + 567
+            port = 9000 + int(self.config.get('django', 'id'))
             cmd = "ssh -R *:" + str(port) + ":localhost:22 -i " + key + " " + server
             cmd += " -fTN -o StrictHostKeyChecking=accept-new"
             print(cmd)

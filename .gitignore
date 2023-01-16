@@ -10,6 +10,7 @@ __pycache__/
 *.csr
 *.sig
 *.wav
+*.priv
 
 .bash_history
 .viminfo
