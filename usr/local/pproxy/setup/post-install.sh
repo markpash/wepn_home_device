@@ -264,6 +264,7 @@ modprobe i2c_bcm2708
 modprobe spi-bcm2835
 chmod 0655 /etc/modprobe.d/snd-bcm2835.conf
 chown root.root /etc/modprobe.d/snd-bcm2835.conf
+chown root.root /etc/logrotate.conf
 
 
 

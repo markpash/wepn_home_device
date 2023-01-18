@@ -36,7 +36,7 @@ def check_and_restore(conf, backup):
             copyfile(backup, conf)
         # backup might have been created before
         # new changes were made. Do upgrades
-        exec(open(UPDATE_SCRIPT).read())
+        exec(open(UPDATE_SCRIPT).read())  # nosec: fixed path python file
 
 
 check_and_restore(CONFIG_FILE, CONFIG_FILE_BACKUP)
@@ -83,11 +83,12 @@ while not server_checkin_done:
         jresponse = json.loads(response.content)
         logger.error("is_claimed updated to " + str(is_claimed))
         leds.progress_wheel_step(color=(255, 255, 255))
-    except requests.exceptions.RequestException as exception_error:
-        logger.exception("Error in connecting to server for claim status: " + str(exception_error))
+    except requests.exceptions.RequestException:
+        logger.error("Error in connecting to server for claim status")
         # leds.blink(color=(255, 0, 0),
         #           wait=200,
         #           repetitions=4)
+        time.sleep(30)
     else:
         server_checkin_done = True
 
