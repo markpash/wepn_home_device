@@ -470,7 +470,7 @@ class Device():
                 update_was_needed = True
                 retries += 1
                 if leds is not None and lcd is not None:
-                    leds.rainbow(10000, 2)
+                    leds.rainbow(20000, 2)
                     lcd.long_text("Do not unplug. Searching for updates.", "i", "red")
                     if self.get_local_ip() == "127.0.0.1":
                         # network has not local IP?
