@@ -449,6 +449,7 @@ class Device():
             return None
 
     def needs_package_update(self):
+        self.logger.debug("checking package to see if OTA is needed right now")
         needs = False
         current = self.get_installed_package_version()
         if self.wait_for_internet(10, 10):
@@ -463,13 +464,14 @@ class Device():
             # essentially: if update is still in progress, then don't trigger another update
             # problem: if we change the update process name, this will fail
             if self.is_process_running("update-pproxy"):
+                self.logger.debug("update already running, not going to start another OTA")
                 needs = False
         return needs
 
     def is_process_running(self, process_name):
         for proc in psutil.process_iter():
             try:
-                if process_name.lower() in proc.name().lower():
+                if process_name.lower() in proc.cmdline().lower():
                     return True
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
