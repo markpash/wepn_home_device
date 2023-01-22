@@ -449,16 +449,31 @@ class Device():
             return None
 
     def needs_package_update(self):
-        needs = True
+        needs = False
         current = self.get_installed_package_version()
         if self.wait_for_internet(10, 10):
             # only gets here is internet is connected
             # and could get the repo version
             # repo package version is checked there
-            if self.repo_pkg_version is not None \
-                    and version.parse(current) >= version.parse(self.repo_pkg_version):
+            if self.repo_pkg_version is None \
+                    or version.parse(current) < version.parse(self.repo_pkg_version):
+                needs = True
+            # this fixes the case that at the end of upgrade, service is restarted which
+            # will trigger another upgrade
+            # essentially: if update is still in progress, then don't trigger another update
+            # problem: if we change the update process name, this will fail
+            if self.is_process_running("update-pproxy"):
                 needs = False
         return needs
+
+    def is_process_running(self, process_name):
+        for proc in psutil.process_iter():
+            try:
+                if process_name.lower() in proc.name().lower():
+                    return True
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        return False
 
     def software_update_blocking(self, lcd=None, leds=None):
         # if on a git build, use git
