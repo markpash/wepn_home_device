@@ -398,7 +398,7 @@ class Device():
         return False
 
     def get_installed_package_version(self):
-        version = None
+        pkg_version_ = None
         pkg_name = "pproxy-rpi"
         result = self.execute_cmd_output("dpkg -l " + pkg_name)
         r = str(result[0]).split("\\n")
@@ -406,8 +406,9 @@ class Device():
             if pkg_name in i:
                 res = re.findall(".*" + pkg_name + r"\s+((\d+)\.(\d+)\.(\d+))\S*", i)
                 if len(res) > 0 and len(res[0]) > 0:
-                    version = res[0][0]
-                    return version
+                    pkg_version_ = res[0][0]
+                    return pkg_version_
+        return "0.0.0"
 
     def get_repo_package_version(self):
         self.repo_pkg_version = None
@@ -449,16 +450,18 @@ class Device():
             return None
 
     def needs_package_update(self):
+        needs = True
         self.logger.debug("checking package to see if OTA is needed right now")
-        needs = False
         current = self.get_installed_package_version()
         if self.wait_for_internet(10, 10):
             # only gets here is internet is connected
             # and could get the repo version
             # repo package version is checked there
-            if self.repo_pkg_version is None \
-                    or version.parse(current) < version.parse(self.repo_pkg_version):
-                needs = True
+            if self.repo_pkg_version is not None \
+                    and version.parse(current) >= version.parse(self.repo_pkg_version):
+                needs = False
+            self.logger.debug("VERSION is " + str(current) +
+                              " but needs " + str(self.repo_pkg_version))
             # this fixes the case that at the end of upgrade, service is restarted which
             # will trigger another upgrade
             # essentially: if update is still in progress, then don't trigger another update
@@ -466,15 +469,21 @@ class Device():
             if self.is_process_running("update-pproxy"):
                 self.logger.debug("update already running, not going to start another OTA")
                 needs = False
+            self.logger.debug("Needs OTA = " + str(needs))
         return needs
 
     def is_process_running(self, process_name):
+        self.logger.debug("checking for process: " + process_name)
         for proc in psutil.process_iter():
             try:
-                if process_name.lower() in proc.cmdline().lower():
-                    return True
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
+                for c in proc.cmdline():
+                    if process_name.lower() in c.lower():
+                        self.logger.debug("Found process: " + str(proc.cmdline()))
+                        return True
+            # except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            except:
+                self.logger.exception("Exception handling processes")
+                return False
         return False
 
     def software_update_blocking(self, lcd=None, leds=None):
@@ -484,6 +493,7 @@ class Device():
         update_was_needed = False
         try:
             while self.needs_package_update() and retries < MAX_UPDATE_RETRIES:
+                self.logger.error("Entering OTA mode")
                 update_was_needed = True
                 retries += 1
                 if leds is not None and lcd is not None:
