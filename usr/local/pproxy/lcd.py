@@ -14,6 +14,7 @@ from PIL import ImageFont
 import logging.config
 import qrcode
 import textwrap
+from constants import LOG_CONFIG
 try:
     import RPi.GPIO as GPIO
     gpio_enable = True
@@ -29,7 +30,6 @@ except ImportError:
 import constants as consts
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
-LOG_CONFIG = "/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
 DIR = '/usr/local/pproxy/ui/'
@@ -49,7 +49,6 @@ class LCD:
         self.logo_text_y = None
         self.logo_text_color = None
         self.lcd_present = self.config.getint('hw', 'lcd')
-        print(self.lcd_present)
         # LCD version:
         # 1 is the original b&w SSD1306,
         # 2 is 1.54 Adafruit ST7789
@@ -73,10 +72,8 @@ class LCD:
         if gpio_enable:
             if (GPIO.getmode() != 11):
                 GPIO.setmode(GPIO.BCM)
-            else:
-                print("GPIO is already BCM")
         else:
-            print("GPIO not set")
+            print("Error: GPIO not set")
         # proper fix incoming: version is sometimes not set right
         self.width = 240
         self.height = 240
@@ -367,7 +364,6 @@ class LCD:
         i = 0
         corner = None
         for item in options:
-            print(item)
             text = item["text"]
             color = item["color"]
             y = y + int(self.menu_row_y_size / 2) + self.menu_row_skip
