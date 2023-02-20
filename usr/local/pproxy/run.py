@@ -9,6 +9,7 @@ from device import Device
 import os
 from shutil import copyfile
 from led_client import LEDClient
+from constants import LOG_CONFIG
 
 try:
     from self.configparser import configparser
@@ -19,7 +20,6 @@ CONFIG_FILE = '/etc/pproxy/config.ini'
 CONFIG_FILE_BACKUP = '/var/local/pproxy/config.bak'
 STATUS_FILE = '/var/local/pproxy/status.ini'
 STATUS_FILE_BACKUP = '/var/local/pproxy/status.bak'
-LOG_CONFIG = "/etc/pproxy/logging.ini"
 UPDATE_SCRIPT = "/usr/local/pproxy/setup/update_config.py"
 
 logging.config.fileConfig(LOG_CONFIG,

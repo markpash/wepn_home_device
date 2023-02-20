@@ -35,7 +35,7 @@ CONFIG_FILE = '/etc/pproxy/config.ini'
 CONFIG_FILE_BACKUP = '/var/local/pproxy/config.bak'
 STATUS_FILE = '/var/local/pproxy/status.ini'
 STATUS_FILE_BACKUP = '/var/local/pproxy/status.bak'
-LOG_CONFIG = "/etc/pproxy/logging-debug.ini"
+LOG_CONFIG = "/etc/pproxy/logging.ini"
 RETRIES_BETWEEN_SCREEN_CHANGE = 100
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
