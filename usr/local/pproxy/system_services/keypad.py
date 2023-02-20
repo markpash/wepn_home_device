@@ -324,8 +324,10 @@ class KEYPAD:
         self.status.read(STATUS_FILE)
         current_key = self.status.get('status', 'temporary_key')
         serial_number = self.config.get('django', 'serial_number')
+        device_number = self.config.get('django', 'id')
         display_str = [(1, "Device Key:", 0, "blue"), (2, str(current_key), 0, "white"),
-                       (3, "Serial #", 0, "blue"), (4, serial_number, 0, "white"), ]
+                       (3, "Serial #", 0, "blue"), (4, serial_number, 0, "white"),
+                       (5, "[ID]", 0, "blue"), (6, device_number, 0, "white"), ]
         self.lcd.display(display_str, 20)
         # self.render()
         return True  # exit the menu
