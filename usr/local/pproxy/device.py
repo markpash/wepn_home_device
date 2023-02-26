@@ -486,6 +486,20 @@ class Device():
                 return False
         return False
 
+    def is_process_running_pid(self, pid):
+        return psutil.pid_exists(pid)
+
+    def get_process_cmd_by_pid(self, pid):
+        self.logger.debug("checking for pid: " + str(pid))
+        for proc in psutil.process_iter():
+            try:
+                if (proc.pid == pid):
+                    return proc.cmdline()
+            except:
+                self.logger.exception("Exception in finding process cmd from pid")
+                return [""]
+        return [""]
+
     def software_update_blocking(self, lcd=None, leds=None):
         # if on a git build, use git
         # if on release branch, do via apt
