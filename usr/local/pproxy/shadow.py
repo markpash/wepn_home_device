@@ -157,30 +157,34 @@ class Shadow:
             shadow_conf.write(conf_json)
             shadow_conf.close()
 
+    def start_server(self, server):
+        device = Device(self.logger)
+        device.open_port(server['server_port'],
+                         'ShadowSocks ' + server['certname'])
+        cmd = 'add : {"server_port": ' + \
+            str(server['server_port']) + ' , "password" : "' + \
+            str(server['password']) + '"} '
+        # this is a workaround for the ss-manager/ss-server mismatch.
+        # we force the mode in conf to be string, not int
+        # once the ss-manager is updated from source, remove this workaround
+        self.shadow_conf_file_save(
+            server['server_port'], server['password'])
+        self.sock.send(str.encode(cmd))
+        self.shadow_conf_file_save(
+            server['server_port'], server['password'])
+        self.logger.debug(cmd + ' >> ' + str(self.sock.recv(1056)))
+
     def start_all(self):
         # used at boot time
         # loop over cert files, start each
         local_db = dataset.connect(
             'sqlite:///' + self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
-        device = Device(self.logger)
         if not servers:
             return
         for server in local_db['servers']:
-            cmd = 'add : {"server_port": ' + \
-                str(server['server_port']) + ' , "password" : "' + \
-                str(server['password']) + '"} '
-            # this is a workaround for the ss-manager/ss-server mismatch.
-            # we force the mode in conf to be string, not int
-            # once the ss-manager is updated from source, remove this workaround
-            self.shadow_conf_file_save(
-                server['server_port'], server['password'])
-            self.sock.send(str.encode(cmd))
-            self.shadow_conf_file_save(
-                server['server_port'], server['password'])
-            self.logger.debug(cmd + ' >> ' + str(self.sock.recv(1056)))
-            device.open_port(server['server_port'],
-                             'ShadowSocks ' + server['certname'])
+            time.sleep(1)
+            self.start_server(server)
         return
 
     def stop_all(self):
@@ -502,6 +506,29 @@ class Shadow:
         if max_port is None:
             max_port = int(self.config.get('shadow', 'start-port'))
         return max_port
+
+    def recover_missing_servers(self):
+        local_db = dataset.connect(
+            'sqlite:///' + self.config.get('shadow', 'db-path'))
+        servers = local_db['servers']
+        if not servers:
+            self.logger.info('no servers for recovery')
+            return True
+        device = Device(self.logger)
+        for server in local_db['servers']:
+            pid_missing = True
+            pid_file_ = '/usr/local/pproxy/.shadowsocks/.shadowsocks_' + \
+                str(server['server_port']) + '.pid'
+            try:
+                pid_file = open(pid_file_, 'r')
+                pid = int(pid_file.read())
+                pid_file.close()
+                pid_missing = False
+            except:
+                pid = -1
+                pid_missing = True
+            if pid_missing or not device.is_process_running_pid(pid):
+                self.start_server(server)
 
     def self_test(self):
         success = True
