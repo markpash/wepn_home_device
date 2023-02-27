@@ -23,7 +23,7 @@ try:
 except ImportError:
     import configparser
 
-LOG_CONFIG = "/etc/pproxy/logging-debug.ini"
+LOG_CONFIG = "/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
 
@@ -88,7 +88,6 @@ class LEDManager():
         for i in range(int(self.num_leds * percentage)):
             if self.STOP:
                 self.blank()
-                print("stopped")
                 return
             self.pixels[i] = self.adjust_brightness(color)
             time.sleep(wait / 1000)
@@ -106,7 +105,6 @@ class LEDManager():
         for i in range(int(self.num_leds * percentage) - 1, -1, -1):
             if self.STOP:
                 self.blank()
-                print("stopped")
                 return
             self.pixels[i] = (0, 0, 0)
             time.sleep(wait / 1000)
@@ -159,7 +157,6 @@ class LEDManager():
             for j in range(255):
                 if self.STOP:
                     self.blank()
-                    print("stopped")
                     return
                 for i in range(self.num_leds):
                     pixel_index = (i * 256 // self.num_leds) + j
@@ -183,7 +180,6 @@ class LEDManager():
             for i in range(dim_steps):
                 if self.STOP:
                     self.blank()
-                    print("stopped")
                     return
                 m = (i / dim_steps)
                 self.pixels.fill((color[0] * m,
@@ -194,7 +190,6 @@ class LEDManager():
             for i in range(dim_steps):
                 if self.STOP:
                     self.blank()
-                    print("stopped")
                     return
                 j = (dim_steps - i) / dim_steps
                 self.pixels.fill((color[0] * j,
@@ -213,7 +208,6 @@ class LEDManager():
         for _r in range(repetitions):
             if self.STOP:
                 self.blank()
-                print("stopped")
                 return
             self.pixels.fill((color[0],
                               color[1],
@@ -230,13 +224,12 @@ class LEDManager():
         ring = [(0, 0, 0)] * self.num_leds
         ring[0:length] = [color] * (length)
         if length > self.num_leds:
-            print("invalid light strip length! must be under {}".format(self.num_leds))
+            self.logger.error("invalid light strip length! must be under {}".format(self.num_leds))
             return
         for _r in range(repetitions):
             for i in range(self.num_leds):
                 if self.STOP:
                     self.blank()
-                    print("stopped")
                     return
                 shifted = ring[i:] + ring[:i]
                 # for j in self.num_leds
@@ -345,25 +338,19 @@ if __name__ == '__main__':
     if os.path.exists(LM_SOCKET_PATH):
         os.remove(LM_SOCKET_PATH)
 
-    print("LED Manager opening socket...")
     server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     server.bind(LM_SOCKET_PATH)
-    print(hex(stat.S_IRUSR))
     permission = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH | stat.S_IWGRP | stat.S_IWUSR
-    print(hex(permission))
     os.chmod(LM_SOCKET_PATH,
              permission)
 
-    print("LED Manager Listening...")
     while True:
         try:
             datagram = server.recv(1024)
             if not datagram:
                 break
             else:
-                print("-" * 20)
                 incoming_str = datagram.decode('utf-8')
-                print(incoming_str)
                 incoming = incoming_str.split()
                 # set brightness of LEDs
                 if incoming[0] == "set_brightness":
@@ -386,7 +373,6 @@ if __name__ == '__main__':
                 sys.exit(0)
             except SystemExit:
                 os._exit(0)
-    print("-" * 20)
     print("Shutting down...")
     server.close()
     os.remove(LM_SOCKET_PATH)

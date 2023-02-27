@@ -157,30 +157,34 @@ class Shadow:
             shadow_conf.write(conf_json)
             shadow_conf.close()
 
+    def start_server(self, server):
+        device = Device(self.logger)
+        device.open_port(server['server_port'],
+                         'ShadowSocks ' + server['certname'])
+        cmd = 'add : {"server_port": ' + \
+            str(server['server_port']) + ' , "password" : "' + \
+            str(server['password']) + '"} '
+        # this is a workaround for the ss-manager/ss-server mismatch.
+        # we force the mode in conf to be string, not int
+        # once the ss-manager is updated from source, remove this workaround
+        self.shadow_conf_file_save(
+            server['server_port'], server['password'])
+        self.sock.send(str.encode(cmd))
+        self.shadow_conf_file_save(
+            server['server_port'], server['password'])
+        self.logger.debug(cmd + ' >> ' + str(self.sock.recv(1056)))
+
     def start_all(self):
         # used at boot time
         # loop over cert files, start each
         local_db = dataset.connect(
             'sqlite:///' + self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
-        device = Device(self.logger)
         if not servers:
             return
         for server in local_db['servers']:
-            cmd = 'add : {"server_port": ' + \
-                str(server['server_port']) + ' , "password" : "' + \
-                str(server['password']) + '"} '
-            # this is a workaround for the ss-manager/ss-server mismatch.
-            # we force the mode in conf to be string, not int
-            # once the ss-manager is updated from source, remove this workaround
-            self.shadow_conf_file_save(
-                server['server_port'], server['password'])
-            self.sock.send(str.encode(cmd))
-            self.shadow_conf_file_save(
-                server['server_port'], server['password'])
-            self.logger.debug(cmd + ' >> ' + str(self.sock.recv(1056)))
-            device.open_port(server['server_port'],
-                             'ShadowSocks ' + server['certname'])
+            time.sleep(1)
+            self.start_server(server)
         return
 
     def stop_all(self):
@@ -261,7 +265,17 @@ class Shadow:
 
     # TODO: this function is still a copy of creds, and needs work
     def get_usage_json(self):
-        pass
+        self.logger = logging.getLogger(__name__)
+        # get usage statistics from ss-manager
+        cmd = 'ping'
+        self.logger.debug(cmd)
+        self.sock.send(str.encode(cmd))
+        # ping response has some text, remove it
+        raw_str = str(self.sock.recv(1056)).replace(
+            "b'stat:", "").replace("'", "")
+        self.logger.debug(raw_str)
+        response = json.loads(raw_str)
+        return response
 
     def get_usage_status_summary(self):
         self.logger = logging.getLogger(__name__)
@@ -285,7 +299,7 @@ class Shadow:
         if not servers or not self.is_enabled():
             self.logger.debug("No servers found for usage")
             return {}
-        # query current usage from it
+        # get usage statistics from ss-manager
         cmd = 'ping'
         self.logger.debug(cmd)
         self.sock.send(str.encode(cmd))
@@ -329,6 +343,7 @@ class Shadow:
                     # already has some value in usage db
                     if usage_server['usage'] > current_usage:
                         # wrap around, device recently rebooted?
+                        print("usage value has gone down!!")
                         usage_value = current_usage + usage_server['usage']
                         # some of the data usage is lost, but we get the estimate
                     else:
@@ -492,6 +507,31 @@ class Shadow:
             max_port = int(self.config.get('shadow', 'start-port'))
         return max_port
 
+    def recover_missing_servers(self):
+        pid_missing = True
+        local_db = dataset.connect(
+            'sqlite:///' + self.config.get('shadow', 'db-path'))
+        servers = local_db['servers']
+        if not servers:
+            self.logger.debug('no servers for recovery')
+            return True
+        device = Device(self.logger)
+        for server in local_db['servers']:
+            self.logger.debug("recovery checking server:" + str(server['server_port']))
+            pid_file_ = '/usr/local/pproxy/.shadowsocks/.shadowsocks_' + \
+                str(server['server_port']) + '.pid'
+            try:
+                pid_file = open(pid_file_, 'r')
+                pid = int(pid_file.read())
+                pid_file.close()
+                pid_missing = False
+            except:
+                pid = -1
+                pid_missing = True
+            if pid_missing or not device.is_process_running_pid(pid):
+                self.logger.debug("recovery starting server:" + str(server['server_port']))
+                self.start_server(server)
+
     def self_test(self):
         success = True
         local_port = 10000 + randrange(10)  # nosec: not used for cryptography
@@ -537,12 +577,9 @@ class Shadow:
                     ss_client_cmd, True)
                 time.sleep(3)
                 if int(failed) == 0:
-                    # using the local Flask API webserver
-                    # using external websites adds timeout and remote connection limits
-                    requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
-                    r = requests.get('https://127.0.0.1:5000/',
-                                     timeout=3,
-                                     proxies=proxies, verify=False)  # nosec: http://go.we-pn.com/waiver-3
+                    r = requests.get('https://twitter.com/',
+                                     timeout=5,
+                                     proxies=proxies)
                     success &= (r.status_code == 200)
             except requests.exceptions.ReadTimeout:
                 self.logger.info("Timedout: \t" + str(server))

@@ -17,7 +17,6 @@ ipw = IPW()
 # This can be updated whenever we add a new flag
 # So other files should import and use this
 # When trying to determine if device diag code is healthy
-HEALTHY_DIAG_CODE = 127
 CONFIG_FILE = '/etc/pproxy/config.ini'
 STATUS_FILE = '/var/local/pproxy/status.ini'
 try:

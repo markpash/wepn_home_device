@@ -3,9 +3,9 @@ import logging
 import logging.config
 import socket
 import time
+from constants import LOG_CONFIG
 
 LM_SOCKET_PATH = "/var/local/pproxy/ledmanagersocket.sock"
-LOG_CONFIG = "/etc/pproxy/logging-debug.ini"
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
 

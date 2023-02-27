@@ -249,6 +249,7 @@ class WPDiag:
                 # (2) timing out
                 # (3) a call to get_results_from_server. In theory 1 covers this too.
                 self.open_test_port(port)
+                time.sleep(2)
                 experiment_number = self.request_port_check(port)
                 if experiment_number > 0:
                     self.logger.debug(

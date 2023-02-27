@@ -39,6 +39,7 @@ from diag import WPDiag
 from services import Services
 from device import Device
 from wstatus import WStatus
+from constants import LOG_CONFIG
 
 COL_PINS = [26]  # BCM numbering
 ROW_PINS = [19, 13, 6]  # BCM numbering
@@ -47,7 +48,6 @@ KEYPAD = [
 ]
 CONFIG_FILE = '/etc/pproxy/config.ini'
 STATUS_FILE = '/var/local/pproxy/status.ini'
-LOG_CONFIG = "/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
 
