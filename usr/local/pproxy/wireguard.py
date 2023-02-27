@@ -115,6 +115,9 @@ class Wireguard:
             self.logger.error("Error details:\n" + str(error_exception))
             system.exit()
 
+    def recover_missing_servers(self):
+        return
+
     def self_test(self):
         # not implemented for Wireguard
         return True
