@@ -281,7 +281,7 @@ chown root.wepn-web $SRUN
 chmod 4750 $SRUN
 ls -la $SRUN
 
-echo "\n done with setuid"
+echo -e "\n done with setuid"
 
 #######################################
 # Install SeeedStudio for speakers
@@ -331,3 +331,4 @@ systemctl restart wepn-main
 
 
 echo -e "Installation of WEPN done."
+exit 0
