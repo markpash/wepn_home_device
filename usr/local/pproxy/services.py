@@ -125,6 +125,10 @@ class Services:
                         usage[server].update(res[server])
         return usage
 
+    def recover_missing_servers(self):
+        for service in self.services:
+            service['obj'].recover_missing_servers()
+
     def self_test(self):
         result = True
         for service in self.services:

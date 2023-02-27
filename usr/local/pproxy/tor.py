@@ -109,6 +109,9 @@ class Tor:
             html = "Access to Tor Bridge IP address " + ip_address + " is revoked.",
         return txt, html
 
+    def recover_missing_servers(self):
+        return
+
     def self_test(self):
         # TODO: some good testing is really needed here
         success = True

@@ -508,15 +508,16 @@ class Shadow:
         return max_port
 
     def recover_missing_servers(self):
+        pid_missing = True
         local_db = dataset.connect(
             'sqlite:///' + self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
         if not servers:
-            self.logger.info('no servers for recovery')
+            self.logger.debug('no servers for recovery')
             return True
         device = Device(self.logger)
         for server in local_db['servers']:
-            pid_missing = True
+            self.logger.debug("recovery checking server:" + str(server['server_port']))
             pid_file_ = '/usr/local/pproxy/.shadowsocks/.shadowsocks_' + \
                 str(server['server_port']) + '.pid'
             try:
@@ -528,6 +529,7 @@ class Shadow:
                 pid = -1
                 pid_missing = True
             if pid_missing or not device.is_process_running_pid(pid):
+                self.logger.debug("recovery starting server:" + str(server['server_port']))
                 self.start_server(server)
 
     def self_test(self):
