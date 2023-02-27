@@ -331,4 +331,4 @@ systemctl restart wepn-main
 
 
 echo -e "Installation of WEPN done."
-exit 0
+return 0
