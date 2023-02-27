@@ -577,12 +577,9 @@ class Shadow:
                     ss_client_cmd, True)
                 time.sleep(3)
                 if int(failed) == 0:
-                    # using the local Flask API webserver
-                    # using external websites adds timeout and remote connection limits
-                    requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
-                    r = requests.get('https://127.0.0.1:5000/',
-                                     timeout=3,
-                                     proxies=proxies, verify=False)  # nosec: http://go.we-pn.com/waiver-3
+                    r = requests.get('https://twitter.com/',
+                                     timeout=5,
+                                     proxies=proxies)
                     success &= (r.status_code == 200)
             except requests.exceptions.ReadTimeout:
                 self.logger.info("Timedout: \t" + str(server))
