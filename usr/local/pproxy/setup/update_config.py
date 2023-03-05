@@ -190,8 +190,6 @@ else:
 
 status.set('status', 'sw', '1.12.6')
 
->>>>>>> ba30e1d (fix install issue; fix autopep8 sorted import)
-
 with open(CONFIG_FILE, 'w') as configfile:
     config.write(configfile)
 with open(STATUS_FILE, 'w') as statusfile:
