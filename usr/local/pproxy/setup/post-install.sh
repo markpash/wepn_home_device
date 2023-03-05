@@ -61,7 +61,6 @@ chown root.root $PPROXY_HOME/system_services/led_manager.py
 
 cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
-
 python3 -m pip install --upgrade pip
 PIP=/usr/local/bin/pip3
 if ! command -v $PIP -V &> /dev/null
@@ -70,10 +69,14 @@ then
 fi
 
 $PIP install --upgrade pip
-$PIP install --ignore-installed -r $PPROXY_HOME/setup/requirements.txt
-
-pip3 install --upgrade pip
-pip3 install -r $PPROXY_HOME/setup/requirements.txt
+$PIP install -r $PPROXY_HOME/setup/requirements.txt
+if [ ! $? -eq 0 ]; then
+	echo "Doing one-by-one pip install"
+	for pkg in `cat $PPROXY_HOME/setup/requirements.txt`
+	do
+		$PIP install --ignore-installed $pkg
+	done
+fi
 
 #config initialized/fixed
 mkdir -p /etc/pproxy/
