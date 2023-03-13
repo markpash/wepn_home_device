@@ -16,7 +16,7 @@ Adafruit-SSD1306==1.6.2
 alembic==1.7.4
 appdirs==1.4.4
 asn1crypto==0.24.0
-astroid==2.5.1
+astroid==2.15.0
 asttokens==2.0.4
 automationhat==0.2.0
 autopep8==1.6.0
@@ -41,9 +41,10 @@ colorzero==1.1
 cryptography==39.0.2
 cupshelpers==1.0
 cycler==0.11.0
-dataset==1.5.0
+dataset==1.6.0
 dbus-python==1.2.16
 decorator==4.4.2
+dill==0.3.6
 distlib==0.3.3
 distro==1.5.0
 docutils==0.16
@@ -81,7 +82,7 @@ jupyter-client==6.1.11
 jupyter-core==4.7.1
 keyring==17.1.1
 kiwisolver==1.3.2
-lazy-object-proxy==0.0.0
+lazy-object-proxy==1.9.0
 logilab-common==1.8.1
 lxml==4.9.1
 Mako==1.2.2
@@ -136,7 +137,7 @@ PyGObject==3.42.0
 pyinotify==0.9.6
 PyJWT==2.6.0
 pylab==0.0.1
-pylint==2.7.2
+pylint==2.17.0
 pyOpenSSL==21.0.0
 pyparsing==3.0.4
 PyQt5==5.15.2
@@ -157,7 +158,7 @@ QScintilla==2.11.6
 qtconsole==5.0.2
 QtPy==1.9.0
 rainbowhat==0.1.0
-reportlab==3.5.59
+reportlab==3.6.12
 requests==2.25.1
 requests-oauthlib==1.0.0
 responses==0.12.1
@@ -190,12 +191,14 @@ stevedore==4.0.0
 sysv-ipc==1.1.0
 thonny==4.0.1
 toml==0.10.2
+tomli==2.0.1
+tomlkit==0.11.6
 tornado==6.1
 touchphat==0.0.1
 traitlets==5.0.5
 twython==3.8.2
 typed-ast==1.4.2
-typing-extensions==3.10.0.2
+typing_extensions==4.5.0
 uflash==1.2.4
 unicornhathd==0.0.4
 upnpclient==1.0.3
