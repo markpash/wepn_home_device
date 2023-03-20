@@ -1,4 +1,3 @@
-import apt
 #########################################
 # Fix old setup files
 # add missing fileds, correct host
@@ -119,6 +118,9 @@ config.set('email', 'email', "WEPN Device<devices@we-pn.com>")
 if not status.has_section('previous_keys'):
     status.add_section('previous_keys')
 
+if not status.has_option('status','last_diag_code'):
+    status.set('status','last_diag_code',"127")
+
 if not config.has_section('hw'):
     config.add_section('hw')
 
@@ -176,17 +178,7 @@ if not config.has_section('wireguard'):
     config.set('wireguard', 'email', "1")
     config.set('wireguard', 'wireport', "6711")
 
-# GCM is required, but older shadowsocks doesn't support it
-cache = apt.Cache()
-shadowsocks_3 = False
-if cache['shadowsocks-libev'].is_installed:
-    for pkg in cache['shadowsocks-libev'].versions:
-        if pkg.version.startswith("3"):
-            shadowsocks_3 = True
-if shadowsocks_3:
-    config.set('shadow', 'method', 'aes-256-gcm')
-else:
-    config.set('shadow', 'method', 'aes-256-cfm')
+config.set('shadow', 'method', 'aes-256-gcm')
 
 status.set('status', 'sw', '1.12.6')
 
