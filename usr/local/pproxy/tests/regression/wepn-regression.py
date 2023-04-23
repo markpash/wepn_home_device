@@ -208,17 +208,6 @@ def test_heartbeat():
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
 
-@pytest.mark.dependency(depends=["test_login"])	
-def test_list_friends():
-    headers = {
-            "Authorization" : auth_token,
-            }
-    expected = [{"id":int(static_friend_id),"email":"test-email@we-pn.com","telegram_handle":"no_handle","has_connected":True,"usage_status":1,"passcode":"test pass code","cert_id":"1n.b4","language":"en", 'name': 'test-email@we-pn.com', 'config': {"tunnel": "shadowsocks"}, 'subscribed': True}]
-    response = requests.get(url + '/friend/', headers=headers)
-    jresponse = response.json()
-    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
-    #print (jresponse)
-    assert(jresponse == expected) #nosec: assert is a legit check for pytest
 
 @pytest.mark.dependency(depends=["test_login","test_claim", "test_heartbeat", "test_list_friends"])	
 def test_heartbeat_change_usage_status():
@@ -243,7 +232,7 @@ def test_heartbeat_change_usage_status():
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
 
-@pytest.mark.dependency(depends=["test_login", "test_list_friends", "test_claim"])
+@pytest.mark.dependency(depends=["test_login", "test_claim"])
 def test_add_friend():
     global friend_id
     headers = {
@@ -258,6 +247,19 @@ def test_add_friend():
     payload['id'] = jresponse['id']
     friend_id = payload['id']
     assert(jresponse == payload) #nosec: assert is a legit check for pytest
+
+
+@pytest.mark.dependency(depends=["test_login", "test_add_friend"])
+def test_list_friends():
+    headers = {
+            "Authorization" : auth_token,
+            }
+    expected = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'en','config': {"tunnel": "shadowsocks"}, 'name': 'regression_added@we-pn.com', 'subscribed': True}
+    response = requests.get(url + '/friend/', headers=headers)
+    jresponse = response.json()
+    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
+    #print (jresponse)
+    assert(jresponse == expected) #nosec: assert is a legit check for pytest
 
 @pytest.mark.dependency(depends=["test_add_friend"])
 def test_added_friend_in_local_db():
