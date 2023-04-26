@@ -29,6 +29,7 @@ client_secret=config.get('app', 'client_secret')
 url=config.get('device', 'url')
 key=config.get('device', 'key')
 #serial=config.get('device', 'serial')
+device_id=config.get('device', 'device_id')
 serial=pproxy_config.get('django', 'serial_number')
 shadow_db=pproxy_config.get('shadow', 'db-path')
 
@@ -106,7 +107,9 @@ def test_login():
     headers = {
             "content-type": "application/json"
             }
+    print(headers)
     response = requests.post(authorization_base_url, json=payload, headers=headers)
+    print(response)
     jresponse = response.json()
     auth_token = "Bearer " + jresponse['access_token']
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
@@ -120,6 +123,7 @@ def test_login_fail():
     headers = {
             "content-type": "application/json"
             }
+    print(headers)
     response = requests.post(authorization_base_url, json=payload, headers=headers)
     jresponse = response.json()
     assert(response.status_code != 200) #nosec: assert is a legit check for pytest
@@ -157,11 +161,14 @@ def test_claim():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
+    print(headers)
     payload = {"device_key":key, "serial_number":serial, "device_name":"Regression Device"}
     response = requests.post(url + '/device/claim/', json=payload, headers=headers)
+    print(response)
     jresponse = response.json()
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
     device_id = jresponse['id']
+    print(device_id)
 
 @pytest.mark.dependency(depends=["test_login","test_claim"])
 def test_claim_fail_serial():
@@ -239,9 +246,10 @@ def test_add_friend():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
+    print(headers)
     payload = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'en','config': {"tunnel": "shadowsocks"}, 'name': 'regression_added@we-pn.com', 'subscribed': True}
     response = requests.post(url + '/friend/', json=payload, headers=headers)
-    #print (response.content)
+    print (response.content)
     assert(response.status_code == 201) #nosec: assert is a legit check for pytest
     jresponse = response.json()
     payload['id'] = jresponse['id']
@@ -368,13 +376,16 @@ def test_check_api_calls_valid():
     assert(util_iterate_apis(local_token, 200, True))
 
 
-@pytest.mark.dependency(depends=["test_login", "test_claim", "test_heartbeat"])
+@pytest.mark.dependency(depends=["test_login"])
 def test_unclaim():
-    global device_id
+    device_id = config.get('device', 'device_id')
+    print(device_id)
     headers = {
             "Authorization" : auth_token,
             }
+    print(headers)
     response = requests.get(url + '/device/'+str(device_id)+'/unclaim/', headers=headers)
+    print(response)
     jresponse = response.json()
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
