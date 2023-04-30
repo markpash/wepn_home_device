@@ -115,6 +115,27 @@ def test_login():
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
     pass
 
+@pytest.mark.dependency(depends=["test_login"])
+def test_clean_friends():
+    headers = {
+            "Authorization" : auth_token,
+            }
+    response = requests.get(url + '/friend/', headers=headers)
+    jresponse = response.json()
+    print(jresponse)
+    for item in jresponse:
+        print(item)
+        friend_id = item['id']
+        print(friend_id)
+        response = requests.delete(url + '/friend/'+ str(friend_id), headers=headers)
+        print(response)
+        assert(response.status_code == 200) #nosec: assert is a legit check for pytest
+
+
+
+    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
+
+
 def test_login_fail():
     payload = {"grant_type":"password","username":user,"password":"clearlywrong",
             "client_id":client_id,
@@ -130,6 +151,8 @@ def test_login_fail():
     pass
 
 
+    response = requests.get(url + '/friend/', headers=headers)
+    jresponse = response.json()
 @pytest.mark.dependency(depends=["test_login"])
 def test_confirm_device_unclaimed():
     status = configparser.ConfigParser()
