@@ -116,7 +116,7 @@ def test_login():
     pass
 
 @pytest.mark.dependency(depends=["test_login"])
-def test_clean_friends():
+def test_clean_friend():
     headers = {
             "Authorization" : auth_token,
             }
@@ -150,9 +150,6 @@ def test_login_fail():
     assert(response.status_code != 200) #nosec: assert is a legit check for pytest
     pass
 
-
-    response = requests.get(url + '/friend/', headers=headers)
-    jresponse = response.json()
 @pytest.mark.dependency(depends=["test_login"])
 def test_confirm_device_unclaimed():
     status = configparser.ConfigParser()
@@ -262,7 +259,7 @@ def test_heartbeat_change_usage_status():
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
 
-@pytest.mark.dependency(depends=["test_login", "test_claim"])
+@pytest.mark.dependency(depends=["test_login", "test_claim", "test_clean_friend"])
 def test_add_friend():
     global friend_id
     headers = {
@@ -270,7 +267,7 @@ def test_add_friend():
             "content-type": "application/json"
             }
     print(headers)
-    payload = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'en','config': {"tunnel": "shadowsocks"}, 'name': 'regression_added@we-pn.com', 'subscribed': True}
+    payload = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'cert_hash':None, 'language': 'en','config': {"tunnel": "shadowsocks"}, 'name': 'regression_added@we-pn.com', 'subscribed': True}
     response = requests.post(url + '/friend/', json=payload, headers=headers)
     print (response.content)
     assert(response.status_code == 201) #nosec: assert is a legit check for pytest
@@ -285,12 +282,13 @@ def test_list_friends():
     headers = {
             "Authorization" : auth_token,
             }
-    expected = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'en','config': {"tunnel": "shadowsocks"}, 'name': 'regression_added@we-pn.com', 'subscribed': True}
+    expected = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb','cert_hash':None , 'language': 'en','config': {"tunnel": "shadowsocks"}, 'name': 'regression_added@we-pn.com', 'subscribed': True}
     response = requests.get(url + '/friend/', headers=headers)
     jresponse = response.json()
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
     #print (jresponse)
-    assert(jresponse == expected) #nosec: assert is a legit check for pytest
+    jresponse[0]['id'] = 0
+    assert(jresponse == [expected]) #nosec: assert is a legit check for pytest
 
 @pytest.mark.dependency(depends=["test_add_friend"])
 def test_added_friend_in_local_db():
