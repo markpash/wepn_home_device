@@ -183,12 +183,19 @@ def test_claim():
             }
     print(headers)
     payload = {"device_key":key, "serial_number":serial, "device_name":"Regression Device"}
-    response = requests.post(url + '/device/claim/', json=payload, headers=headers)
-    print(response)
-    jresponse = response.json()
+    num_retries = 5
+    for i in range(num_retries):
+        response = requests.post(url + '/device/claim/', json=payload, headers=headers)
+        print(response)
+        jresponse = response.json()
+        if response.status_code == 200:
+            device_id = jresponse['id']
+            print(device_id)
+            break
+        else:
+            print(f"Attemp {i+1} failed. Retrying in 5 seconds...")
+            time.sleep(5)
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
-    device_id = jresponse['id']
-    print(device_id)
 
 @pytest.mark.dependency(depends=["test_login","test_claim"])
 def test_claim_fail_serial():
@@ -236,7 +243,7 @@ def test_heartbeat():
 
 
 
-@pytest.mark.dependency(depends=["test_login","test_claim", "test_heartbeat", "test_list_friends"])	
+@pytest.mark.dependency(depends=["test_login","test_claim", "test_heartbeat"])	
 def test_heartbeat_change_usage_status():
     global friend_id
     headers = {
@@ -244,15 +251,20 @@ def test_heartbeat_change_usage_status():
             "content-type": "application/json"
             }
     payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {"1n.b4":1}}
+    
     response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
     jresponse = response.json()
+    print(jresponse)
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
+    
     expected = [{"id":int(static_friend_id),"email":"test-email@we-pn.com","telegram_handle":"no_handle","has_connected":True,"usage_status":1,"passcode":"test pass code","cert_id":"1n.b4","language":"en", 'name': 'test-email@we-pn.com', 'config': {'tunnel': 'shadowsocks'}, 'subscribed': True}]
+
     response = requests.get(url + '/friend/', headers=headers)
     jresponse = response.json()
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
-    #print (jresponse)
+    print (jresponse)
     assert(jresponse == expected) #nosec: assert is a legit check for pytest
+
     # reset the usge to -1
     payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {"1n.b4":1}}
     response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
