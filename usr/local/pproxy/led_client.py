@@ -3,6 +3,7 @@ import logging
 import logging.config
 import socket
 import time
+import device
 from constants import LOG_CONFIG
 
 LM_SOCKET_PATH = "/var/local/pproxy/ledmanagersocket.sock"
@@ -28,7 +29,12 @@ class LEDClient:
         self.client = None
         if os.path.exists(LM_SOCKET_PATH):
             self.client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-            self.client.connect(LM_SOCKET_PATH)
+            try:
+                self.client.connect(LM_SOCKET_PATH)
+            except PermissionError:
+                self.device = device.Device(logger)
+                self.device.execute_setuid("1 14")
+                self.client.connect(LM_SOCKET_PATH)
 
     def __del__(self):
         if self.client is not None:
