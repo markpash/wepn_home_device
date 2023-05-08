@@ -5,7 +5,7 @@
 
 #define SRV_CNT 6
 #define CMD_CNT 6
-#define SPECIAL_CMD_CNT 14
+#define SPECIAL_CMD_CNT 15
 
 int sanitize(char* input) {
 	static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
@@ -67,6 +67,7 @@ int main(int argc, char * argv[])
 	scommands[11]= "mount -o umask=0022,gid=1001,uid=1001 /dev/sda1 /mnt/";
 	scommands[12]= "umount /mnt/";
 	scommands[13]= "ssh-keygen -A";
+	scommands[14]= "chown root.pproxy /var/local/pproxy/ledmanagersocket.sock; chmod 660 /var/local/pproxy/ledmanagersocket.sock";
 
 	int c,s,t;
 
