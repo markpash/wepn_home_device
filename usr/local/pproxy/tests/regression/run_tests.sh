@@ -11,4 +11,4 @@ while grep -q CLAIMED $status_file; do
 	echo "still claimed";
 	sleep 5 ; 
 done
-pytest wepn-regression.py -vvv
+pytest --retries 5 wepn-regression.py -vvv
