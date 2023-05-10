@@ -5,6 +5,7 @@ up_dir = os.path.dirname(os.path.abspath(__file__))+'/../'
 sys.path.append(up_dir)
 import device
 import logging
+import logging.config
 import time
 #from led_manager import LEDManager
 import socket
@@ -25,7 +26,12 @@ logger = logging.getLogger("led_manager")
 #leds.set_all((0,0,255))
 if os.path.exists(LM_SOCKET_PATH):
     client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-    client.connect(LM_SOCKET_PATH)
+    try:
+        client.connect(LM_SOCKET_PATH)
+    except PermissionError as e:
+        de = device.Device(logger)
+        de.execute_setuid("1 14")
+        client.connect(LM_SOCKET_PATH)
 i = 0
 j = 0
 while True:

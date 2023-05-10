@@ -220,6 +220,9 @@ chown pproxy.shadow-runners /var/local/pproxy/shadow/shadow.sock
 chmod 775 /var/local/pproxy/shadow/shadow.sock
 chown pproxy.shadow-runners /var/local/pproxy/shadow/
 chmod 775 /var/local/pproxy/shadow/
+touch /var/local/pproxy/error.log
+chown pproxy.pproxy /var/local/pproxy/error.log
+chmod 600 /var/local/pproxy/error.log
 
 /bin/ln -s /etc/init.d/shadowsocks-libev /etc/rc3.d/S01shadowsocks-libev
 /bin/ln -s /etc/init.d/shadowsocks-libev /etc/rc5.d/S01shadowsocks-libev
