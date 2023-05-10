@@ -13,7 +13,7 @@ if [ ! -f "/var/local/pproxy/status.bak" ]; then
     cp /var/local/pproxy/status.ini /var/local/pproxy/status.bak
 fi
 
-ch wn pproxy.pproxy /var/local/pproxy/config.bak
+chown pproxy.pproxy /var/local/pproxy/config.bak
 chmod 0600 /var/local/pproxy/config.bak
 chown pproxy.pproxy /var/local/pproxy/status.bak
 chmod 0600 /var/local/pproxy/status.bak
@@ -222,7 +222,7 @@ chown pproxy.shadow-runners /var/local/pproxy/shadow/
 chmod 775 /var/local/pproxy/shadow/
 touch /var/local/pproxy/error.log
 chown pproxy.pproxy /var/local/pproxy/error.log
-chmod 600 /var/local/pproxy/error.log
+chmod 650 /var/local/pproxy/error.log
 
 /bin/ln -s /etc/init.d/shadowsocks-libev /etc/rc3.d/S01shadowsocks-libev
 /bin/ln -s /etc/init.d/shadowsocks-libev /etc/rc5.d/S01shadowsocks-libev
