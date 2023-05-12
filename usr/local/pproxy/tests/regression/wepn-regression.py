@@ -100,9 +100,12 @@ def pytest_runtest_makereport(item, call):
 @pytest.mark.dependency()
 def test_login():
     global auth_token
-    payload = {"grant_type":"password","username":user,"password":password,
-            "client_id":client_id,
-            "client_secret":client_secret}
+    payload = {"grant_type":"password",
+                "username":user,
+                "password":password,
+                "client_id":client_id,
+                "client_secret":client_secret
+              }
 
     headers = {
             "content-type": "application/json"
@@ -120,6 +123,7 @@ def test_clean_friend():
     headers = {
             "Authorization" : auth_token,
             }
+
     response = requests.get(url + '/friend/', headers=headers)
     jresponse = response.json()
     print(jresponse)
@@ -131,15 +135,16 @@ def test_clean_friend():
         print(response)
         assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
-
-
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
 
 def test_login_fail():
-    payload = {"grant_type":"password","username":user,"password":"clearlywrong",
-            "client_id":client_id,
-            "client_secret":client_secret}
+    payload = {"grant_type":"password",
+                "username":user,
+                "password":"clearlywrong",
+                "client_id":client_id,
+                "client_secret":client_secret
+              }
 
     headers = {
             "content-type": "application/json"
@@ -162,6 +167,7 @@ def test_api_returns_unclaimed():
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
     key = status.get('status','temporary_key')
+
     # get the key through the local API
     response = requests.get(local_api_url + "/api/v1/claim/info", verify = False)
     jresponse = response.json()
@@ -183,7 +189,10 @@ def test_claim():
             "content-type": "application/json"
             }
     print(headers)
-    payload = {"device_key":key, "serial_number":serial, "device_name":"Regression Device"}
+    payload = { "device_key":key, 
+                "serial_number":serial, 
+                "device_name":"Regression Device"
+              }
     response = requests.post(url + '/device/claim/', json=payload, headers=headers)
     jresponse = response.json()
     print(response)
@@ -197,7 +206,10 @@ def test_claim_fail_serial():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"device_key":key,"serial_number":"BADBEEF", "device_name":"Regression Device"}
+    payload = { "device_key":key,
+                "serial_number":"BADBEEF", 
+                "device_name":"Regression Device"
+              }
     response = requests.post(url + '/device/claim/', json=payload, headers=headers)
     assert(response.status_code != 200) #nosec: assert is a legit check for pytest
 
@@ -230,7 +242,19 @@ def test_heartbeat():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {}}
+    payload = { "serial_number": serial, 
+                "ip_address": "1.2.3.164", 
+                "status": "2", 
+                "pin": "6696941737", 
+                "local_token": "565656", 
+                "local_ip_address": "192.168.1.118", 
+                "device_key":key, 
+                "port": "3074", 
+                "software_version": "0.11.1", 
+                "diag_code": 119, 
+                "access_cred": {}, 
+                "usage_status": {}
+              }
     response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
     jresponse = response.json()
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
@@ -244,7 +268,19 @@ def test_heartbeat_change_usage_status():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {"1n.b4":1}}
+    payload = { "serial_number": serial, 
+                "ip_address": "1.2.3.164", 
+                "status": "2", 
+                "pin": "6696941737", 
+                "local_token": "565656", 
+                "local_ip_address": "192.168.1.118", 
+                "device_key":key, 
+                "port": "3074", 
+                "software_version": "0.11.1", 
+                "diag_code": 119, 
+                "access_cred": {}, 
+                "usage_status": {"1n.b4":1}
+             }
     response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
     jresponse = response.json()
     print(jresponse)
@@ -268,7 +304,18 @@ def test_add_friend():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'en','config': {"tunnel": "shadowsocks"}, 'name': 'regression_added@we-pn.com', 'subscribed': True}
+    payload = { "id":0, 
+                'email': 'regression_added@we-pn.com', 
+                'telegram_handle': 'tlgrm_hndl', 
+                'has_connected': False, 
+                'usage_status': 0, 
+                'passcode': 'test pass code', 
+                'cert_id': 'zxcvb', 
+                'language': 'en',
+                'config': {"tunnel": "shadowsocks"}, 
+                'name': 'regression_added@we-pn.com', 
+                'subscribed': True
+             }
     response = requests.post(url + '/friend/', json=payload, headers=headers)
     print (response.content)
     assert(response.status_code == 201) #nosec: assert is a legit check for pytest
@@ -370,9 +417,10 @@ def test_deleted_friend_in_api():
             "content-type": "application/json"
             }
     payload = {
-            'local_token':str(local_token),
-            #'certname':'cf.9q'}
-            'certname':'zxcvb'}
+                'local_token':str(local_token),
+                #'certname':'cf.9q'}
+                'certname':'zxcvb'
+              }
     response = requests.post(url=local_api_url + "/api/v1/friends/access_links/",
             params= payload, verify=False)
     assert(response.status_code == 200)
