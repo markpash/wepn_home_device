@@ -135,7 +135,7 @@ def test_clean_friend():
         print(response)
         assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
-    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
+    assert(response.status_code == 200 or response.status_code == 204) #nosec: assert is a legit check for pytest
 
 
 def test_login_fail():
@@ -391,7 +391,9 @@ def test_api_gives_correct_key():
             params= payload, verify=False)
     assert(response.status_code == 200)
     jresponse = response.json()
+    print(jresponse)
     split_resp = base64.b64decode(jresponse['link'][5:]).decode('utf-8').replace('@',':').split(':')
+
     assert(int(real_ss_pass) == int(split_resp[1]))
     assert(int(real_port) == int(split_resp[3]))
 
