@@ -261,7 +261,7 @@ def test_heartbeat():
 
 
 
-@pytest.mark.dependency(depends=["test_login","test_claim", "test_heartbeat", "test_list_friends"])	
+@pytest.mark.dependency(depends=["test_login","test_claim", "test_heartbeat"])	
 def test_heartbeat_change_usage_status():
     global friend_id
     headers = {
@@ -292,12 +292,24 @@ def test_heartbeat_change_usage_status():
     print (jresponse)
     assert(jresponse == expected) #nosec: assert is a legit check for pytest
     # reset the usge to -1
-    payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {"1n.b4":1}}
+    payload = { "serial_number": serial, 
+                "ip_address": "1.2.3.164", 
+                "status": "2", 
+                "pin": "6696941737", 
+                "local_token": "565656", 
+                "local_ip_address": "192.168.1.118", 
+                "device_key":key, 
+                "port": "3074", 
+                "software_version": "0.11.1", 
+                "diag_code": 119, 
+                "access_cred": {}, 
+                "usage_status": {"1n.b4":1}
+              }
     response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
 
-@pytest.mark.dependency(depends=["test_login", "test_list_friends", "test_claim"])
+@pytest.mark.dependency(depends=["test_login", "test_claim"])
 def test_add_friend():
     global friend_id
     headers = {
@@ -309,7 +321,8 @@ def test_add_friend():
                 'telegram_handle': 'tlgrm_hndl', 
                 'has_connected': False, 
                 'usage_status': 0, 
-                'passcode': 'test pass code', 
+                'passcode': 'test pass code',
+                'cert_hash' : None,
                 'cert_id': 'zxcvb', 
                 'language': 'en',
                 'config': {"tunnel": "shadowsocks"}, 
