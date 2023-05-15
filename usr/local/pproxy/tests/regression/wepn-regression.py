@@ -47,6 +47,24 @@ friend_id = None
 device_id = None
 
 
+def decode_base64(encoded_str):
+    """
+    This function decodes a base64 encoded string
+    """
+    # print(encoded_str)
+    missing_padding = len(encoded_str) % 4
+    if missing_padding != 0:
+        encoded_str += '=' * (4 - missing_padding)
+        # print(encoded_str)
+    decoded_bytes = base64.b64decode(encoded_str)
+    decoded_str = decoded_bytes.decode('utf-8')
+
+    decoded_str = decoded_str.replace('@', ':')
+    components = decoded_str.split(':')
+    # print(components)
+    # print(decoded_str)
+    return components
+
 def util_iterate_apis(local_token, expected_code, filter_auth=False):
     result = True
     status = configparser.ConfigParser()
@@ -59,13 +77,13 @@ def util_iterate_apis(local_token, expected_code, filter_auth=False):
                 { "url": "/api/v1/friends/usage/", "auth": True, },
                 { "url": "/api/v1/friends/access_links/", "auth": True, },
                 { "url":   "/api/v1/claim/info", "auth": False, },
-                { "url":  "/api/v1/claim/progress", "auth": False },
+                { "urstrl":  "/api/v1/claim/progress", "auth": False },
                 { "url":  "/api/v1/diagnostics/info", "auth": (status.get('status','claimed') == '0'), }, # if unclaimed, no auth needed
                 { "url": "/api/v1/diagnostics/error_log", "auth": True, },
             ]
     for api in apis:
         if filter_auth:
-            # if asked, skip testing APIs that don't need auth
+            # if asked, strskip testing APIs that don't need auth
             if not api['auth']:
                 continue
         payload = {
@@ -366,12 +384,13 @@ def test_added_friend_in_local_db():
 
 @pytest.mark.dependency(depends=["test_add_friend"])
 def test_api_gives_correct_key():
-    '''get the key through the API server
-    compare to firend_access_key'''
+    '''
+    get the key through the API server
+    compare to friend_access_key
+    '''
     conn = sqlite3.connect(shadow_db)
     cursor = conn.cursor()
     cursor.execute('''SELECT server_port, password from servers where certname like "zxcvb" and language like "en"''')
-    #cursor.execute('''SELECT server_port, password from servers where certname like "cf.9q"''')
     result = cursor.fetchall()
     conn.close()
     assert(len(result)==1)
@@ -391,11 +410,15 @@ def test_api_gives_correct_key():
             params= payload, verify=False)
     assert(response.status_code == 200)
     jresponse = response.json()
-    print(jresponse)
-    split_resp = base64.b64decode(jresponse['link'][5:]).decode('utf-8').replace('@',':').split(':')
+    # print(jresponse)   
+    encoded_str = jresponse['link'][5:-11]
+    components = decode_base64(encoded_str)
+    # print(components)
+    # print(real_ss_pass)
+    # print(real_port)
 
-    assert(int(real_ss_pass) == int(split_resp[1]))
-    assert(int(real_port) == int(split_resp[3]))
+    assert(int(real_ss_pass) == int(components[1]))
+    assert(int(real_port) == int(components[3]))
 
 
 
