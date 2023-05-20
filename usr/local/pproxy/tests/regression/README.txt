@@ -1,7 +1,7 @@
 * Install
 virtualenv regenv
 source regenv/bin/activate
-pip3 install requests pytest pytest-html pytest-dependency
+pip3 install -r requirements.txt
 
 Create a local_test_config.ini, and populate as few first lines of regression test file ask. Format follow configaparser ini structure, for example:
 
