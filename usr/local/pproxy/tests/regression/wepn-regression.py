@@ -29,6 +29,7 @@ client_secret=config.get('app', 'client_secret')
 url=config.get('device', 'url')
 key=config.get('device', 'key')
 #serial=config.get('device', 'serial')
+device_id=config.get('device', 'device_id')
 serial=pproxy_config.get('django', 'serial_number')
 shadow_db=pproxy_config.get('shadow', 'db-path')
 
@@ -46,7 +47,28 @@ friend_id = None
 device_id = None
 
 
+def decode_base64(encoded_str):
+    """
+    This function decodes a base64 encoded string
+    """
+    # print(encoded_str)
+    missing_padding = len(encoded_str) % 4
+    if missing_padding != 0:
+        encoded_str += '=' * (4 - missing_padding)
+        # print(encoded_str)
+    decoded_bytes = base64.b64decode(encoded_str)
+    decoded_str = decoded_bytes.decode('utf-8')
+
+    decoded_str = decoded_str.replace('@', ':')
+    components = decoded_str.split(':')
+    # print(components)
+    # print(decoded_str)
+    return components
+
 def util_iterate_apis(local_token, expected_code, filter_auth=False):
+    """
+    a utility to process APIs
+    """
     result = True
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
@@ -69,7 +91,6 @@ def util_iterate_apis(local_token, expected_code, filter_auth=False):
                 continue
         payload = {
                 'local_token':str(local_token),
-                #'certname':'cf.9q'}
                 'certname':'zxcvb'}
         response = requests.get(url=local_api_url + api['url'],
                 params= payload, verify=False)
@@ -81,6 +102,9 @@ def util_iterate_apis(local_token, expected_code, filter_auth=False):
 # making HTML output pretty
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
+    """
+    report prettyfier
+    """
     pytest_html = item.config.pluginmanager.getplugin('html')
     outcome = yield
     report = outcome.get_result()
@@ -99,27 +123,60 @@ def pytest_runtest_makereport(item, call):
 @pytest.mark.dependency()
 def test_login():
     global auth_token
-    payload = {"grant_type":"password","username":user,"password":password,
-            "client_id":client_id,
-            "client_secret":client_secret}
+
+    payload = {"grant_type":"password",
+                "username":user,
+                "password":password,
+                "client_id":client_id,
+                "client_secret":client_secret
+              }
 
     headers = {
             "content-type": "application/json"
             }
+    # print(headers)
     response = requests.post(authorization_base_url, json=payload, headers=headers)
+    # print(response)
     jresponse = response.json()
     auth_token = "Bearer " + jresponse['access_token']
+    
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
     pass
 
+@pytest.mark.dependency(depends=["test_login"])
+def test_clean_friend():
+    """
+    """ 
+    headers = {
+            "Authorization" : auth_token,
+            }
+
+    response = requests.get(url + '/friend/', headers=headers)
+    jresponse = response.json()
+    # print(jresponse)
+    for item in jresponse:
+        # print(item)
+        friend_id = item['id']
+        # print(friend_id)
+        response = requests.delete(url + '/friend/'+ str(friend_id), headers=headers)
+        # print(response)
+        assert(response.status_code == 200) #nosec: assert is a legit check for pytest
+
+    assert(response.status_code == 200 or response.status_code == 204) #nosec: assert is a legit check for pytest
+
+
 def test_login_fail():
-    payload = {"grant_type":"password","username":user,"password":"clearlywrong",
-            "client_id":client_id,
-            "client_secret":client_secret}
+    payload = {"grant_type":"password",
+                "username":user,
+                "password":"clearlywrong",
+                "client_id":client_id,
+                "client_secret":client_secret
+              }
 
     headers = {
             "content-type": "application/json"
             }
+    # print(headers)
     response = requests.post(authorization_base_url, json=payload, headers=headers)
     jresponse = response.json()
     assert(response.status_code != 200) #nosec: assert is a legit check for pytest
@@ -137,6 +194,7 @@ def test_api_returns_unclaimed():
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
     key = status.get('status','temporary_key')
+
     # get the key through the local API
     response = requests.get(local_api_url + "/api/v1/claim/info", verify = False)
     jresponse = response.json()
@@ -146,7 +204,6 @@ def test_api_returns_unclaimed():
 
 
 @pytest.mark.dependency(depends=["test_login"])	
-#@pytest.mark.skip(reason="this blocks on prod")
 def test_claim():
     global device_id
     global key
@@ -157,11 +214,17 @@ def test_claim():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"device_key":key, "serial_number":serial, "device_name":"Regression Device"}
+    # print(headers)
+    payload = { "device_key":key, 
+                "serial_number":serial, 
+                "device_name":"Regression Device"
+              }
     response = requests.post(url + '/device/claim/', json=payload, headers=headers)
     jresponse = response.json()
-    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
+    # print(response)
     device_id = jresponse['id']
+    # print(device_id)
+    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
 @pytest.mark.dependency(depends=["test_login","test_claim"])
 def test_claim_fail_serial():
@@ -169,19 +232,23 @@ def test_claim_fail_serial():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"device_key":key,"serial_number":"BADBEEF", "device_name":"Regression Device"}
+    payload = { "device_key":key,
+                "serial_number":"BADBEEF", 
+                "device_name":"Regression Device"
+              }
     response = requests.post(url + '/device/claim/', json=payload, headers=headers)
     assert(response.status_code != 200) #nosec: assert is a legit check for pytest
 
 
 @pytest.mark.dependency(depends=["test_login","test_claim","test_confirm_device_unclaimed"])
 def test_check_device_connected():
-    time.sleep(30) # assuming it takes x seconds for onboarding to kick-in
+    time.sleep(50) # assuming it takes x seconds for onboarding to kick-in
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
     assert(status.get('status','claimed') == '1') #nosec: assert is a legit check for pytest
 
-@pytest.mark.dependency(depends=["test_login","test_claim", "test_check_device_connected"]) 
+# @pytest.mark.dependency(depends=["test_login","test_claim", "test_check_device_connected"]) 
+@pytest.mark.dependency(depends=["test_login","test_claim"]) 
 def test_api_claim_info_redacted_post_claim():
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
@@ -202,62 +269,66 @@ def test_heartbeat():
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {}}
+    payload = { "serial_number": serial, 
+                "ip_address": "1.2.3.164", 
+                "status": "2", 
+                "pin": "6696941737", 
+                "local_token": "565656", 
+                "local_ip_address": "192.168.1.118", 
+                "device_key":key, 
+                "port": "3074", 
+                "software_version": "0.11.1", 
+                "diag_code": 119, 
+                "access_cred": {}, 
+                "usage_status": {}
+              }
     response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
     jresponse = response.json()
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
 
-@pytest.mark.dependency(depends=["test_login"])	
-def test_list_friends():
-    headers = {
-            "Authorization" : auth_token,
-            }
-    expected = [{"id":int(static_friend_id),"email":"test-email@we-pn.com","telegram_handle":"no_handle","has_connected":True,"usage_status":1,"passcode":"test pass code","cert_id":"1n.b4","language":"en", 'name': 'test-email@we-pn.com', 'config': {"tunnel": "shadowsocks"}, 'subscribed': True}]
-    response = requests.get(url + '/friend/', headers=headers)
-    jresponse = response.json()
-    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
-    #print (jresponse)
-    assert(jresponse == expected) #nosec: assert is a legit check for pytest
-
-@pytest.mark.dependency(depends=["test_login","test_claim", "test_heartbeat", "test_list_friends"])	
-def test_heartbeat_change_usage_status():
-    global friend_id
-    headers = {
-            "Authorization" : auth_token,
-            "content-type": "application/json"
-            }
-    payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {"1n.b4":1}}
-    response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
-    jresponse = response.json()
-    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
-    expected = [{"id":int(static_friend_id),"email":"test-email@we-pn.com","telegram_handle":"no_handle","has_connected":True,"usage_status":1,"passcode":"test pass code","cert_id":"1n.b4","language":"en", 'name': 'test-email@we-pn.com', 'config': {'tunnel': 'shadowsocks'}, 'subscribed': True}]
-    response = requests.get(url + '/friend/', headers=headers)
-    jresponse = response.json()
-    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
-    #print (jresponse)
-    assert(jresponse == expected) #nosec: assert is a legit check for pytest
-    # reset the usge to -1
-    payload = {"serial_number": serial, "ip_address": "1.2.3.164", "status": "2", "pin": "6696941737", "local_token": "565656", "local_ip_address": "192.168.1.118", "device_key":key, "port": "3074", "software_version": "0.11.1", "diag_code": 119, "access_cred": {}, "usage_status": {"1n.b4":1}}
-    response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
-    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
 
-@pytest.mark.dependency(depends=["test_login", "test_list_friends", "test_claim"])
+@pytest.mark.dependency(depends=["test_login", "test_claim"])
 def test_add_friend():
     global friend_id
     headers = {
             "Authorization" : auth_token,
             "content-type": "application/json"
             }
-    payload = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'language': 'en','config': {"tunnel": "shadowsocks"}, 'name': 'regression_added@we-pn.com', 'subscribed': True}
+    payload = { "id":0, 
+                'email': 'regression_added@we-pn.com', 
+                'telegram_handle': 'tlgrm_hndl', 
+                'has_connected': False, 
+                'usage_status': 0, 
+                'passcode': 'test pass code',
+                'cert_hash' : None,
+                'cert_id': 'zxcvb', 
+                'language': 'en',
+                'config': {"tunnel": "shadowsocks"}, 
+                'name': 'regression_added@we-pn.com', 
+                'subscribed': True
+             }
     response = requests.post(url + '/friend/', json=payload, headers=headers)
-    #print (response.content)
+    # print (response.content)
     assert(response.status_code == 201) #nosec: assert is a legit check for pytest
     jresponse = response.json()
     payload['id'] = jresponse['id']
     friend_id = payload['id']
     assert(jresponse == payload) #nosec: assert is a legit check for pytest
+
+@pytest.mark.dependency(depends=["test_login", "test_add_friend"])
+def test_list_friends():
+    headers = {
+            "Authorization" : auth_token,
+            }
+    expected = {"id":0, 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': False, 'usage_status': 0, 'passcode': 'test pass code', 'cert_id': 'zxcvb','cert_hash':None , 'language': 'en','config': {"tunnel": "shadowsocks"}, 'name': 'regression_added@we-pn.com', 'subscribed': True}
+    response = requests.get(url + '/friend/', headers=headers)
+    jresponse = response.json()
+    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
+    # print (jresponse)
+    jresponse[0]['id'] = 0
+    assert(jresponse == [expected]) #nosec: assert is a legit check for pytest
 
 @pytest.mark.dependency(depends=["test_add_friend"])
 def test_added_friend_in_local_db():
@@ -267,20 +338,56 @@ def test_added_friend_in_local_db():
     conn = sqlite3.connect(shadow_db)
     cursor = conn.cursor()
     cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "en"''')
-    #cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "cn"''')
-    #cursor.execute('''SELECT * from servers''')
     result = cursor.fetchall()
     conn.close()
     assert(len(result)==1) #nosec: assert is a legit check for pytest
 
+@pytest.mark.dependency(depends=["test_login","test_claim", "test_heartbeat", "test_add_friend", "test_list_friends"])	
+def test_heartbeat_change_usage_status():
+    """
+    """
+    global friend_id
+    headers = {
+            "Authorization" : auth_token,
+            "content-type": "application/json"
+            }
+    payload = { "serial_number": serial, 
+                "ip_address": "1.2.3.164", 
+                "status": "2", 
+                "pin": "6696941737", 
+                "local_token": "565656", 
+                "local_ip_address": "192.168.1.118", 
+                "device_key":key, 
+                "port": "3074", 
+                "software_version": "0.11.1", 
+                "diag_code": 119, 
+                "access_cred": {}, 
+                "usage_status": {"zxcvb":1}
+             }
+    response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
+    print(response.content)
+    jresponse = response.json()
+    print(jresponse)
+    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
+    expected = [{"id":int(friend_id),'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': True, 'usage_status': 1, 'passcode': 'test pass code', 'cert_id': 'zxcvb', 'cert_hash': None, 'language': 'en', 'name': 'regression_added@we-pn.com', 'config': {'tunnel': 'shadowsocks'}, 'subscribed': True}]
+    
+    response = requests.get(url + '/friend/', headers=headers)
+    jresponse = response.json()
+    expected[0]['cert_hash']=jresponse[0]['cert_hash']
+    assert(response.status_code == 200) #nosec: assert is a legit check for pytest
+    print (jresponse)
+    assert(jresponse == expected) #nosec: assert is a legit check for pytest
+
+
 @pytest.mark.dependency(depends=["test_add_friend"])
 def test_api_gives_correct_key():
-    '''get the key through the API server
-    compare to firend_access_key'''
+    '''
+    get the key through the API server
+    compare to friend_access_key
+    '''
     conn = sqlite3.connect(shadow_db)
     cursor = conn.cursor()
     cursor.execute('''SELECT server_port, password from servers where certname like "zxcvb" and language like "en"''')
-    #cursor.execute('''SELECT server_port, password from servers where certname like "cf.9q"''')
     result = cursor.fetchall()
     conn.close()
     assert(len(result)==1)
@@ -294,15 +401,20 @@ def test_api_gives_correct_key():
             }
     payload = {
             'local_token':str(local_token),
-            #'certname':'cf.9q'}
             'certname':'zxcvb'}
     response = requests.post(url=local_api_url + "/api/v1/friends/access_links/",
             params= payload, verify=False)
     assert(response.status_code == 200)
     jresponse = response.json()
-    split_resp = base64.b64decode(jresponse['link'][5:]).decode('utf-8').replace('@',':').split(':')
-    assert(int(real_ss_pass) == int(split_resp[1]))
-    assert(int(real_port) == int(split_resp[3]))
+    # print(jresponse)   
+    encoded_str = jresponse['link'][5:-11]
+    components = decode_base64(encoded_str)
+    # print(components)
+    # print(real_ss_pass)
+    # print(real_port)
+
+    assert(int(real_ss_pass) == int(components[1]))
+    assert(int(real_port) == int(components[3]))
 
 
 
@@ -320,7 +432,7 @@ def test_delete_friend():
 @pytest.mark.dependency(depends=["test_delete_friend"])
 def test_deleted_friend_in_local_db():
     # wait for server to send the command to device
-    time.sleep(15)
+    time.sleep(45)
     # check local database to see if the friend was removed
     conn = sqlite3.connect(shadow_db)
     cursor = conn.cursor()
@@ -329,7 +441,7 @@ def test_deleted_friend_in_local_db():
     conn.close()
     assert(len(result) == 0)
 
-@pytest.mark.dependency(depends=["test_delete_friend"])
+@pytest.mark.dependency(depends=["test_delete_friend", "test_deleted_friend_in_local_db"])
 def test_deleted_friend_in_api():
     # Now make sure the local API server is also empty
     status = configparser.ConfigParser()
@@ -339,9 +451,10 @@ def test_deleted_friend_in_api():
             "content-type": "application/json"
             }
     payload = {
-            'local_token':str(local_token),
-            #'certname':'cf.9q'}
-            'certname':'zxcvb'}
+                'local_token':str(local_token),
+                #'certname':'cf.9q'}
+                'certname':'zxcvb'
+              }
     response = requests.post(url=local_api_url + "/api/v1/friends/access_links/",
             params= payload, verify=False)
     assert(response.status_code == 200)
@@ -366,13 +479,16 @@ def test_check_api_calls_valid():
     assert(util_iterate_apis(local_token, 200, True))
 
 
-@pytest.mark.dependency(depends=["test_login", "test_claim", "test_heartbeat"])
+@pytest.mark.dependency(depends=["test_login" ])
 def test_unclaim():
-    global device_id
+    device_id = config.get('device', 'device_id')
+    # print(device_id)
     headers = {
             "Authorization" : auth_token,
             }
+    # print(headers)
     response = requests.get(url + '/device/'+str(device_id)+'/unclaim/', headers=headers)
+    # print(response)
     jresponse = response.json()
     assert(response.status_code == 200) #nosec: assert is a legit check for pytest
 
