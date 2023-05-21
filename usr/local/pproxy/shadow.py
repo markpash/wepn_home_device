@@ -180,7 +180,7 @@ class Shadow:
         local_db = dataset.connect(
             'sqlite:///' + self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
-        if not servers:
+        if len(servers)==0:
             return
         for server in local_db['servers']:
             time.sleep(1)
@@ -193,15 +193,18 @@ class Shadow:
         local_db = dataset.connect(
             'sqlite:///' + self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
-        if not servers:
-            self.logger.info('no servers')
+        try:
+            if not servers:
+                self.logger.info('no servers')
+                return
+            for server in local_db['servers']:
+                cmd = 'remove : {"server_port": ' + str(server['server_port']) + ' } '
+                self.sock.send(str.encode(cmd))
+                self.logger.debug(
+                    server['certname'] + ' >>' + cmd + ' >> ' + str(self.sock.recv(1056)))
             return
-        for server in local_db['servers']:
-            cmd = 'remove : {"server_port": ' + str(server['server_port']) + ' } '
-            self.sock.send(str.encode(cmd))
-            self.logger.debug(
-                server['certname'] + ' >>' + cmd + ' >> ' + str(self.sock.recv(1056)))
-        return
+        except Exception:
+            return
     # forward_all is used with cron to make sure port forwardings stay active
     # if service is stopped, forwardings can stay active. there will be no ss server to serve
 
@@ -210,15 +213,18 @@ class Shadow:
             'sqlite:///' + self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
         device = Device(self.logger)
-        if not servers:
-            self.logger.info('no servers')
+        try:
+            if not servers:
+                self.logger.info('no servers')
+                return
+            for server in local_db['servers']:
+                self.logger.debug(
+                    'forwaring ' + str(server['server_port']) + ' for ' + server['certname'])
+                device.open_port(server['server_port'],
+                                 'ShadowSocks ' + server['certname'])
             return
-        for server in local_db['servers']:
-            self.logger.debug(
-                'forwaring ' + str(server['server_port']) + ' for ' + server['certname'])
-            device.open_port(server['server_port'],
-                             'ShadowSocks ' + server['certname'])
-        return
+        except Exception:
+            return
 
     def start(self):
         self.start_all()
