@@ -118,8 +118,8 @@ config.set('email', 'email', "WEPN Device<devices@we-pn.com>")
 if not status.has_section('previous_keys'):
     status.add_section('previous_keys')
 
-if not status.has_option('status','last_diag_code'):
-    status.set('status','last_diag_code',"127")
+if not status.has_option('status', 'last_diag_code'):
+    status.set('status', 'last_diag_code', "127")
 
 if not config.has_section('hw'):
     config.add_section('hw')
@@ -169,7 +169,9 @@ if not config.has_section('tor'):
     config.add_section('tor')
     config.set('tor', 'enabled', "1")
     config.set('tor', 'email', "1")
-    config.set('tor', 'orport', "8991")
+# forcing this to always be 9040, correcting previous error
+config.set('tor', 'orport', "9040")
+
 
 # Wireguard installation and config
 if not config.has_section('wireguard'):
@@ -180,7 +182,7 @@ if not config.has_section('wireguard'):
 
 config.set('shadow', 'method', 'aes-256-gcm')
 
-status.set('status', 'sw', '1.12.6')
+status.set('status', 'sw', '1.12.8')
 
 with open(CONFIG_FILE, 'w') as configfile:
     config.write(configfile)

@@ -4,11 +4,14 @@ import os
 import logging.config
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
-from device import Device
 from ipw import IPW
+from device import Device
 
-LOG_CONFIG = "/etc/pproxy/logging.ini"
-logging.config.fileConfig(LOG_CONFIG, disable_existing_loggers=False)
+# commenting out these lines, since ddns runs as user pi
+# and user pi cannot write to the error.log file
+# DO NOT RE-ENABLE THESE LOGS
+# LOG_CONFIG = "/etc/pproxy/logging.ini"
+# logging.config.fileConfig(LOG_CONFIG, disable_existing_loggers=False)
 logger = logging.getLogger("ddns")
 device = Device(logger)
 ipw = IPW()
