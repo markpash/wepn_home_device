@@ -375,10 +375,14 @@ class Device():
             self.config.get('dyndns', 'hostname'), ip_address))
         if r.status_code != requests.codes.ok:
             self.logger.debug(r.content)
-            for key in messages.keys():
-                message = messages[key]
-                if r.find(key.encode('utf-8')) == 0:
-                    self.logger.error(message)
+            try:
+                for key in messages.keys():
+                    message = messages[key]
+                    if r.find(key.encode('utf-8')) == 0:
+                        self.logger.error(message)
+            except AttributeError:
+                print(r.content)
+                self.logger.error(r.content)
 
     def wait_for_internet(self, retries=100, timeout=10):
         tries = 0

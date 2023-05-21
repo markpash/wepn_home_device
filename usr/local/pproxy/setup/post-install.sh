@@ -144,6 +144,7 @@ fi
 ##add apt-get update && apt-get install pproxy-rpi to weekly crontab
 /usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
 /usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
+/usr/bin/crontab -u pi $PPROXY_HOME/setup/cron-pi
 
 #install iptables, configure iptables for port forwarding and blocking
 if [ $OVPN_ENABLED -eq 1 ]; then
