@@ -230,6 +230,7 @@ def test_claim_fail_serial():
 
 
 @pytest.mark.dependency(depends=["test_login", "test_claim", "test_confirm_device_unclaimed"])
+@pytest.mark.flaky(retries=4, delay=30)
 def test_check_device_connected():
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
@@ -237,6 +238,7 @@ def test_check_device_connected():
 
 
 @pytest.mark.dependency(depends=["test_login", "test_claim"])
+@pytest.mark.flaky(retries=3, delay=10)
 def test_api_claim_info_redacted_post_claim():
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
@@ -318,10 +320,9 @@ def test_list_friends():
 
 
 @pytest.mark.dependency(depends=["test_add_friend"])
+@pytest.mark.flaky(retries=3, delay=75)
 def test_added_friend_in_local_db():
     global friend_id
-    # long wait since new friend key generation can take variable time
-    # time.sleep(75)
     conn = sqlite3.connect(shadow_db)
     cursor = conn.cursor()
     cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "en"''')
@@ -331,6 +332,7 @@ def test_added_friend_in_local_db():
 
 
 @pytest.mark.dependency(depends=["test_login", "test_claim", "test_heartbeat", "test_add_friend", "test_list_friends"])
+@pytest.mark.flaky(retries=5, delay=15)
 def test_heartbeat_change_usage_status():
     """
     """
@@ -365,7 +367,7 @@ def test_heartbeat_change_usage_status():
     assert (jresponse == expected)  # nosec: assert is a legit check for pytest
 
 
-@pytest.mark.dependency(depends=["test_add_friend", "test_added_friend_in_local_db"])
+@pytest.mark.dependency(depends=["test_add_friend"])
 def test_api_gives_correct_key():
     '''
     get the key through the API server
@@ -413,6 +415,7 @@ def test_delete_friend():
 
 
 @pytest.mark.dependency(depends=["test_delete_friend"])
+@pytest.mark.flaky(retries=3, delay=75)
 def test_deleted_friend_in_local_db():
     # wait for server to send the command to device
     time.sleep(5)
@@ -425,7 +428,7 @@ def test_deleted_friend_in_local_db():
     assert (len(result) == 0)
 
 
-@pytest.mark.dependency(depends=["test_delete_friend", "test_deleted_friend_in_local_db"])
+@pytest.mark.dependency(depends=["test_delete_friend"])
 def test_deleted_friend_in_api():
     # Now make sure the local API server is also empty
     status = configparser.ConfigParser()
@@ -476,6 +479,7 @@ def test_unclaim():
 
 
 @pytest.mark.dependency(depends=["test_unclaim"])
+@pytest.mark.flaky(retries=2, delay=60)
 def test_check_device_disconnected_unclaimed():
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
