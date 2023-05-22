@@ -1,4 +1,6 @@
 import time
+import getopt
+import random
 from getmac import get_mac_address
 import netifaces
 import atexit
@@ -32,6 +34,23 @@ MAX_UPDATE_RETRIES = 5
 
 # setuid command runner
 SRUN = "/usr/local/sbin/wepn-run"
+
+# Static function to add random delay to cron jobs
+
+
+def random_cron_delay(args):
+    max_delay = 5 * 60
+    min_delay = 20
+    use_delay = False
+    try:
+        opts, args = getopt.getopt(args, "d", ["random-delay"])
+        for o, a in opts:
+            if o in ("-d", "--random-delay"):
+                use_delay = True
+    except getopt.GetoptErrori:
+        use_delay = False
+    if use_delay:
+        time.sleep(random.randrange(min_delay, max_delay, 1))  # nosec not security
 
 
 class Device():
