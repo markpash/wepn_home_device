@@ -180,9 +180,9 @@ if not config.has_section('wireguard'):
     config.set('wireguard', 'email', "1")
     config.set('wireguard', 'wireport', "6711")
 
+# GCM is required, but older shadowsocks doesn't support it
 config.set('shadow', 'method', 'aes-256-gcm')
-
-status.set('status', 'sw', '1.12.8')
+status.set('status', 'sw', '1.14.0')
 
 with open(CONFIG_FILE, 'w') as configfile:
     config.write(configfile)
