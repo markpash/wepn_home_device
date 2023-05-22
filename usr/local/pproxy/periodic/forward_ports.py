@@ -1,6 +1,8 @@
 import sys
 import os
 import logging.config
+from device import random_cron_delay
+random_cron_delay(sys.argv[1:])
 
 LOG_CONFIG = "/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG, disable_existing_loggers=False)

@@ -1,3 +1,3 @@
 # have to run this as pi, since pproxy user will go through Tor if ddns is Google
 # and Google blocks scripts over Tor
-@daily /usr/bin/python3 /usr/local/pproxy/periodic/ddns.py >/dev/null 2>&1
+@daily /usr/bin/python3 /usr/local/pproxy/periodic/ddns.py --random-delay >/dev/null 2>&1
