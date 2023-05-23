@@ -170,7 +170,7 @@ if not config.has_section('tor'):
     config.set('tor', 'enabled', "1")
     config.set('tor', 'email', "1")
 # forcing this to always be 9040, correcting previous error
-config.set('tor', 'orport', "9040")
+config.set('tor', 'orport', "8991")
 
 
 # Wireguard installation and config
@@ -182,7 +182,7 @@ if not config.has_section('wireguard'):
 
 # GCM is required, but older shadowsocks doesn't support it
 config.set('shadow', 'method', 'aes-256-gcm')
-status.set('status', 'sw', '1.14.0')
+status.set('status', 'sw', '1.14.1')
 
 with open(CONFIG_FILE, 'w') as configfile:
     config.write(configfile)

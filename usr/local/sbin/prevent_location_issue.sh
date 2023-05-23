@@ -10,10 +10,13 @@
 
 ORPORT=`cat /etc/pproxy/config.ini  | grep orport | awk '{print $3}'`
 ORPORT=${ORPORT:=8991}
+TRANSPORT=9040
 USER=pproxy
 
 # we don't want to redirect traffic if Tor is not active
 # TODO: need to replace this with flags. What if Tor fails?
+# Leaving it to block traffic if Tor not active. Otherwise
+# pod owner's IP gets blocked by you-know-who
 #if ! [[ $(netstat -tulpn | grep LISTEN | grep $ORPORT) ]]; then
 #	echo "Tor not running, no need to redirect traffic"
 #	exit
@@ -30,9 +33,9 @@ do_iptables() {
 
 	for proto in tcp udp; do
 		if [[ ! $ip == *:* ]]; then
-			iptables -t nat -A OUTPUT ! -o lo -p $proto -m owner --uid-owner $USER --dst $ip -m $proto -j REDIRECT --to-ports $ORPORT
+			iptables -t nat -A OUTPUT ! -o lo -p $proto -m owner --uid-owner $USER --dst $ip -m $proto -j REDIRECT --to-ports $TRANSPORT
 		else
-			ip6tables -t nat -A OUTPUT ! -o lo -p $proto -m owner --uid-owner $USER --dst $ip -m $proto -j REDIRECT --to-ports $ORPORT
+			ip6tables -t nat -A OUTPUT ! -o lo -p $proto -m owner --uid-owner $USER --dst $ip -m $proto -j REDIRECT --to-ports $TRANSPORT
 
 		fi
 	done
