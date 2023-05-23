@@ -472,7 +472,7 @@ class Device():
         except:
             return None
 
-    def needs_package_update(self):
+    def needs_package_update(self, use_latest=False):
         needs = True
         self.logger.debug("checking package to see if OTA is needed right now")
         current = self.get_installed_package_version()
@@ -480,6 +480,9 @@ class Device():
             # only gets here is internet is connected
             # and could get the repo version
             # repo package version is checked there
+            if use_latest:
+                # this will rewrite repo_pkg_version to latest instead of ota.json
+                self.get_repo_package_version()
             if self.repo_pkg_version is not None \
                     and version.parse(current) >= version.parse(self.repo_pkg_version):
                 needs = False
@@ -523,13 +526,13 @@ class Device():
                 return [""]
         return [""]
 
-    def software_update_blocking(self, lcd=None, leds=None):
+    def software_update_blocking(self, lcd=None, leds=None, use_latest_sw=False):
         # if on a git build, use git
         # if on release branch, do via apt
         retries = 0
         update_was_needed = False
         try:
-            while self.needs_package_update() and retries < MAX_UPDATE_RETRIES:
+            while self.needs_package_update(use_latest_sw) and retries < MAX_UPDATE_RETRIES:
                 self.logger.error("Entering OTA mode")
                 update_was_needed = True
                 retries += 1
