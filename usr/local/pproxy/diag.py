@@ -100,12 +100,11 @@ class WPDiag:
         try:
             # connect to the host -- tells us if the host is actually
             # reachable
-            socket.create_connection(("www.google.com", 80), 10)
+            socket.create_connection(("status.we-pn.com", 80), 10)
             return True
         except OSError:
             self.logger.exception("Could not connect to the internet")
             return False
-            pass
 
     def is_connected_to_service(self):
         try:

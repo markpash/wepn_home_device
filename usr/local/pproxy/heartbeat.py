@@ -51,7 +51,6 @@ class HeartBeat:
             socket.create_connection(("status.we-pn.com", 80))
             return True
         except OSError:
-            pass
             return False
 
     def get_display_string_status(self, status, diag_code, lcd):
