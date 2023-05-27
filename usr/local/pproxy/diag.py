@@ -4,6 +4,7 @@ import shlex
 import subprocess  # nosec: shlex is used, go.we-pn.com/waiver-1
 import json
 import requests
+import random
 import threading
 from device import Device
 import time
@@ -97,14 +98,25 @@ class WPDiag:
         self.device.close_port(port)
 
     def is_connected_to_internet(self):
-        try:
-            # connect to the host -- tells us if the host is actually
-            # reachable
-            socket.create_connection(("status.we-pn.com", 80), 10)
-            return True
-        except OSError:
-            self.logger.exception("Could not connect to the internet")
-            return False
+        urls = [
+            "https://status.we-pn.com",
+            "https://twitter.com",
+            "https://google.com",
+            "https://www.speedtest.net/",
+            "https://www.cnn.com/",
+            "https://bbc.co.uk",
+        ]
+
+        random.shuffle(urls)
+        for url in urls:
+            try:
+                # connect to the host -- tells us if the host is actually
+                # reachable
+                requests.get(url)
+                return True
+            except:
+                self.logger.exception("Could not connect to the internet")
+        return False
 
     def is_connected_to_service(self):
         try:
