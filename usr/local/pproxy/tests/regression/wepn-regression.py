@@ -415,7 +415,7 @@ def test_delete_friend():
 
 
 @pytest.mark.dependency(depends=["test_delete_friend"])
-@pytest.mark.flaky(retries=3, delay=75)
+@pytest.mark.flaky(retries=5, delay=75)
 def test_deleted_friend_in_local_db():
     # wait for server to send the command to device
     time.sleep(5)
@@ -428,7 +428,7 @@ def test_deleted_friend_in_local_db():
     assert (len(result) == 0)
 
 
-@pytest.mark.dependency(depends=["test_delete_friend"])
+@pytest.mark.dependency(depends=["test_delete_friend","test_deleted_friend_in_local_db"])
 def test_deleted_friend_in_api():
     # Now make sure the local API server is also empty
     status = configparser.ConfigParser()
