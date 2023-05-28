@@ -57,6 +57,11 @@ class LEDManager():
                                             pixel_order=ORDER)
         pass
 
+    def __del__(self):
+        print("DEAD")
+        self.pixels.fill((0, 0, 0))
+        self.pixels.show()
+
     def adjust_brightness(self, color):
         b = self.brightness
         color = (color[0] * b, color[1] * b, color[2] * b)
@@ -369,6 +374,7 @@ if __name__ == '__main__':
         except KeyboardInterrupt:
             print('Interrupted')
             server.close()
+            lm.__del__()
             try:
                 sys.exit(0)
             except SystemExit:
@@ -376,4 +382,5 @@ if __name__ == '__main__':
     print("Shutting down...")
     server.close()
     os.remove(LM_SOCKET_PATH)
+    lm.__del__()
     print("Done")

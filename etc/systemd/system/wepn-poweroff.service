@@ -1,10 +1,9 @@
 [Unit]
 Description=WEPN clearnig state at shutdown
 DefaultDependencies=no
-After=final.target
+After=final.target wepn-leds.service
 
 [Service]
-SuccessAction= 
 RemainAfterExit=yes
 Type=oneshot
 User=pproxy

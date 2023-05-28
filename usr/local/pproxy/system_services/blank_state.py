@@ -1,9 +1,9 @@
-from lcd import LCD as LCD
-from led_client import LEDClient
 import os
 import sys
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
+from lcd import LCD as LCD  # noqa
+from led_client import LEDClient  # noqa
 
 lcd = LCD()
 lcd.set_lcd_present(1)
