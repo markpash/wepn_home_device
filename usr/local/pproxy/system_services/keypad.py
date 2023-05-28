@@ -426,6 +426,12 @@ class KEYPAD:
         self.status = configparser.ConfigParser()
         self.status.read(STATUS_FILE)
         state = self.status.get("status", "state")
+        # a cold start has recently happened,
+        # so data is outdated. Don't give incorrect info
+        try:
+            warmed = (int(self.status.get("status", "hb_to_warm")) == 0)
+        except:
+            warmed = True
         if int(self.status.get("status", "claimed")) == 0:
             if self.device.needs_package_update():
                 # Disable showing QR Code when software needs upgrade
@@ -436,6 +442,7 @@ class KEYPAD:
             self.show_claim_info_qrcode()
         else:
             # show the status info
+
             self.set_current_menu(5)
             self.titles[5]["color"] = (255, 255, 255)
             self.refresh_status(led_update=True)
@@ -463,15 +470,20 @@ class KEYPAD:
                     self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
                 color = (0, 255, 0)
                 title = "OK"
+            if not warmed:
+                # data unreliable
+                title = "WEPN"
+                color = (0, 0, 0)
 
             self.set_current_menu(5)
             self.titles[5]["color"] = color
             self.titles[5]["text"] = title
-            icons, any_err, errs = self.lcd.get_status_icons_v2(state, self.diag_code)
-            self.chin["text"] = icons
-            self.chin["errs"] = errs
-            self.chin["color"] = color
-            self.chin["opacity"] = 255
+            if warmed:
+                icons, any_err, errs = self.lcd.get_status_icons_v2(state, self.diag_code)
+                self.chin["text"] = icons
+                self.chin["errs"] = errs
+                self.chin["color"] = color
+                self.chin["opacity"] = 255
             if self.screen_timed_out is False:
                 self.render()
 
@@ -731,6 +743,17 @@ def main():
         items[6].insert(2, {"text": "Remote: " + remote, display: True,
                         "action": keypad.toggle_remote_ssh_session})
 
+    try:
+        status = configparser.ConfigParser()
+        status.read(STATUS_FILE)
+        booted = (int(status.get("status", "booting")) == 0)
+    except:
+        booted = True
+
+    while not booted:
+        time.sleep(5)
+        status.read(STATUS_FILE)
+        booted = (int(status.get("status", "booting")) == 0)
     keypad.set_full_menu(items, titles)
     keypad.set_current_menu(5)
     # default screen is QR Code

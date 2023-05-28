@@ -169,3 +169,14 @@ class HeartBeat:
             lcd.set_lcd_present(self.config.get('hw', 'lcd'))
             display_str = self.get_display_string_status(status, diag_code, lcd)
             lcd.display(display_str, 20)
+
+    def record_hb_send(self):
+        left = self.status.get("hb_to_warm")
+        if left == "":
+            self.status.set("hb_to_warm", 3)
+            left = 3
+        left = int(left)
+        if left > 0:
+            self.status.set("hb_to_warm", str(left - 1))
+        print("HB left = " + str(left))
+        self.status.save()

@@ -25,3 +25,4 @@ diag = WPDiag(logger)
 
 HEARTBEAT_PROCESS = HeartBeat(logger)
 HEARTBEAT_PROCESS.send_heartbeat()
+HEARTBEAT_PROCESS.record_hb_send()
