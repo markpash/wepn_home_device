@@ -4,10 +4,12 @@ DefaultDependencies=no
 After=final.target
 
 [Service]
+SuccessAction= 
+RemainAfterExit=yes
 Type=oneshot
 User=pproxy
-RemainAfterExit=true
 ExecStart=/usr/bin/python3 /usr/local/pproxy/system_services/blank_state.py
+ExecStop=/usr/bin/python3 /usr/local/pproxy/system_services/blank_state.py
 
 [Install]
 WantedBy=final.target

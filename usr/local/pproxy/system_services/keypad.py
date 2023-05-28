@@ -57,6 +57,7 @@ class KEYPAD:
         self.device = Device(self.logger)
         self.display_active = False
         self.window_stack = []
+        self.titles = []
         self.led_enabled = True
         self.led_client = LEDClient()
         if (int(self.config.get('hw', 'button-version'))) == 1:
@@ -208,6 +209,7 @@ class KEYPAD:
 
     def clear_screen(self):
         self.lcd.clear()
+        self.lcd.set_backlight(on=False)
 
     def set_full_menu(self, menu, titles):
         self.menu = menu
@@ -317,6 +319,7 @@ class KEYPAD:
         out = Image.alpha_composite(base, txt)
         out.paste(overlay, (0, 0), overlay)
         out = out.rotate(0)
+        self.lcd.set_backlight(on=True)
         self.lcd.show_image(out)
 
     def show_claim_info(self):
@@ -472,8 +475,9 @@ class KEYPAD:
                 title = "OK"
             if not warmed:
                 # data unreliable
-                title = "WEPN"
-                color = (0, 0, 0)
+                title = "WEPN "
+                self.menu[5][1]["display"] = False
+                color = (255, 255, 255)
 
             self.set_current_menu(5)
             self.titles[5]["color"] = color
