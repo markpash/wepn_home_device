@@ -18,6 +18,7 @@ from device import Device  # noqa E402 need up_dir first
 from diag import WPDiag  # noqa E402 need up_dir first
 from lcd import LCD as LCD  # noqa E402 need up_dir first
 import constants as consts  # noqa E402 need up_dir first
+from constants import LOG_CONFIG # noqa E402 need up_dir first
 
 try:
     from self.configparser import configparser
@@ -29,7 +30,6 @@ display = True
 DIR = '/usr/local/pproxy/ui/'
 CONFIG_FILE = '/etc/pproxy/config.ini'
 STATUS_FILE = '/var/local/pproxy/status.ini'
-LOG_CONFIG = "/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
 INT_EXPANDER = 5
