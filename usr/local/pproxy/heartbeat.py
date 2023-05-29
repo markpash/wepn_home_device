@@ -7,7 +7,6 @@ from lcd import LCD as LCD
 import json
 import random
 import requests
-import socket
 from device import Device
 
 from ipw import IPW
@@ -45,13 +44,27 @@ class HeartBeat:
         self.logger.debug("Local token=" + str(self.local_token))
 
     def is_connected(self):
-        try:
-            # connect to the host -- tells us if the host is actually
-            # reachable
-            socket.create_connection(("status.we-pn.com", 80))
-            return True
-        except OSError:
-            return False
+        if self.diag:
+            return self.diag.is_connected_to_internet()
+        urls = [
+            "https://status.we-pn.com",
+            "https://twitter.com",
+            "https://google.com",
+            "https://www.speedtest.net/",
+            "https://www.cnn.com/",
+            "https://bbc.co.uk",
+        ]
+        random.shuffle(urls)
+
+        for url in urls:
+            try:
+                # connect to the host -- tells us if the host is actually
+                # reachable
+                requests.get(url)
+                return True
+            except:
+                self.logger.exception("Could not connect to the internet")
+        return False
 
     def get_display_string_status(self, status, diag_code, lcd):
         if lcd.version > 1:
@@ -156,3 +169,14 @@ class HeartBeat:
             lcd.set_lcd_present(self.config.get('hw', 'lcd'))
             display_str = self.get_display_string_status(status, diag_code, lcd)
             lcd.display(display_str, 20)
+
+    def record_hb_send(self):
+        left = self.status.get("hb_to_warm")
+        if left == "":
+            self.status.set("hb_to_warm", 3)
+            left = 3
+        left = int(left)
+        if left > 0:
+            self.status.set("hb_to_warm", str(left - 1))
+        print("HB left = " + str(left))
+        self.status.save()

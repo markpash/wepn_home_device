@@ -50,6 +50,10 @@ config.read(CONFIG_FILE)
 status = configparser.ConfigParser()
 
 status.read(STATUS_FILE)
+status['status']['booting'] = '1'
+status['status']['hb_to_warm'] = '3'
+with open(STATUS_FILE, 'w') as statusfile:
+    status.write(statusfile)
 
 device = Device(logger)
 gateway_vendor = device.get_default_gw_vendor()
@@ -107,6 +111,9 @@ if 1 == int(status.get('status', 'claimed')):
 
     while True:
         try:
+            status['status']['booting'] = '0'
+            with open(STATUS_FILE, 'w') as statusfile:
+                status.write(statusfile)
             PPROXY_PROCESS = PProxy()
             PPROXY_PROCESS.start()
         except Exception:
@@ -122,6 +129,9 @@ if 1 == int(status.get('status', 'claimed')):
 else:
     while True:
         try:
+            status['status']['booting'] = '0'
+            with open(STATUS_FILE, 'w') as statusfile:
+                status.write(statusfile)
             ONBOARD = OnBoard()
             if is_claimed:
                 for name, key in status.items("previous_keys"):

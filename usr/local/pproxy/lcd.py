@@ -67,6 +67,8 @@ class LCD:
         # Note the following are only used with SPI:
         self.DC = 23
         self.CS = 9
+        # backlight
+        self.BL = 26
         self.SPI_PORT = 0
         self.SPI_DEVICE = 0
         if gpio_enable:
@@ -104,6 +106,13 @@ class LCD:
     def clear(self):
         self.display((), 0)
 
+    def set_backlight(self, on=True):
+        GPIO.setup(self.BL, GPIO.OUT)
+        if on:
+            GPIO.output(self.BL, GPIO.HIGH)
+        else:
+            GPIO.output(self.BL, GPIO.LOW)
+
     def display(self, strs, size):
         if (self.lcd_present == 0):
             with open(TEXT_OUT, 'w') as out:
@@ -118,6 +127,7 @@ class LCD:
         top = padding
         # Move left to right keeping track of the current x position for drawing shapes.
         x_pad = padding
+        self.set_backlight(on=True)
 
         if self.version == 2 or self.version == 3:
             width = self.width

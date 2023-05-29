@@ -28,7 +28,7 @@ class MQTTTest():
         self.number_runs = 0
 
     def on_disconnect(self, client, userdata, reason_code):
-        print(">>>MQTT disconnected")
+        print(">>>MQTT disconnected, reason = " + reason_code)
     def on_connect(self, client, userdata, flags, result_code):
         print(">>>Connected with result code "+str(result_code))
         print("was this supposed to work"  +str(self.mqtt_supposed_to_connect))
@@ -60,7 +60,7 @@ class MQTTTest():
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
-        self.client.tls_set("/etc/ssl/certs/DST_Root_CA_X3.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
+        self.client.tls_set("/etc/ssl/certs/ISRG_Root_X1.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
     
         steps = [   ("forcewrongpass" , False),
                     (self.config.get('mqtt', 'password'), True) ]
@@ -69,6 +69,7 @@ class MQTTTest():
         print("-------------------------------------------------------")
         for (mqtt_password, self.mqtt_supposed_to_connect) in steps:
             self.error_happened = 0
+            print("runs="+str(self.number_runs))
             self.connect_rc= self.client.username_pw_set(username=self.config.get('mqtt', 'username'),
                            password=mqtt_password)
             print("username="+self.config.get('mqtt','username'))
@@ -82,12 +83,12 @@ class MQTTTest():
                            int(self.config.get('mqtt', 'timeout')))
                 print("after connect(): connect rc=" + str(self.connect_rc) + " connected_flag = "+str(self.client.connected_flag))
             except Exception as error:
-                print("MQTT connect failed")
+                print("MQTT connect failed: " + str(error))
                 self.client.error_happened = 1
             finally:
                 self.number_runs -= 1
                 print("-------------------------------------------------------")
-        self.client.loop_forever()
+        #self.client.loop_forever()
 
 
 current_test = MQTTTest()
