@@ -1,4 +1,3 @@
-
 import os
 import sys
 import paho.mqtt.client as mqtt
@@ -12,7 +11,7 @@ up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'  # noqa
 sys.path.append(up_dir)  # noqa
 
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 CONFIG_FILE = '/etc/pproxy/config.ini'
@@ -29,10 +28,22 @@ UNDERLINE = '\033[4m'
 
 
 class MQTTTest():
+    USER = None
+    PASS = None
+    HOST = 'we-pn.com'
+    PORT = 8883
+    TIMEOUT = 60
+
     def __init__(self):
         self.current_mqtt_password = ""
-        self.config = configparser.ConfigParser()
-        self.config.read(CONFIG_FILE)
+        if self.USER is None:
+            self.config = configparser.ConfigParser()
+            self.config.read(CONFIG_FILE)
+            self.USER = str(self.config.get('mqtt', 'username'))
+            self.PASS = str(self.config.get('mqtt', 'password'))
+            self.HOST = str(self.config.get('mqtt', 'host'))
+            self.PORT = int(self.config.get('mqtt', 'port'))
+            self.TIMEOUT = int(self.config.get('mqtt', 'timeout'))
         self.mqtt_connected = 0
         self.mqtt_reason = 0
         self.mqtt_supposed_to_connect = False
@@ -70,31 +81,27 @@ class MQTTTest():
 
     def run_test(self):
         mqtt.Client.connected_flag = False  # create flag in class
-        self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
-        print('HW config: button=' + str(int(self.config.get('hw', 'buttons'))) + '  LED=' +
-              self.config.get('hw', 'lcd'))
+        self.client = mqtt.Client(self.USER, clean_session=True)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
         self.client.tls_set("/etc/ssl/certs/ISRG_Root_X1.pem", tls_version=ssl.PROTOCOL_TLSv1_2)
 
         steps = [("forcewrongpass", False),
-                 (self.config.get('mqtt', 'password'), True)]
+                 (self.PASS, True)]
         self.number_runs = len(steps)
         # self.client.enable_logger()
         print("-------------------------------------------------------")
         for (mqtt_password, self.mqtt_supposed_to_connect) in steps:
             self.error_happened = 0
             print("runs=" + str(self.number_runs))
-            self.connect_rc = self.client.username_pw_set(username=self.config.get('mqtt', 'username'),
+            self.connect_rc = self.client.username_pw_set(username=self.USER,
                                                           password=mqtt_password)
-            print("username=" + self.config.get('mqtt', 'username'))
+            print("username=" + self.USER)
             print("password=" + mqtt_password + " supposed = " + str(self.mqtt_supposed_to_connect))
-            print("mqtt host:" + str(self.config.get('mqtt', 'host')))
+            print("mqtt host:" + self.HOST)
             try:
-                self.connect_rc = self.client.connect(str(self.config.get('mqtt', 'host')),
-                                                      int(self.config.get('mqtt', 'port')),
-                                                      int(self.config.get('mqtt', 'timeout')))
+                self.connect_rc = self.client.connect(self.HOST, self.PORT, self.TIMEOUT)
                 print("set client rc=" + str(self.connect_rc))
                 print(self.connect_rc)
                 self.client.loop_start()
@@ -117,5 +124,5 @@ current_test.run_test()
 if current_test.final_result:
     print("[" + OKGREEN + "PASS" + ENDC + "] Final result is pass")
 else:
-    print("[" + FAIL + "FAIL" + ENDC + "] Final result is pass")
+    print("[" + FAIL + "FAIL" + ENDC + "] Final result is fail")
 sys.exit(current_test.final_result != True)
