@@ -4,14 +4,14 @@ export DEBIAN_PRIORITY=critical
 DEST_VERSION_START=6
 UNAME=`uname -r`
 
-if [[ $UNAME == $DEST_VERSION_START* ]]; then
-	echo "Already upgraded"
-	exit
-fi
+if [[ `uname -m` -eq "aarch64" ]]
+then
+	echo "64 bit detected, let's clea things up first"
+	# Going forward after this, we need to *not* touch main repo lsits
+	# and only update wepn.list
+	apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 648ACFD622F3D138 0E98404D386FA1D9 605C66F00D6C9793 6ED0E7B82643E131 648ACFD622F3D138 0E98404D386FA1D9 6ED0E7B82643E131 54404762BBB6E853
 
-# Going forward after this, we need to *not* touch main repo lsits
-# and only update wepn.list
-cat > /etc/apt/sources.list << EOF
+	cat > /etc/apt/sources.list << EOF
 deb http://deb.debian.org/debian bullseye main contrib non-free
 deb http://security.debian.org/debian-security bullseye-security main contrib non-free
 deb http://deb.debian.org/debian bullseye-updates main contrib non-free
@@ -20,6 +20,13 @@ deb http://deb.debian.org/debian bullseye-updates main contrib non-free
 #deb-src http://security.debian.org/debian-security bullseye-security main contrib non-free
 #deb-src http://deb.debian.org/debian bullseye-updates main contrib non-free
 EOF
+fi
+
+if [[ $UNAME == $DEST_VERSION_START* ]]; then
+	echo "Already upgraded"
+	exit
+fi
+
 
 
 
