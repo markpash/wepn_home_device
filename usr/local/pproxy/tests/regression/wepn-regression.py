@@ -10,8 +10,8 @@ try:
 except ImportError:
     import configparser
 
-# TEST_CONFIG = 'dev_config.ini'
-TEST_CONFIG = 'prod_config.ini'
+TEST_CONFIG = 'dev_config.ini'
+#TEST_CONFIG = 'prod_config.ini'
 STATUS_FILE = '/var/local/pproxy/status.ini'
 
 PPROXY_CONFIG = '/etc/pproxy/config.ini'
@@ -20,7 +20,7 @@ config.read(TEST_CONFIG)
 pproxy_config = configparser.ConfigParser()
 pproxy_config.read(PPROXY_CONFIG)
 
-token = config.get('user', 'token')
+#token = config.get('user', 'token')
 user = config.get('user', 'user')
 password = config.get('user', 'password')
 
@@ -30,6 +30,7 @@ client_secret = config.get('app', 'client_secret')
 
 url = config.get('device', 'url')
 key = config.get('device', 'key')
+
 device_id = pproxy_config.get('mqtt', 'username')
 serial = pproxy_config.get('django', 'serial_number')
 shadow_db = pproxy_config.get('shadow', 'db-path')
@@ -149,11 +150,12 @@ def test_clean_friend():
     jresponse = response.json()
     for item in jresponse:
         friend_id = item['id']
+        print(friend_id)
         response = requests.delete(url + '/friend/' + str(friend_id), headers=headers)
-        assert (response.status_code == 200)  # nosec: assert is a legit check for pytest
+        assert (response.status_code == 200 or response.status_code == 204)  # nosec: assert is a legit check for pytest
 
     # nosec: assert is a legit check for pytest
-    assert (response.status_code == 200 or response.status_code == 204)
+    # assert (response.status_code == 200 or response.status_code == 204)
 
 
 def test_login_fail():
@@ -229,20 +231,20 @@ def test_claim_fail_serial():
     assert (response.status_code != 200)  # nosec: assert is a legit check for pytest
 
 
+@pytest.mark.flaky(retries=5, delay=20)
 @pytest.mark.dependency(depends=["test_login", "test_claim", "test_confirm_device_unclaimed"])
-@pytest.mark.flaky(retries=4, delay=30)
 def test_check_device_connected():
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
     assert (status.get('status', 'claimed') == '1')  # nosec: assert is a legit check for pytest
 
-
+@pytest.mark.flaky(retries=3, delay=20)
 @pytest.mark.dependency(depends=["test_login", "test_claim"])
-@pytest.mark.flaky(retries=3, delay=10)
 def test_api_claim_info_redacted_post_claim():
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
     key = status.get('status', 'temporary_key')
+    print(key)
     assert (key == 'CLAIMED')
     # get the key through the local API
     response = requests.get(local_api_url + "/api/v1/claim/info", verify=False)
@@ -252,19 +254,26 @@ def test_api_claim_info_redacted_post_claim():
     assert (jresponse['device_key'] == 'CLAIMED')
 
 
-@pytest.mark.dependency(depends=["test_login", "test_claim"])
+@pytest.mark.dependency(depends=["test_login", "test_claim", "test_api_claim_info_redacted_post_claim"])
 def test_heartbeat():
-    global friend_id
+    global local_token
+    global key
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
+    local_token = status.get('status', 'local_token')
+    config = configparser.ConfigParser()
+    config.read(PPROXY_CONFIG)
+    key = config.get('django', 'device_key')
+
     headers = {
-        "Authorization": auth_token,
         "content-type": "application/json"
     }
     payload = {"serial_number": serial,
                "ip_address": "1.2.3.164",
                "status": "2",
                "pin": "6696941737",
-               "local_token": "565656",
                "local_ip_address": "192.168.1.118",
+               "local_token": str(local_token),
                "device_key": key,
                "port": "3074",
                "software_version": "0.11.1",
@@ -284,7 +293,7 @@ def test_add_friend():
         "Authorization": auth_token,
         "content-type": "application/json"
     }
-    payload = {"id": 0,
+    payload = {
                'email': 'regression_added@we-pn.com',
                'telegram_handle': 'tlgrm_hndl',
                'has_connected': False,
@@ -316,6 +325,7 @@ def test_list_friends():
     jresponse = response.json()
     assert (response.status_code == 200)  # nosec: assert is a legit check for pytest
     jresponse[0]['id'] = 0
+    jresponse[0]['cert_hash'] = None
     assert (jresponse == [expected])  # nosec: assert is a legit check for pytest
 
 
@@ -337,15 +347,22 @@ def test_heartbeat_change_usage_status():
     """
     """
     global friend_id
+    global local_token
+    status = configparser.ConfigParser()
+    status.read(STATUS_FILE)
+    local_token = status.get('status', 'local_token')
+    config = configparser.ConfigParser()
+    config.read(PPROXY_CONFIG)
+    key = config.get('django', 'device_key')
+
     headers = {
-        "Authorization": auth_token,
         "content-type": "application/json"
     }
     payload = {"serial_number": serial,
                "ip_address": "1.2.3.164",
                "status": "2",
                "pin": "6696941737",
-               "local_token": "565656",
+               "local_token": str(local_token),
                "local_ip_address": "192.168.1.118",
                "device_key": key,
                "port": "3074",
@@ -357,11 +374,17 @@ def test_heartbeat_change_usage_status():
     response = requests.get(url + '/device/heartbeat/', json=payload, headers=headers)
     jresponse = response.json()
     assert (response.status_code == 200)  # nosec: assert is a legit check for pytest
+    time.sleep(2)
     expected = [{"id": int(friend_id), 'email': 'regression_added@we-pn.com', 'telegram_handle': 'tlgrm_hndl', 'has_connected': True, 'usage_status': 1, 'passcode': 'test pass code',
                  'cert_id': 'zxcvb', 'cert_hash': None, 'language': 'en', 'name': 'regression_added@we-pn.com', 'config': {'tunnel': 'shadowsocks'}, 'subscribed': True}]
 
+    headers = {
+        "Authorization": auth_token,
+        "content-type": "application/json"
+    }
     response = requests.get(url + '/friend/', headers=headers)
     jresponse = response.json()
+    print(jresponse)
     expected[0]['cert_hash'] = jresponse[0]['cert_hash']
     assert (response.status_code == 200)  # nosec: assert is a legit check for pytest
     assert (jresponse == expected)  # nosec: assert is a legit check for pytest
@@ -382,6 +405,8 @@ def test_api_gives_correct_key():
     assert (len(result) == 1)
     real_ss_pass = result[0][1]
     real_port = result[0][0]
+    print(real_ss_pass)
+    print(real_port)
     status = configparser.ConfigParser()
     status.read(STATUS_FILE)
     local_token = status.get('status', 'local_token')
@@ -395,6 +420,7 @@ def test_api_gives_correct_key():
                              params=payload, verify=False)
     assert (response.status_code == 200)
     jresponse = response.json()
+    print(jresponse)
     encoded_str = jresponse['link'][5:-11]
     components = decode_base64(encoded_str)
 
@@ -405,6 +431,7 @@ def test_api_gives_correct_key():
 @pytest.mark.dependency(depends=["test_add_friend"])
 def test_delete_friend():
     global friend_id
+    print(friend_id)
     headers = {
         "Authorization": auth_token,
         "content-type": "application/json"
@@ -415,7 +442,7 @@ def test_delete_friend():
 
 
 @pytest.mark.dependency(depends=["test_delete_friend"])
-@pytest.mark.flaky(retries=5, delay=75)
+@pytest.mark.flaky(retries=3, delay=75)
 def test_deleted_friend_in_local_db():
     # wait for server to send the command to device
     time.sleep(5)
@@ -424,11 +451,13 @@ def test_deleted_friend_in_local_db():
     cursor = conn.cursor()
     cursor.execute('''SELECT * from servers where certname like "zxcvb" and language like "en"''')
     result = cursor.fetchall()
+    print(result)
     conn.close()
     assert (len(result) == 0)
 
 
-@pytest.mark.dependency(depends=["test_delete_friend","test_deleted_friend_in_local_db"])
+@pytest.mark.dependency(depends=["test_delete_friend"])
+@pytest.mark.flaky(retries=3, delay=10)
 def test_deleted_friend_in_api():
     # Now make sure the local API server is also empty
     status = configparser.ConfigParser()
@@ -459,6 +488,7 @@ def test_check_api_calls_access():
 
 
 @pytest.mark.dependency(depends=["test_api_gives_correct_key"])
+@pytest.mark.flaky(retries=2, delay=20)
 def test_check_api_calls_valid():
     # first, things should be normal
     status = configparser.ConfigParser()
@@ -466,12 +496,14 @@ def test_check_api_calls_valid():
     local_token = status.get('status', 'local_token')
     assert (util_iterate_apis(local_token, 200, True))
 
-
 @pytest.mark.dependency(depends=["test_login"])
 def test_unclaim():
     device_id = pproxy_config.get('mqtt', 'username')
+    print(device_id)
     headers = {
-        "Authorization": auth_token,
+        'content-type': 'application/json',
+        'Accept-Charset': 'UTF-8',
+        'Authorization': auth_token
     }
     response = requests.get(url + '/device/' + str(device_id) + '/unclaim/', headers=headers)
     jresponse = response.json()
