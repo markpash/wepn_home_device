@@ -182,7 +182,7 @@ smmap
 sn3218
 soupsieve
 spidev
-SQLAlchemy
+SQLAlchemy==1.4.26
 ssh-import-id
 stack-data
 stevedore

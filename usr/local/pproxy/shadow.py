@@ -114,8 +114,11 @@ class Shadow:
         conn = sqli.connect(self.config.get('usage', 'db-path'))
         cur = conn.cursor()
         if certname:
-            cur.execute("delete from servers where certname like ?", [certname])
-            cur.execute("delete from daily where certname like ?", [certname])
+            try:
+                cur.execute("delete from servers where certname like ?", [certname])
+                cur.execute("delete from daily where certname like ?", [certname])
+            except:
+                self.logger.exception("Some error in deleting from usage")
         conn.commit()
         conn.close()
 
@@ -180,7 +183,7 @@ class Shadow:
         local_db = dataset.connect(
             'sqlite:///' + self.config.get('shadow', 'db-path'))
         servers = local_db['servers']
-        if len(servers)==0:
+        if len(servers) == 0:
             return
         for server in local_db['servers']:
             time.sleep(1)
