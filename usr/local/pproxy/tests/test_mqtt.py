@@ -120,6 +120,9 @@ class MQTTTest():
 
 
 current_test = MQTTTest()
+if len(sys.argv) == 3:
+    current_test.USER=sys.argv[1]
+    current_test.PASS=sys.argv[2]
 current_test.run_test()
 if current_test.final_result:
     print("[" + OKGREEN + "PASS" + ENDC + "] Final result is pass")
