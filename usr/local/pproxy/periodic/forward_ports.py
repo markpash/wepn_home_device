@@ -1,31 +1,29 @@
-import sys
 import os
 import logging.config
-from device import random_cron_delay
+import sys
+up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
+sys.path.append(up_dir)
+from wstatus import WStatus  # nopep8 noqa
+
+from device import random_cron_delay  # nopep8 noqa
 random_cron_delay(sys.argv[1:])
 
 LOG_CONFIG = "/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG, disable_existing_loggers=False)
 logger = logging.getLogger("periodic-ports")
 
-
-up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
-sys.path.append(up_dir)
-
-from shadow import Shadow
-from wstatus import WStatus
-from tor import Tor
-
+from shadow import Shadow  # nopep8 noqa
 s = Shadow(logger)
 s.forward_all()
 
+from tor import Tor  # nopep8 noqa
 t = Tor(logger)
 t.forward_all()
 
 # Check that the API is not externally exposed.
 # If so, APIs should shut down
-from ipw import IPW
-import requests
+from ipw import IPW  # nopep8 noqa
+import requests  # nopep8 noqa
 ipw = IPW()
 external_ip = str(ipw.myip())
 status = WStatus(logger)
