@@ -11,7 +11,7 @@ from threading import Thread, Lock
 
 
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 
@@ -174,7 +174,7 @@ class PProxy():
 
     def get_messages(self):
         print("getting messages")
-        url = "https://api.we-pn.com/api/message/"
+        url = self.config.get('django', 'url') + "/api/message/"
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "device_key": self.config.get('django', 'device_key'),
@@ -188,6 +188,13 @@ class PProxy():
         response = requests.get(url, data=data_json, headers=headers)
         print(response.content)
         print(response.json())
+        # loop through the message array, process them one by one.
+        for message in response.json():
+            fake_msg = mqtt.MQTTMessage()
+            fake_msg._topic = b"REST"
+            fake_msg.payload = json.dumps(message["message_body"]).encode('utf-8')
+            self.logger.debug(fake_msg.payload.decode("utf-8"))
+            self.on_message("", "", fake_msg)
 
     def send_mail(self, send_from, send_to,
                   subject, text, html, files_in,
@@ -315,6 +322,7 @@ class PProxy():
         try:
             data = json.loads(msg.payload)
         except BaseException:
+            self.logger.exception("message was:" + msg + " + payload: " + msg.payload)
             data = json.loads(msg.payload.decode("utf-8"))
             self.logger.exception("on_message: except")
         th = Thread(target=self.on_message_handler, args=(data, self.mqtt_lock))
@@ -325,6 +333,7 @@ class PProxy():
         services = Services(self.loggers['services'])
         unsubscribe_link = None
         send_email = True
+        self.logger.debug(data)
 
         if ("uuid" in data and "subscribed" in data and "id" in data):
             us_id = self.sanitize_str(str(data['id']))
@@ -335,7 +344,7 @@ class PProxy():
                 send_email = False
                 us_flag = "true"
             us_uuid = self.sanitize_str(data['uuid'])
-            unsubscribe_link = "https://api.we-pn.com/api/friend/" + us_id + "/subscribe/?uuid=" \
+            unsubscribe_link = self.config.get('django', 'url') + "/api/friend/" + us_id + "/subscribe/?uuid=" \
                 + us_uuid + "&subscribe=" + us_flag
             # print(unsubscribe_link)
 

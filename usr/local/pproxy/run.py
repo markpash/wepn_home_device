@@ -84,7 +84,6 @@ while not server_checkin_done:
     try:
         response = requests.post(url_address, data=data, headers=headers)
         is_claimed = (response.status_code == 200)
-        jresponse = json.loads(response.content)
         logger.error("is_claimed updated to " + str(is_claimed))
         leds.progress_wheel_step(color=(255, 255, 255))
     except requests.exceptions.RequestException:
