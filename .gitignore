@@ -22,6 +22,9 @@ __pycache__/
 .links
 .links2
 .ssh
+.dotnet
+.vscode-server
+
 
 .config
 .gitconfig
@@ -41,3 +44,4 @@ usr/local/pproxy/users
 cloud.json
 goog.txt
 
+usr/local/pproxy/pproxy.code-workspace
