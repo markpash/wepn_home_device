@@ -8,12 +8,17 @@ try:
 except Exception as err:
     print("Possibly unsupported board: " + str(err))
 
+import os
+import time
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
+from PIL import ImageFilter
+from PIL import ImageSequence
 import logging.config
 import qrcode
 import textwrap
+
 from constants import LOG_CONFIG
 try:
     import RPi.GPIO as GPIO
@@ -23,7 +28,7 @@ except BaseException:
 
 
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 
@@ -106,12 +111,22 @@ class LCD:
     def clear(self):
         self.display((), 0)
 
-    def set_backlight(self, on=True):
+    def set_backlight(self, turn_on=True):
         GPIO.setup(self.BL, GPIO.OUT)
-        if on:
+        if turn_on:
             GPIO.output(self.BL, GPIO.HIGH)
         else:
             GPIO.output(self.BL, GPIO.LOW)
+        self.backlight_state_on = turn_on
+
+    def get_backlight_is_on(self):
+        # this function is not working as expected
+        # despite documentation otherwise, reading from OUTPUT
+        # seems to set it to high
+        # `raspi-gpio set 26 op pn dl && raspi-gpio get 26`
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.BL, GPIO.IN)
+        return (GPIO.input(self.BL) == GPIO.HIGH)
 
     def display(self, strs, size):
         if (self.lcd_present == 0):
@@ -127,7 +142,7 @@ class LCD:
         top = padding
         # Move left to right keeping track of the current x position for drawing shapes.
         x_pad = padding
-        self.set_backlight(on=True)
+        self.set_backlight(turn_on=True)
 
         if self.version == 2 or self.version == 3:
             width = self.width
@@ -229,6 +244,22 @@ class LCD:
                 out.write("[WEPN LOGO]")
             return
         if self.version == 2 or self.version == 3:
+            self.clear()
+            self.set_backlight(1)
+            with Image.open("ui/error-wait.gif") as im:
+                index = 1
+                while (index < 100):
+                    for frame in ImageSequence.Iterator(im):
+                        frame = frame.convert("RGBA")
+                        frame = frame.rotate(180)
+                        frame = frame.resize((240, 240))
+                        self.lcd.image(frame)
+                        index += 1
+                        print(index)
+                        time.sleep(0.1)
+
+            print(index)
+            self.clear()
             img = DIR + 'wepn_240_240.png'
             image = Image.open(img)
             if self.logo_text is not None:
@@ -241,6 +272,10 @@ class LCD:
                 self.logo_text = None
             if self.version == 2:
                 image = image.rotate(270)
+            for i in range(0, 100):
+                im2 = image.filter(ImageFilter.GaussianBlur(100 - i))
+                self.lcd.image(im2, x, y)
+                time.sleep(0.1)
             self.lcd.image(image, x, y)
         else:
             img = DIR + 'wepn_128_64.png'
@@ -254,6 +289,25 @@ class LCD:
             disp.image(image)
             disp.display()
         image.save(IMG_OUT)
+
+    def play_animation(self, filename=None, loop_count=1):
+        self.clear()
+        prev_backlight = self.get_backlight_is_on()
+        self.set_backlight(1)
+        # to avoid filename based attacks, all gifs are in the ui/ directory
+        filename = os.path.basename(filename)
+        with Image.open("ui/" + filename) as im:
+            loops = 1
+            while (loops < loop_count):
+                for frame in ImageSequence.Iterator(im):
+                    frame = frame.convert("RGBA")
+                    frame = frame.rotate(180)
+                    frame = frame.resize((240, 240))
+                    self.lcd.image(frame)
+                    time.sleep(0.1)
+                loops += 1
+        self.clear()
+        self.set_backlight(prev_backlight)
 
     def get_status_icons(self, status, is_connected, is_mqtt_connected):
         any_err = False

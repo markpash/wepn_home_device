@@ -14,7 +14,7 @@ from pystemd.systemd1 import Unit
 import psutil
 
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 
@@ -585,7 +585,7 @@ class Device():
             # use the setup file there to generate the config, get contents
             sys.path.append("/mnt/device_setup/")
             # write to the current config
-            from setup_mod import create_config
+            from setup_mod import create_config # noqa: setup_mod is defined on the USB drive just mounted
             new_config_str = create_config()
             print(new_config_str)
             config_file = open("/etc/pproxy/config.ini", 'w')

@@ -15,7 +15,7 @@ import dateutil.parser
 import os
 
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 from ipw import IPW
