@@ -1,31 +1,32 @@
-import json
-import time
-import ssl
-import random
-import requests
-import os
-import re
 import atexit
+import json
 import logging.config
-from threading import Thread, Lock
-
+import os
+import random
+import re
+import ssl
+import time
+from threading import Lock, Thread
 
 try:
     from configparser import configparser
 except ImportError:
     import configparser
 
+import shlex
 import smtplib
-from os.path import basename
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
-import shlex
-from ipw import IPW
+from os.path import basename
+
 import paho.mqtt.client as mqtt
+
 from heartbeat import HeartBeat
+from ipw import IPW
 from led_client import LEDClient
+
 try:
     import RPi.GPIO as GPIO
     from pad4pi import rpi_gpio
@@ -34,12 +35,13 @@ except Exception as err:
     print("Error in GPIO: " + str(err))
     gpio_up = False
 
-from lcd import LCD as LCD
-from diag import WPDiag
-from services import Services
-from device import Device
-from wstatus import WStatus
 from constants import LOG_CONFIG
+from device import Device
+from diag import WPDiag
+from lcd import LCD as LCD
+from messages import Messages
+from services import Services
+from wstatus import WStatus
 
 COL_PINS = [26]  # BCM numbering
 ROW_PINS = [19, 13, 6]  # BCM numbering
@@ -60,6 +62,8 @@ class PProxy():
         self.config.read(CONFIG_FILE)
         self.mqtt_connected = 0
         self.mqtt_reason = 0
+        self.mqtt_pending_notifications = []
+        self.rest_not_pending_mqtt = []
         self.loggers = {}
         if logger is not None:
             self.logger = logger
@@ -174,27 +178,30 @@ class PProxy():
 
     def get_messages(self):
         print("getting messages")
-        url = self.config.get('django', 'url') + "/api/message/"
-        data = {
-            "serial_number": self.config.get('django', 'serial_number'),
-            "device_key": self.config.get('django', 'device_key'),
-            "is_read": False,
-            "destination": "DEVICE",
-            "is_expired": False,
-        }
-        headers = {"Content-Type": "application/json"}
-        data_json = json.dumps(data)
-        print(data_json)
-        response = requests.get(url, data=data_json, headers=headers)
-        print(response.content)
-        print(response.json())
+        messages = Messages()
+
         # loop through the message array, process them one by one.
-        for message in response.json():
+        for message in messages.get_messages():
+            id = int(message["id"])
+            self.logger.info("message ID processing: " + str(id))
+            '''
             fake_msg = mqtt.MQTTMessage()
             fake_msg._topic = b"REST"
             fake_msg.payload = json.dumps(message["message_body"]).encode('utf-8')
             self.logger.debug(fake_msg.payload.decode("utf-8"))
             self.on_message("", "", fake_msg)
+            '''
+            if id in self.mqtt_pending_notifications:
+                self.mqtt_pending_notifications.remove(id)
+            else:
+                self.logger.info("REST arrived earlier than MQTT")
+                self.rest_not_pending_mqtt.append(id)
+            print(self.mqtt_pending_notifications)
+            print(self.rest_not_pending_mqtt)
+            th = Thread(target=self.on_message_handler, args=(message["message_body"], self.mqtt_lock))
+            th.start()
+            messages.mark_msg_read(id)
+            self.logger.info("message ID processed: " + str(id))
 
     def send_mail(self, send_from, send_to,
                   subject, text, html, files_in,
@@ -514,6 +521,13 @@ class PProxy():
         elif (data['action'] == 'notification'):
             # get with serial and dev key from https://api.we-pn.com/api/message/
             # gives list of all messages for this device
+            id = data["message_id"]
+            if id not in self.rest_not_pending_mqtt:
+                self.mqtt_pending_notifications.append(data["message_id"])
+                self.logger.info("MQTT arrived earlier than REST")
+            else:
+                self.rest_not_pending_mqtt.remove(id)
+                self.logger.info("REST arrived earlier than MQTT")
             self.get_messages()
 
     # callback for diconnection of MQTT from server

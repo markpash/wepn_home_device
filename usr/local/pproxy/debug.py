@@ -4,7 +4,7 @@ from setup.onboard import OnBoard
 import logging
 
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 
