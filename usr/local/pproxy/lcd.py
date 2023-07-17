@@ -246,20 +246,19 @@ class LCD:
         if self.version == 2 or self.version == 3:
             self.clear()
             self.set_backlight(1)
-            with Image.open("ui/error-wait.gif") as im:
-                index = 1
-                while (index < 100):
-                    for frame in ImageSequence.Iterator(im):
-                        frame = frame.convert("RGBA")
-                        frame = frame.rotate(180)
-                        frame = frame.resize((240, 240))
-                        self.lcd.image(frame)
-                        index += 1
-                        print(index)
-                        time.sleep(0.1)
+            # with Image.open("ui/confetti.gif") as im:
+            #    index = 1
+            #    while (index < 100):
+            #        for frame in ImageSequence.Iterator(im):
+            #            frame = frame.convert("RGBA")
+            #            frame = frame.rotate(180)
+            #            frame = frame.resize((240, 240))
+            #            self.lcd.image(frame)
+            #            index += 1
+            #            # print(index)
+            #            # time.sleep(0.1)
+            # self.clear()
 
-            print(index)
-            self.clear()
             img = DIR + 'wepn_240_240.png'
             image = Image.open(img)
             if self.logo_text is not None:
@@ -304,7 +303,7 @@ class LCD:
                     frame = frame.rotate(180)
                     frame = frame.resize((240, 240))
                     self.lcd.image(frame)
-                    time.sleep(0.1)
+                    # time.sleep(0.1)
                 loops += 1
         self.clear()
         self.set_backlight(prev_backlight)

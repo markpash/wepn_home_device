@@ -45,3 +45,9 @@ cloud.json
 goog.txt
 
 usr/local/pproxy/pproxy.code-workspace
+
+.Xauthority
+.vscode/
+.xorgxrdp.*
+.xsession-errors
+

@@ -209,7 +209,7 @@ class KEYPAD:
 
     def clear_screen(self):
         self.lcd.clear()
-        self.lcd.set_backlight(on=False)
+        self.lcd.set_backlight(turn_on=False)
 
     def set_full_menu(self, menu, titles):
         self.menu = menu
@@ -319,26 +319,29 @@ class KEYPAD:
         out = Image.alpha_composite(base, txt)
         out.paste(overlay, (0, 0), overlay)
         out = out.rotate(0)
-        self.lcd.set_backlight(on=True)
+        self.lcd.set_backlight(turn_on=True)
         self.lcd.show_image(out)
 
     def show_claim_info(self):
         self.config.read(CONFIG_FILE)
         self.status.read(STATUS_FILE)
         current_key = self.status.get('status', 'temporary_key')
+        current_e2e_key = self.status.get('status', 'temp_e2e_key')
         serial_number = self.config.get('django', 'serial_number')
         device_number = self.config.get('django', 'id')
         display_str = [(1, "Device Key:", 0, "blue"), (2, str(current_key), 0, "white"),
                        (3, "Serial #", 0, "blue"), (4, serial_number, 0, "white"),
-                       (5, "[ID]", 0, "blue"), (6, device_number, 0, "white"), ]
+                       (5, "[ID]", 0, "blue"), (6, device_number, 0, "white"),
+                       (7, current_e2e_key, 0, "white")]
         self.lcd.display(display_str, 20)
         # self.render()
         return True  # exit the menu
 
     def show_claim_info_qrcode(self):
         current_key = self.status.get('status', 'temporary_key')
+        current_e2e_key = self.status.get('status', 'temp_e2e_key')
         serial_number = self.config.get('django', 'serial_number')
-        display_str = [(1, "https://red.we-pn.com/?pk=NONE&s=" +
+        display_str = [(1, "https://red.we-pn.com/?pk=" + str(current_e2e_key) + "&s=" +
                         str(serial_number) + "&k=" + str(current_key), 2, "white"), ]
         self.lcd.display(display_str, 20)
         return True  # exit the menu

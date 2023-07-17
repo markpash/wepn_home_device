@@ -9,6 +9,6 @@ lcd = LCD()
 lcd.set_lcd_present(1)
 display_str = [(1, "", 0, "black"), ]
 lcd.display(display_str, 20)
-lcd.set_backlight(on=False)
+lcd.set_backlight(turn_on=False)
 led_client = LEDClient()
 led_client.blank()

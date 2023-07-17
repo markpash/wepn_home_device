@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import paho.mqtt.client as mqtt
@@ -26,6 +27,13 @@ ENDC = '\033[0m'
 BOLD = '\033[1m'
 UNDERLINE = '\033[4m'
 
+fake_msg = mqtt.MQTTMessage(b"REST")
+fake_msg._topic = b"aaa"
+print("fakes")
+print(fake_msg.topic + " abc")
+fake_msg.payload =json.dumps("{'action':'haha'}").encode('utf-8')
+print("ll" + fake_msg.payload.decode("utf-8"))
+exit()
 
 class MQTTTest():
     USER = None
