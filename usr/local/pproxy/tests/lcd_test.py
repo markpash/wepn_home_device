@@ -8,7 +8,9 @@ import lcd # noqa
 
 LCD = lcd.LCD()
 LCD.set_lcd_present(1)
-LCD.set_backlight(False)
+LCD.set_backlight(True)
+LCD.play_animation("barbie.gif", 10)
+exit()
 time.sleep(1)
 print("Shows this function is not working right: backlight is on?" + str(lcd.get_backlight_is_on()))
 # LCD.display([(1,"PIN:",0, "white"), (2,"2018727523",0i, "red"), (3,"zxcvbnmmm,./asdfghjkl;qwertyuiop",2,"greed")], 20)

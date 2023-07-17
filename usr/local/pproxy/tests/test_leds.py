@@ -50,8 +50,8 @@ while True:
                 j = (j + 1) % 4
                 i = 0
         else: 
-            x = "progress_wheel_step 230 81 0"
-            x = "set_all 255 145 0"
+            x = "progress_wheel_step 235 45 80"
+            #x = "set_all 255 145 0"
             client.send(x.encode('utf-8'))
 
         time.sleep(0.1)

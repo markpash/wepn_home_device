@@ -1,3 +1,4 @@
+import base64
 from collections import deque
 import time
 import ssl
@@ -62,6 +63,7 @@ class OnBoard():
         if gpio_up:
             self.factory = rpi_gpio.KeypadFactory()
         self.rand_key = None
+        self.rand_e2e_key = None
         self.retries_so_far_screen = 0
         self.lcd = LCD()
         self.leds = LEDClient()
@@ -79,12 +81,16 @@ class OnBoard():
         self.rand_key = ''.join(random.SystemRandom().choice(choose_from) for _ in range(10))
         self.rand_key = self.rand_key + str(self.checksum(str(self.rand_key)))
 
+    def generate_rand_e2e_key(self):
+        keybinary = random.SystemRandom().randint(0, pow(2, 128)).to_bytes(16, byteorder='big')
+        self.rand_e2e_key = base64.urlsafe_b64encode(keybinary).decode("utf-8").strip()
+
     # this is used for checking previous keys used
     def set_rand_key(self, key):
         self.rand_key = key
+
     # simple checksum ONLY to prevent user mistakes in entering the key
     # no security protection intended
-
     def checksum(self, in_str):
         space = string.digits + string.ascii_uppercase
         chksum = 0
@@ -95,11 +101,13 @@ class OnBoard():
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
 
-    def save_temp_key(self):
+    # a generic method to save the temporary keys to file
+    # this is used for both main key, and the end-to-end key
+    def save_temp_key(self, new_key, section_name, temp_key_name):
         # this is needed for the local webserver to read
-        if not self.status.has_section('previous_keys'):
-            self.status.add_section('previous_keys')
-        saved_keys = deque([value for key, value in self.status.items('previous_keys')])
+        if not self.status.has_section(section_name):
+            self.status.add_section(section_name)
+        saved_keys = deque([value for key, value in self.status.items(section_name)])
         self.logger.debug(saved_keys)
         # remove the oldest key
         try:
@@ -109,13 +117,13 @@ class OnBoard():
         except Exception as e:
             self.logger.error("exception: " + str(e))
         # append the new key to the end
-        saved_keys.append(self.rand_key)
+        saved_keys.append(new_key)
         i = 0
         for key in saved_keys:
-            self.status.set('previous_keys', 'key' + str(i), str(key))
+            self.status.set(section_name, 'key' + str(i), str(key))
             self.logger.debug("i=" + str(i) + " key = " + str(key))
             i += 1
-        self.status.set('status', 'temporary_key', self.rand_key)
+        self.status.set('status', temp_key_name, new_key)
         with open(STATUS_FILE, 'w') as statusfile:
             self.status.write(statusfile)
 
@@ -199,6 +207,7 @@ class OnBoard():
             self.config.set('django', 'device_key', self.rand_key)
             self.status.set('status', 'claimed', '1')
             self.status.set('status', 'temporary_key', "CLAIMED")
+            self.status.set('status', 'e2e_key', self.rand_e2e_key)
             with open(CONFIG_FILE, 'w') as configfile:
                 self.config.write(configfile)
             with open(STATUS_FILE, 'w') as statusfile:
@@ -222,7 +231,7 @@ class OnBoard():
             serial_number = self.config.get('django', 'serial_number')
             # if no app is installed, QR code will redirect to iOS/Android App store automaticall
             # if app is installed, the camera in app can extract serial and keys and ignore the URL
-            display_str = [(1, "https://red.we-pn.com/?pk=NONE&s=" +
+            display_str = [(1, "https://red.we-pn.com/?pk=" + str(self.rand_e2e_key) + "&s=" +
                             str(serial_number) + "&k=" + str(self.rand_key), 2, "white")]
         else:
             display_str = [(1, "Device Key:", 0, "blue"),
@@ -235,7 +244,13 @@ class OnBoard():
         self.logger.debug("run_once= " + str(run_once))
         if not run_once:
             self.generate_rand_key()
-            self.save_temp_key()
+            self.save_temp_key(new_key=self.rand_key,
+                               section_name="previous_keys",
+                               temp_key_name="temporary_key")
+            self.generate_rand_e2e_key()
+            self.save_temp_key(new_key=self.rand_e2e_key,
+                               section_name="prev_e2e_key",
+                               temp_key_name="temp_e2e_key")
         self.client = mqtt.Client(self.config.get('mqtt', 'username'), clean_session=True)
         # TODO: to log this effectively for error logs,
         # instead of actual key save a hash of it to the log file.
