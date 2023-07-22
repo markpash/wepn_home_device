@@ -122,7 +122,20 @@ class HeartBeat:
         # this line can update the status file contents
         diag_code = self.diag.get_error_code(test_port)
         self.status.reload()
-        status = int(self.status.get('state'))
+
+        # status 0 Service: Stopped RPI: Off
+        # status 1 Service: Stopped RPI: Up
+        # status 2 Service: Running RPI: Up
+        # status 3 Service: Stopped RPI: Restarting
+        # status 4 Service: Warming RPI: Up
+        hb_left = int(self.status.get("hb_to_warm"))
+        if hb_left > 0:
+            # if device is still warming after cold boot or OOBE,
+            # indicate that the app. otherwise, app will show
+            # "error" warnings with incomplete data.
+            status = 4
+        else:
+            status = int(self.status.get('state'))
         access_creds = self.services.get_service_creds_summary(external_ip)
         usage_status = self.services.get_usage_status_summary()
         self.logger.debug(usage_status)
