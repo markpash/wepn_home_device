@@ -1,7 +1,8 @@
 import os
 import logging.config
 import sys
-up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
+
+up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'  # nopep8 noqa
 sys.path.append(up_dir)
 from wstatus import WStatus  # nopep8 noqa
 
@@ -19,6 +20,10 @@ s.forward_all()
 from tor import Tor  # nopep8 noqa
 t = Tor(logger)
 t.forward_all()
+
+from wireguard import Wireguard  # nopep8 noqa
+w = Wireguard(logger)
+w.forward_all()
 
 # Check that the API is not externally exposed.
 # If so, APIs should shut down

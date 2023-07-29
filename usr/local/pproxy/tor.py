@@ -1,8 +1,9 @@
+import dataset
 from device import Device
 import atexit
 
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 
@@ -27,15 +28,30 @@ class Tor:
         pass
 
     def add_user(self, cname, ip_address, password, unused_port, lang):
-        # really no action is needed for Tor
-        return True
+        is_new_user = False
+        local_db = dataset.connect(
+            'sqlite:///' + self.config.get('tor', 'db-path'))
+        servers = local_db['servers']
+        server = servers.find_one(certname=cname)
+        if server is None:
+            is_new_user = True
+        servers.upsert({'certname': cname, 'language': lang},
+                       ['certname'])
+        local_db.close()
+        return is_new_user
 
     def del_user_usage(self, certname):
         # really no action is needed for Tor
         pass
 
     def delete_user(self, cname):
-        # really no action is needed for Tor
+        local_db = dataset.connect(
+            'sqlite:///' + self.config.get('tor', 'db-path'))
+        servers = local_db['servers']
+        server = servers.find_one(certname=cname)
+        if server is not None:
+            servers.delete(certname=cname)
+        local_db.close()
         return
 
     def start_all(self):
@@ -84,18 +100,30 @@ class Tor:
     def get_usage_daily(self):
         return ""
 
+    def is_user_registered(self, cname):
+        local_db = dataset.connect(
+            'sqlite:///' + self.config.get('tor', 'db-path'))
+        servers = local_db['servers']
+        server = servers.find_one(certname=cname)
+        if server is None:
+            found = False
+        else:
+            found = True
+        local_db.close()
+        return found
+
     def get_add_email_text(self, cname, ip_address, lang, is_new_user=False):
         txt = ''
         html = ''
         manuals = []
         subject = ''
-        if self.is_enabled() and self.can_email():
+        if self.is_enabled() and self.can_email() and self.is_user_registered(cname):
             manuals = []
             subject = "Your New Tor Bridge Access Details"
             txt = "You have been granted access to a private Tor bridge. "
             txt += "Install Onion Browser, and enter the below link as Tor Bridge address"
             html = "<h2>You have been granted access to a private Tor.</h2>"
-            html += "Install Onion Browser, and enter the below link as Tor Bridge address"
+            html += "Install Onion Browser, and enter the below link as Tor Bridge address: "
             txt += ip_address + ":" + self.config.get('tor', 'orport')
             html += "<center><b>" + ip_address + ":" + \
                 self.config.get('tor', 'orport') + "</b></center>"

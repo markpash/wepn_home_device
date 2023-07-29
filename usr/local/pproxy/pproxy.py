@@ -178,7 +178,7 @@ class PProxy():
             self.device.turn_off()
 
     def get_messages(self):
-        print("getting messages")
+        self.logger.debug("getting messages")
         messages = Messages()
 
         # loop through the message array, process them one by one.
@@ -197,8 +197,8 @@ class PProxy():
             else:
                 self.logger.info("REST arrived earlier than MQTT")
                 self.rest_not_pending_mqtt.append(id)
-            print(self.mqtt_pending_notifications)
-            print(self.rest_not_pending_mqtt)
+            self.logger.info(self.mqtt_pending_notifications)
+            self.logger.info(self.rest_not_pending_mqtt)
             th = Thread(target=self.on_message_handler, args=(message["message_body"], self.mqtt_lock))
             th.start()
             messages.mark_msg_read(id)
@@ -367,6 +367,10 @@ class PProxy():
                 lock.acquire()
                 self.logger.debug("lock acquired")
                 username = self.sanitize_str(data['cert_name'])
+                if "tunnel" in data["config"]:
+                    tunnel = data["config"]["tunnel"]
+                else:
+                    tunnel = "all"
                 try:
                     # extra sanitization to avoid path injection
                     lang = re.sub(r'\\\\/*\.?', "",
@@ -374,7 +378,7 @@ class PProxy():
                 except BaseException:
                     lang = 'en'
                 self.logger.debug("Adding user: " + username +
-                                  " with language:" + lang)
+                                  " with language:" + lang + " to " + tunnel)
                 ip_address = self.sanitize_str(ipw.myip())
                 if self.config.has_section(
                         "dyndns") and self.config.getboolean('dyndns', 'enabled'):
@@ -397,7 +401,7 @@ class PProxy():
                 port = self.config.get('shadow', 'start-port')
                 try:
                     is_new_user = services.add_user(
-                        username, server_address, password, int(port), lang)
+                        username, server_address, password, int(port), tunnel, lang)
                     if not is_new_user:
                         # getting an add for existing user? should be an ip change
                         self.logger.debug("Update IP")
@@ -408,7 +412,7 @@ class PProxy():
                                             percentage=1,
                                             wait=50)
                     txt, html, attachments, subject = services.get_add_email_text(
-                        username, server_address, lang, is_new_user)
+                        username, server_address, lang, tunnel, is_new_user)
                 except BaseException:
                     logging.exception("Error occured with adding user")
                     # blink led ring red for 6 times if add friend fails

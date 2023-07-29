@@ -1,10 +1,13 @@
+import re
+from sanitize_filename import sanitize
+
 from shadow import Shadow
 from openvpn import OpenVPN
 from wireguard import Wireguard
 from tor import Tor
 
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 
@@ -17,11 +20,17 @@ class Services:
         self.config.read(CONFIG_FILE)
         self.services = []
         self.services.append({'name': 'openvpn', 'obj': OpenVPN(logger)})
-        self.services.append({'name': 'shadow', 'obj': Shadow(logger)})
+        self.services.append({'name': 'shadowsocks', 'obj': Shadow(logger)})
         self.services.append({'name': 'wireguard', 'obj': Wireguard(logger)})
         self.services.append({'name': 'tor', 'obj': Tor(logger)})
         self.logger = logger
         return
+
+    def santizie_service_filename(self, filename):
+        s = sanitize(filename)
+        s = re.sub(r'[^a-zA-Z0-9]', '', s)
+        s = s.lower()
+        return s
 
     def start_all(self):
         for service in self.services:
@@ -61,14 +70,15 @@ class Services:
     def is_enanbled(self, service_name):
         return
 
-    def add_user(self, certname, ip_address, suggested_password, suggested_port, lang='en'):
+    def add_user(self, certname, ip_address, suggested_password, suggested_port, tunnel, lang='en'):
         # Note: services may use another port (based on used ports) or password
         # (if user already exists.
         is_new_user = False
         for service in self.services:
-            newly_added = service['obj'].add_user(certname, ip_address, suggested_password,
-                                                  suggested_port, lang)
-            is_new_user |= newly_added
+            if tunnel == "all" or tunnel == service["name"]:
+                newly_added = service['obj'].add_user(certname, ip_address, suggested_password,
+                                                      suggested_port, lang)
+                is_new_user |= newly_added
         return is_new_user
 
     def delete_user(self, certname):
@@ -76,19 +86,20 @@ class Services:
             service['obj'].delete_user(certname)
         return
 
-    def get_add_email_text(self, certname, ip_address, lang, is_new_user=False):
+    def get_add_email_text(self, certname, ip_address, lang, tunnel="all", is_new_user=False):
         txt = '\n'
         html = ''
         attachments = []
         subject = ''
         for service in self.services:
-            ttxt, thtml, tattachments, tsubject = service['obj'].get_add_email_text(
-                certname, ip_address, lang, is_new_user)
-            txt += ttxt + '\n'
-            html += thtml + '<br />'
-            attachments.extend(tattachments)
-            # this would assume only one service has a subject
-            subject += tsubject
+            if tunnel == "all" or tunnel == service["name"]:
+                ttxt, thtml, tattachments, tsubject = service['obj'].get_add_email_text(
+                    certname, ip_address, lang, is_new_user)
+                txt += ttxt + '\n'
+                html += thtml + '<br />'
+                attachments.extend(tattachments)
+                # this would assume only one service has a subject
+                subject += tsubject
         print(txt + "|a=" + str(attachments) + "|s=" + subject)
         return txt, html, attachments, subject
 
