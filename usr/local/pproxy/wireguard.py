@@ -1,10 +1,14 @@
+import os
 import shlex
+import re
+from sanitize_filename import sanitize
 import subprocess  # nosec: sanitized with shlex, go.we-pn.com/waiver-1
 import sys as system
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
+from device import Device
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
 # setuid command runner
@@ -18,16 +22,31 @@ class Wireguard:
         self.logger = logger
         return
 
+    def santizie_service_filename(self, filename):
+        s = sanitize(filename)
+        s = re.sub(r'[^a-zA-Z0-9]', '', s)
+        s = s.lower()
+        return s
+
     def add_user(self, certname, ip_address, password, port, lang):
-        cmd = '/bin/bash ./add_user_wireguard.sh ' + certname
+        cmd = '/bin/bash ./add_user_wireguard.sh '
+        cmd += self.santizie_service_filename(certname)
+        cmd += " " + self.config.get("wireguard", "wireport")
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
         return False
 
     def delete_user(self, certname):
-        cmd = '/bin/bash ./delete_user_wireguard.sh ' + certname
+        cmd = '/bin/bash ./delete_user_wireguard.sh '
+        cmd += self.santizie_service_filename(certname)
         self.logger.debug(cmd)
         self.execute_cmd(cmd)
+        return
+
+    def forward_all(self):
+        port = self.config.get('wireguard', 'wireport')
+        device = Device(self.logger)
+        device.open_port(port, "Wireguard")
         return
 
     def start(self):
@@ -75,18 +94,32 @@ class Wireguard:
     def get_usage_daily(self):
         return {}
 
+    def is_user_registered(self, certname):
+        cert_dir = self.santizie_service_filename(certname)
+        self.logger.debug("checking for user: " + cert_dir)
+        return os.path.exists("users/" + cert_dir)
+
+    def get_user_config_file_path(self, certname):
+        if self.is_user_registered(certname):
+            cert_dir = self.santizie_service_filename(certname)
+            return "users/" + cert_dir + "/config"
+        else:
+            return None
+
     def get_add_email_text(self, certname, ip_address, lang, is_new_user=False):
         txt = ''
         html = ''
         subject = ''
         attachments = []
-        if self.is_enabled() and self.can_email():
+        # TODO: make sure the certname is registered first, then give instructions
+        if self.is_enabled() and self.can_email() and self.is_user_registered(certname):
             txt = "To use Wireguard (" + ip_address + \
                 ") \n\n1. download the attached certificate, \n 2. install Wireguard Client." + \
                 "\n 3. Import the certificate you downloaded in step 1."
             html = "To use Wireguard (" + ip_address + \
                 ")<ul><li>download the attached certificate, \n <li>install Wireguard Client." + \
                 "<li> Import the certificate you downloaded in step 1.</ul>"
+            attachments.append(self.get_user_config_file_path(certname))
         return txt, html, attachments, subject
 
     def get_removal_email_text(self, certname, ip_address):

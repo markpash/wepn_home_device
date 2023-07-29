@@ -102,12 +102,13 @@ class Shadow:
         device = Device(self.logger)
         device.open_port(port, 'ShadowSocks ' + cname)
 
-        # add certname, port, password to a json list to ues at delete/boot
+        # add certname, port, password to a json list to use at delete/boot
         servers.upsert({'certname': cname, 'server_port': port, 'password': password, 'language': lang},
                        ['certname'])
         # retrun success or failure if file doesn't exist
         for a in local_db['servers']:
             self.logger.debug("server: " + str(a))
+        local_db.close()
         return is_new_user
 
     def del_user_usage(self, certname):
@@ -145,7 +146,7 @@ class Shadow:
         if 0 and local_db is not None:
             for a in local_db['servers']:
                 self.logger.debug("servers for delete: " + str(a))
-        return
+        local_db.close()
         return
 
     def shadow_conf_file_save(self, server_port, password):
@@ -451,14 +452,14 @@ class Shadow:
         manuals = []
         subject = ''
         if self.is_enabled() and self.can_email():
-            manuals = ['/usr/local/pproxy/ui/' + lang + '/outline.png',
-                       '/usr/local/pproxy/ui/' + lang + '/potatso.png']
-            subject = "Your New VPN Access Details"
             local_db = dataset.connect(
                 'sqlite:///' + self.config.get('shadow', 'db-path'))
             servers = local_db['servers']
             server = servers.find_one(certname=cname)
             if server is not None:
+                manuals = ['/usr/local/pproxy/ui/' + lang + '/outline.png',
+                           '/usr/local/pproxy/ui/' + lang + '/potatso.png']
+                subject = "Your New VPN Access Details"
                 uri = str(self.config.get('shadow', 'method')) + ':' + str(
                     server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
                 uri64 = 'ss://' + \
@@ -489,7 +490,8 @@ class Shadow:
                 html += 'These apps are independent and not affiliated with WEPN team.<br/>'
                 html += 'Graphical manuals are attached to this email.</p>'
             else:
-                txt = "Error: User not found?"
+                # Error: User not found in shadowsocks?
+                txt = ""
                 html = txt
         return txt, html, manuals, subject
 

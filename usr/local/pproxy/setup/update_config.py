@@ -169,6 +169,7 @@ if not config.has_section('tor'):
     config.add_section('tor')
     config.set('tor', 'enabled', "1")
     config.set('tor', 'email', "1")
+config.set('tor', 'db-path', "/var/local/pproxy/tor.db")
 # forcing this to always be 9040, correcting previous error
 config.set('tor', 'orport', "8991")
 

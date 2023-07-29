@@ -10,6 +10,9 @@ ip=`curl -s https://ip.we-pn.com`
 # remove trailing new line
 ip=${ip//[$'\r\n ']/}
 name=$1
+port=$2
+
+clean_port=${port//[^0-9]/}
 
 CLEAN=${name//_/}
 CLEAN=${CLEAN// /_}
@@ -23,7 +26,7 @@ wg genkey | tee $userdir/privatekey | wg pubkey > $userdir/publickey
 priv=`cat $userdir/privatekey`
 pub=`cat $userdir/publickey`
 
-cat > $userdir/config << EOF
+cat > $userdir/wg.conf << EOF
 [Interface]
 Address = 10.0.0.1/24
 PrivateKey = $priv
@@ -31,7 +34,7 @@ PrivateKey = $priv
 [Peer]
 PublicKey = $pub
 AllowedIPs = 0.0.0.0/0
-Endpoint = $ip:51820
+Endpoint = $ip:$clean_port
 EOF
 
 #sudo wg set wg0 peer $pub allowed-ips 0.0.0.0/0
