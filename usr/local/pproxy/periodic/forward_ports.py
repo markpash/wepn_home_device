@@ -1,16 +1,16 @@
 import sys
 import os
 import logging.config
+
+up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
+sys.path.append(up_dir)
+
 from device import random_cron_delay
 random_cron_delay(sys.argv[1:])
 
 LOG_CONFIG = "/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG, disable_existing_loggers=False)
 logger = logging.getLogger("periodic-ports")
-
-
-up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
-sys.path.append(up_dir)
 
 from shadow import Shadow
 from wstatus import WStatus
