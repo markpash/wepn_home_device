@@ -2,7 +2,7 @@ import shlex
 import subprocess  # nosec: sanitized with shlex, go.we-pn.com/waiver-1
 import sys as system
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 
@@ -105,6 +105,9 @@ class OpenVPN:
             html = "Access to VPN server IP address " + ip_address + " is revoked.",
 
         return txt, html, attachments, subject
+
+    def get_access_link(self, cname):
+        return None
 
     def execute_setuid(self, cmd):
         return self.execute_cmd(SRUN + " " + cmd)

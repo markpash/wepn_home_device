@@ -1,19 +1,17 @@
-import sys
-sys.path.insert(1, '..')
-from wstatus import WStatus
-from ipw import IPW
-import shlex
-from services import Services
-from device import Device
-from diag import WPDiag
 import json
-import dataset
-import base64
+import logging.config
+import shlex
+import sys
+
 import flask
 from flask import request
 from flask_api import status as http_status
-import hashlib
-import logging.config
+
+sys.path.insert(1, '..')  # nopep8 noqa
+from device import Device  # nopep8 noqa
+from diag import WPDiag  # nopep8 noqa
+from services import Services  # nopep8 noqa
+from wstatus import WStatus  # nopep8 noqa
 
 try:
     from configparser import configparser
@@ -34,29 +32,8 @@ def sanitize_str(str_in):
 
 
 def return_link(cname):
-    local_db = dataset.connect('sqlite:///' + config.get('shadow', 'db-path'))
-    ipw = IPW()
-    ip_address = sanitize_str(ipw.myip())
-    if config.has_section("dyndns") and config.getboolean('dyndns', 'enabled'):
-        # we have good DDNS, lets use it
-        server_address = config.get("dyndns", "hostname")
-    else:
-        server_address = ip_address
-    servers = local_db['servers']
-    server = servers.find_one(certname=cname)
-    uri = "unknown"
-    uri64 = "empty"
-    digest = ""
-    if server is not None:
-        uri = str(config.get('shadow', 'method')) + ':' + \
-            str(server['password']) + '@' + str(server_address) + ':' + str(server['server_port'])
-        print(uri)
-        uri64 = 'ss://' + \
-            base64.urlsafe_b64encode(str.encode(uri)).decode(
-                'utf-8') + "#WEPN-" + str(server['certname'])
-        digest = hashlib.sha256(uri64.encode()).hexdigest()[:10]
-    link = "{\"link\":\"" + uri64 + "\", \"digest\": \"" + str(digest) + "\" }"
-    return link
+    services = Services(logger)
+    return services.get_access_link(cname)
 
 
 def valid_token(incoming):
@@ -82,19 +59,20 @@ def home():
 @app.route('/api/v1/friends/usage/', methods=['GET', 'POST'])
 def usage():
     if exposed:
-        return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
+        return "Not accessible: API exposed to internet",\
+            http_status.HTTP_503_SERVICE_UNAVAILABLE
     if not valid_token(request.args.get('local_token')):
         return "Not allowed", http_status.HTTP_401_UNAUTHORIZED
-    from flask import make_response
-    from flask import jsonify
+    from flask import jsonify, make_response
 
     services = Services(logger)
     usage_status = services.get_usage_daily()
     if request.args.get('certname'):
         try:
             usage_status = usage_status[request.args.get('certname')]
-        except:
+        except Exception:
             usage_status = {}
+            logger.exception("Error in getting usage status")
             pass
     # print(usage_status)
     response = make_response(
@@ -108,7 +86,8 @@ def usage():
 @app.route('/api/v1/friends/access_links/', methods=['GET', 'POST'])
 def api_all():
     if exposed:
-        return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
+        return "Not accessible: API exposed to internet", \
+            http_status.HTTP_503_SERVICE_UNAVAILABLE
     if valid_token(request.args.get('local_token')):
         return str(return_link(sanitize_str(request.args.get('certname'))))
     else:
@@ -118,7 +97,8 @@ def api_all():
 @app.route('/api/v1/claim/info', methods=['GET'])
 def claim_info():
     if exposed:
-        return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
+        return "Not accessible: API exposed to internet", \
+            http_status.HTTP_503_SERVICE_UNAVAILABLE
     status = WStatus(logger)
     serial_number = config.get('django', 'serial_number')
     is_claimed = status.get_field('status', 'claimed')
@@ -126,14 +106,16 @@ def claim_info():
         dev_key = "CLAIMED"
     else:
         dev_key = status.get_field('status', 'temporary_key')
-    return "{\"claimed\":\"" + is_claimed + "\", \"serial_number\": \"" + str(serial_number) + \
+    return "{\"claimed\":\"" + is_claimed + "\", \
+        \"serial_number\": \"" + str(serial_number) + \
         "\", \"device_key\":\"" + dev_key + "\"}"
 
 
 @app.route('/api/v1/claim/progress', methods=['GET'])
 def claim_progress():
     if exposed:
-        return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
+        return "Not accessible: API exposed to internet", \
+            http_status.HTTP_503_SERVICE_UNAVAILABLE
     status = WStatus(logger)
     WPD = WPDiag(logger)
     wepn_available = WPD.is_connected_to_service()
@@ -154,7 +136,8 @@ def claim_progress():
 @app.route('/api/v1/diagnostics/info', methods=['GET'])
 def run_diag():
     if exposed:
-        return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
+        return "Not accessible: API exposed to internet",\
+            http_status.HTTP_503_SERVICE_UNAVAILABLE
     if not valid_token(request.args.get('local_token')):
         return "Not accessible", http_status.HTTP_401_UNAUTHORIZED
     WPD = WPDiag(logger)
@@ -186,7 +169,8 @@ def check_port_available_externally():
     global exposed
     exposed = True
     print("EXPOSED!!!!")
-    return "ERROR: Exposure detected! APIs are closed now.", http_status.HTTP_503_SERVICE_UNAVAILABLE
+    return "ERROR: Exposure detected! APIs are closed now.",\
+        http_status.HTTP_503_SERVICE_UNAVAILABLE
 
 
 @app.route('/api/v1/diagnostics/error_log', methods=['GET', 'POST'])
@@ -195,7 +179,8 @@ def get_error_log():
     # Note: while we emphasize not logging PII with logger.error(),
     # we can also add a regex based PII scanner like scrubadub here
     if exposed:
-        return "Not accessible: API exposed to internet", http_status.HTTP_503_SERVICE_UNAVAILABLE
+        return "Not accessible: API exposed to internet",\
+            http_status.HTTP_503_SERVICE_UNAVAILABLE
     # if not claimed, then just print the logs out
     # if claimed, then check credentials
     status = WStatus(logger)
@@ -212,7 +197,7 @@ def get_error_log():
     except FileNotFoundError as err:
         print("Not enough logs, returning what was there" + str(err))
         pass
-    return(contents)
+    return (contents)
 
 
 if __name__ == '__main__':

@@ -1,3 +1,4 @@
+import shlex
 from device import Device
 import tempfile
 import json
@@ -17,7 +18,7 @@ import sqlite3 as sqli
 import logging
 
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 
@@ -286,6 +287,33 @@ class Shadow:
         self.logger.debug(raw_str)
         response = json.loads(raw_str)
         return response
+
+    def get_access_link(self, cname):
+        local_db = dataset.connect('sqlite:///' + self.config.get('shadow', 'db-path'))
+        ipw = IPW()
+        ip_address = shlex.quote(ipw.myip())
+        if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
+            # we have good DDNS, lets use it
+            server_address = self.config.get("dyndns", "hostname")
+        else:
+            server_address = ip_address
+        servers = local_db['servers']
+        server = servers.find_one(certname=cname)
+        uri = "unknown"
+        uri64 = "empty"
+        digest = ""
+        link = None
+        if server is not None:
+            uri = str(self.config.get('shadow', 'method')) + ':' + \
+                str(server['password']) + '@' + str(server_address) + ':' + str(server['server_port'])
+            uri64 = 'ss://' + \
+                base64.urlsafe_b64encode(str.encode(uri)).decode(
+                    'utf-8') + "#WEPN-" + str(server['certname'])
+            digest = hashlib.sha256(uri64.encode()).hexdigest()[:10]
+            link = "{\"type\":\"shadowsocks\", \"link\":\"" \
+                + uri64 + "\", \"digest\": \"" + str(digest) + "\" }"
+        local_db.close()
+        return link
 
     def get_usage_status_summary(self):
         self.logger = logging.getLogger(__name__)
