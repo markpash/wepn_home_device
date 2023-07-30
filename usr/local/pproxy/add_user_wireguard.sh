@@ -19,7 +19,7 @@ CLEAN=${CLEAN// /_}
 CLEAN=${CLEAN//[^a-zA-Z0-9_]/}
 clean_name=`echo -n $CLEAN | tr A-Z a-z`
 
-userdir=users/$clean_name
+userdir=/var/local/pproxy/users/$clean_name
 mkdir -p $userdir
 
 wg genkey | tee $userdir/privatekey | wg pubkey > $userdir/publickey

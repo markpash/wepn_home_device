@@ -136,6 +136,13 @@ class Services:
                         usage[server].update(res[server])
         return usage
 
+    def get_access_link(self, cname):
+        for service in self.services:
+            link = service['obj'].get_access_link(cname)
+            if link is not None:
+                return link
+        return "{\"type\":\"empty\", \"link\":\"\", \"digest\": \"\" }"
+
     def recover_missing_servers(self):
         for service in self.services:
             service['obj'].recover_missing_servers()

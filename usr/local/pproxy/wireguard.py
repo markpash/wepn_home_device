@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import os
 import shlex
 import re
@@ -11,6 +13,7 @@ except ImportError:
 from device import Device
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
+USERS_DIR = "/var/local/pproxy/users/"
 # setuid command runner
 SRUN = "/usr/local/sbin/wepn-run"
 
@@ -97,12 +100,13 @@ class Wireguard:
     def is_user_registered(self, certname):
         cert_dir = self.santizie_service_filename(certname)
         self.logger.debug("checking for user: " + cert_dir)
-        return os.path.exists("users/" + cert_dir)
+        print((USERS_DIR + cert_dir + "/wg.conf"))
+        return os.path.exists(USERS_DIR + cert_dir + "/wg.conf")
 
     def get_user_config_file_path(self, certname):
         if self.is_user_registered(certname):
             cert_dir = self.santizie_service_filename(certname)
-            return "users/" + cert_dir + "/config"
+            return USERS_DIR + cert_dir + "/wg.conf"
         else:
             return None
 
@@ -111,7 +115,6 @@ class Wireguard:
         html = ''
         subject = ''
         attachments = []
-        # TODO: make sure the certname is registered first, then give instructions
         if self.is_enabled() and self.can_email() and self.is_user_registered(certname):
             txt = "To use Wireguard (" + ip_address + \
                 ") \n\n1. download the attached certificate, \n 2. install Wireguard Client." + \
@@ -121,6 +124,19 @@ class Wireguard:
                 "<li> Import the certificate you downloaded in step 1.</ul>"
             attachments.append(self.get_user_config_file_path(certname))
         return txt, html, attachments, subject
+
+    def get_access_link(self, cname):
+        if self.is_user_registered(cname):
+            try:
+                conf = open(self.get_user_config_file_path(cname), "r").read().encode("utf-8")
+                conf64 = base64.urlsafe_b64encode(conf)
+                digest = hashlib.sha256(conf64).hexdigest()[:10]
+                return "{\"type\":\"wireguard\", \"link\":\"" + \
+                    conf64.decode('utf-8') + \
+                    "\", \"digest\": \"" + str(digest) + "\"}"
+            except Exception:
+                self.logger.exception("Wireguard link crashing")
+        return None
 
     def get_removal_email_text(self, certname, ip_address):
         txt = ''

@@ -5,13 +5,13 @@ CLEAN=${name//_/}
 CLEAN=${CLEAN// /_}
 CLEAN=${CLEAN//[^a-zA-Z0-9_]/}
 clean_name=`echo -n $CLEAN | tr A-Z a-z`
-userdir=users/$clean_name
+userdir=/var/local/pproxy/users/$clean_name
 
 if [ $# -eq 0 ]
 then
 	echo "provide peer alias"
 else
-	pub=`cat users/$userdir/publickey`
+	pub=`cat $userdir/publickey`
 	echo wg set wg0 peer $pub remove
 	wg set wg0 peer $pub remove
 	echo wg show
