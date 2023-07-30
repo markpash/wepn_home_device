@@ -182,7 +182,7 @@ if not config.has_section('wireguard'):
 
 # GCM is required, but older shadowsocks doesn't support it
 config.set('shadow', 'method', 'aes-256-gcm')
-status.set('status', 'sw', '1.15.4')
+status.set('status', 'sw', '1.15.7')
 
 with open(CONFIG_FILE, 'w') as configfile:
     config.write(configfile)
