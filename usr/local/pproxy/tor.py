@@ -1,26 +1,21 @@
+import atexit
 import hashlib
 import shlex
+
 import dataset
+
 from device import Device
-import atexit
-
-try:
-    from configparser import configparser
-except ImportError:
-    import configparser
-
 from ipw import IPW
+from service import Service
+
 ipw = IPW()
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
 
 
-class Tor:
+class Tor(Service):
     def __init__(self, logger):
-        self.config = configparser.ConfigParser()
-        self.config.read('/etc/pproxy/config.ini')
-        self.logger = logger
-
+        Service.__init__(self, "tor", logger)
         atexit.register(self.cleanup)
 
     def cleanup(self):
@@ -57,16 +52,26 @@ class Tor:
         return
 
     def start_all(self):
-        return
+        device = Device(self.logger)
+        device.execute_setuid("0 3 1")
 
     def stop_all(self):
-        return
+        device = Device(self.logger)
+        device.execute_setuid("0 3 0")
 
     def forward_all(self):
-        port = self.config.get('tor', 'orport')
+        port = self.config.getint('tor', 'orport')
         device = Device(self.logger)
         device.open_port(port, "Tor")
         return
+
+    def change_port(self, new_port):
+        port = self.config.getint('tor', 'orport')
+        if port != new_port:
+            self.config.set('tor', 'orport', str(new_port))
+            self.forward_all()
+            self.config.save()
+            self.restart()
 
     def start(self):
         device = Device(self.logger)
@@ -86,12 +91,6 @@ class Tor:
 
     def reload(self):
         return
-
-    def is_enabled(self):
-        return (int(self.config.get('tor', 'enabled')) == 1)
-
-    def can_email(self):
-        return (int(self.config.get('tor', 'email')) == 1)
 
     def get_service_creds_summary(self, ip_address):
         return ""

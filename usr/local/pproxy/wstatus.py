@@ -1,5 +1,5 @@
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 STATUS_FILE = '/var/local/pproxy/status.ini'
@@ -61,3 +61,14 @@ class WStatus:
             self.logger.error("Unknown section/field: "
                               + section + ":" + field)
             return ""
+
+    def set_service_status(self, service_name, is_enabled):
+        if not self.status.has_section(service_name):
+            self.status.add_section(service_name)
+        self.status.set(service_name, 'enabled', str(is_enabled))
+
+    def get_service_status(self, service_name):
+        if not self.status.has_section(service_name):
+            # unless a service is overriden, it is enabled
+            return True
+        return self.status.getboolean(service_name, 'enabled')

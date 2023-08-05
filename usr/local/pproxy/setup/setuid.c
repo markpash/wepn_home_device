@@ -78,7 +78,7 @@ int main(int argc, char * argv[])
 		printf("\n* type: \n 0: services 1: special commands");
 
 		printf("\n* services:\n");
-		for (i=0; i < 3; i++){
+		for (i=0; i < SRV_CNT; i++){
 			printf("%d: %s \t\t\n", i, services[i]);
 		}
 		printf("\n* commands:\n");

@@ -514,7 +514,11 @@ class PProxy():
                                     self.sanitize_str(data[item]))
             with open(CONFIG_FILE, 'w') as configfile:
                 self.config.write(configfile)
-
+        elif (data['action'] == 'config_service'):
+            # TODO: these might require sanitization
+            service_name = self.sanitize_str(data["service_name"])
+            config = data["config"]
+            services.configure(service_name, config)
         elif (data['action'] == 'wipe_device'):
             # very important action: make sure all VPN/ShadowSocks are deleted, and stopped
             # now reset the status bits
