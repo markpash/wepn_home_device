@@ -1,21 +1,16 @@
 import shlex
 import subprocess  # nosec: sanitized with shlex, go.we-pn.com/waiver-1
 import sys as system
-try:
-    from configparser import configparser
-except ImportError:
-    import configparser
 
-CONFIG_FILE = '/etc/pproxy/config.ini'
+from service import Service
+
 # setuid command runner
 SRUN = "/usr/local/sbin/wepn-run"
 
 
-class OpenVPN:
+class OpenVPN(Service):
     def __init__(self, logger):
-        self.config = configparser.ConfigParser()
-        self.config.read(CONFIG_FILE)
-        self.logger = logger
+        Service.__init__(self, "openvpn", logger)
         return
 
     def add_user(self, certname, ip_address, password, port, lang):
@@ -65,12 +60,6 @@ class OpenVPN:
         self.logger.debug(cmd)
         self.execute_setuid(cmd)
         return
-
-    def is_enabled(self):
-        return (int(self.config.get('openvpn', 'enabled')) == 1)
-
-    def can_email(self):
-        return (int(self.config.get('openvpn', 'email')) == 1)
 
     def get_service_creds_summary(self, ip_address):
         return {}

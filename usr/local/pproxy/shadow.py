@@ -1,39 +1,34 @@
-import shlex
-from device import Device
-import tempfile
-import json
-import time
-import socket
-import os
-import dataset
+import atexit
 import base64
 import hashlib
-import atexit
+import json
+import logging
+import os
+import shlex
+import socket
+import sqlite3 as sqli
+import tempfile
+import time
 from datetime import datetime
+from random import randrange  # nosec: not used for cryptography
+
+import dataset
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from random import randrange  # nosec: not used for cryptography
-import sqlite3 as sqli
 
-import logging
-
-try:
-    from configparser import configparser
-except ImportError:
-    import configparser
-
-from ipw import IPW
+from device import Device
 from diag import WPDiag
+from ipw import IPW
+from service import Service
+
 ipw = IPW()
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
 
 
-class Shadow:
+class Shadow(Service):
     def __init__(self, logger):
-        self.config = configparser.ConfigParser()
-        self.config.read('/etc/pproxy/config.ini')
-        self.logger = logger
+        Service.__init__(self, "shadowsocks", logger)
 
         self.diag = WPDiag(logger)
         atexit.register(self.cleanup)
@@ -238,19 +233,6 @@ class Shadow:
     def stop(self):
         self.stop_all()
         return
-
-    def restart(self):
-        self.stop_all()
-        self.start_all()
-
-    def reload(self):
-        return
-
-    def is_enabled(self):
-        return (int(self.config.get('shadow', 'enabled')) == 1)
-
-    def can_email(self):
-        return (int(self.config.get('shadow', 'email')) == 1)
 
     def get_service_creds_summary(self, ip_address):
         local_db = dataset.connect(

@@ -1,16 +1,15 @@
 import base64
 import hashlib
 import os
-import shlex
 import re
-from sanitize_filename import sanitize
+import shlex
 import subprocess  # nosec: sanitized with shlex, go.we-pn.com/waiver-1
 import sys as system
-try:
-    from configparser import configparser
-except ImportError:
-    import configparser
+
+from sanitize_filename import sanitize
+
 from device import Device
+from service import Service
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
 USERS_DIR = "/var/local/pproxy/users/"
@@ -18,11 +17,9 @@ USERS_DIR = "/var/local/pproxy/users/"
 SRUN = "/usr/local/sbin/wepn-run"
 
 
-class Wireguard:
+class Wireguard(Service):
     def __init__(self, logger):
-        self.config = configparser.ConfigParser()
-        self.config.read(CONFIG_FILE)
-        self.logger = logger
+        Service.__init__(self, "wireguard", logger)
         return
 
     def santizie_service_filename(self, filename):
@@ -75,18 +72,6 @@ class Wireguard:
         self.logger.debug(cmd)
         self.execute_setuid(cmd)
         return
-
-    def is_enabled(self):
-        if self.config.has_section('wireguard'):
-            return (int(self.config.get('wireguard', 'enabled')) == 1)
-        else:
-            return False
-
-    def can_email(self):
-        if self.config.has_section('wireguard'):
-            return (int(self.config.get('wireguard', 'email')) == 1)
-        else:
-            return False
 
     def get_service_creds_summary(self, ip_address):
         return {}

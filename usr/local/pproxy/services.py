@@ -152,3 +152,8 @@ class Services:
         for service in self.services:
             result &= service['obj'].self_test()
         return result
+
+    def configure(self, service_name, config_data):
+        for service in self.services:
+            if service['name'] == service_name:
+                service['obj'].configure(config_data)
