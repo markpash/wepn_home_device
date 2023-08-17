@@ -100,7 +100,6 @@ class Services:
                 attachments.extend(tattachments)
                 # this would assume only one service has a subject
                 subject += tsubject
-        print(txt + "|a=" + str(attachments) + "|s=" + subject)
         return txt, html, attachments, subject
 
     def get_service_creds_summary(self, ip_address):

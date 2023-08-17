@@ -104,6 +104,7 @@ class Shadow(Service):
         # retrun success or failure if file doesn't exist
         for a in local_db['servers']:
             self.logger.debug("server: " + str(a))
+        local_db.commit()
         local_db.close()
         return is_new_user
 
@@ -142,6 +143,7 @@ class Shadow(Service):
         if 0 and local_db is not None:
             for a in local_db['servers']:
                 self.logger.debug("servers for delete: " + str(a))
+        local_db.commit()
         local_db.close()
         return
 
@@ -240,7 +242,7 @@ class Shadow(Service):
         servers = local_db['servers']
         creds = {}
         if not servers or not self.is_enabled():
-            self.logger.debug("No servers found for usage")
+            self.logger.debug("No servers found for access creds")
             return {}
         for server in local_db['servers']:
             if server['certname'] == "''" or not server['certname']:

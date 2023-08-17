@@ -38,8 +38,13 @@ class Service:
         pass
 
     def is_enabled(self):
-        if self.config.has_section(self.name):
-            service_present = (int(self.config.get(self.name, 'enabled')) == 1)
+        # TODO: this is a workaround until we update service name everywhere
+        if self.name == "shadowsocks":
+            service_config_name = "shadow"
+        else:
+            service_config_name = self.name
+        if self.config.has_section(service_config_name):
+            service_present = (int(self.config.get(service_config_name, 'enabled')) == 1)
             service_active = self.wstatus.get_service_status(self.name)
             return service_present and service_active
         else:
