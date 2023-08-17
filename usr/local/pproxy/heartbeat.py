@@ -191,5 +191,5 @@ class HeartBeat:
         left = int(left)
         if left > 0:
             self.status.set("hb_to_warm", str(left - 1))
-        print("HB left = " + str(left))
+        self.logger.debug("HB left = " + str(left))
         self.status.save()
