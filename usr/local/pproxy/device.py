@@ -245,12 +245,70 @@ class Device():
             self.set_port_forward("close", port, "")
         self.logger.info("skipping?" + str(skip) + " count=" + str(skip_count))
 
+    def get_all_port_mappings(self):
+        still_counting = True
+        index = 0
+        ports = []
+        while still_counting:
+            try:
+                port_candidate = self.get_port_mapping_by_index(index)
+                if "NewPortMappingDescription" in port_candidate:
+                    if "wepn" in port_candidate["NewPortMappingDescription"].lower():
+                        # to avoid collecting unnecessary information,
+                        # only collect port mappings we have opened ourselves
+                        ports.append((port_candidate["NewExternalPort"],
+                                      port_candidate["NewPortMappingDescription"]))
+                index += 1
+            except upnp.soap.SOAPError:
+                # UPNP is weird, and instead of having statevars.PortMappingNumberOfEntries
+                # we have to keep looking until we hit an error
+                still_counting = False
+                self.logger.debug("Number of port forwardings: " + str(index))
+            except Exception as err:
+                self.logger.exception(err)
+                still_counting = False
+        return ports, index
+
+    def get_port_mapping_by_port(self, port_num, protocol="TCP"):
+        if not self.igds:
+            self.find_igds()
+        if not self.igds:
+            self.logger.error("No IGDs found in retry")
+        if not self.port_mappers:
+            self.logger.error("No port mappers found in retry")
+        for port_mapper in self.port_mappers:
+            try:
+                for action in port_mapper.actions:
+                    if "GetSpecificPortMappingEntry" in action.name:
+                        return port_mapper.GetSpecificPortMappingEntry(
+                            NewProtocol=protocol,
+                            NewExternalPort=port_num,
+                            NewRemoteHost='')
+            except Exception as err:
+                self.logger.exception("Port forward listing operation failed: " + str(err))
+                raise err
+
+    def get_port_mapping_by_index(self, index_num):
+        if not self.igds:
+            self.find_igds()
+        if not self.igds:
+            self.logger.error("No IGDs found in retry")
+        if not self.port_mappers:
+            self.logger.error("No port mappers found in retry")
+        for port_mapper in self.port_mappers:
+            for action in port_mapper.actions:
+                if "GetGenericPortMappingEntry" in action.name:
+                    return port_mapper.GetGenericPortMappingEntry(
+                        NewPortMappingIndex=index_num,)
+
     def set_port_forward(self, open_close, port, text, outside_port=None, timeout=500000):
         result = True
         if outside_port is None:
             outside_port = port
         failed = 0
         local_ip = self.get_local_ip()
+        if "wepn" not in text.lower():
+            text = "WEPN " + text
         if not self.igds:
             self.find_igds()
         if not self.igds:
@@ -585,7 +643,7 @@ class Device():
             # use the setup file there to generate the config, get contents
             sys.path.append("/mnt/device_setup/")
             # write to the current config
-            from setup_mod import create_config # noqa: setup_mod is defined on the USB drive just mounted
+            from setup_mod import create_config  # noqa: setup_mod is defined on the USB drive just mounted
             new_config_str = create_config()
             print(new_config_str)
             config_file = open("/etc/pproxy/config.ini", 'w')
