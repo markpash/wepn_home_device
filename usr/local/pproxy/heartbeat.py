@@ -146,6 +146,11 @@ class HeartBeat:
                 signature = f.readline().strip()
         except OSError:
             signature = "NA"
+        try:
+            ports, num_forwards = device.get_all_port_mappings()
+            logs = {"ports": ports, 'num_port_fwds': num_forwards}
+        except:
+            logs = "{'error':'Could not get port mappings'}"
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "ip_address": external_ip,
@@ -160,6 +165,7 @@ class HeartBeat:
             "access_cred": access_creds,
             "usage_status": usage_status,
             "public_key": signature,
+            "log": logs,
         }
         self.status.set('pin', str(self.pin))
         prev_token = self.status.get('local_token')
