@@ -21,6 +21,7 @@ except ImportError:
 import subprocess  # nosec shlex split used for sanitization go.we-pn.com/waiver-1
 import shlex
 from wstatus import WStatus as WStatus
+from constants import SKIP_OTA_CHECK
 
 COL_PINS = [26]  # BCM numbering
 ROW_PINS = [19, 13, 6]  # BCM numbering
@@ -531,6 +532,8 @@ class Device():
             return None
 
     def needs_package_update(self, use_latest=False):
+        if SKIP_OTA_CHECK:
+            return False
         needs = True
         self.logger.debug("checking package to see if OTA is needed right now")
         current = self.get_installed_package_version()

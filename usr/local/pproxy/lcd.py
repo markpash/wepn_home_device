@@ -112,11 +112,12 @@ class LCD:
         self.display((), 0)
 
     def set_backlight(self, turn_on=True):
-        GPIO.setup(self.BL, GPIO.OUT)
-        if turn_on:
-            GPIO.output(self.BL, GPIO.HIGH)
-        else:
-            GPIO.output(self.BL, GPIO.LOW)
+        if gpio_enable:
+            GPIO.setup(self.BL, GPIO.OUT)
+            if turn_on:
+                GPIO.output(self.BL, GPIO.HIGH)
+            else:
+                GPIO.output(self.BL, GPIO.LOW)
         self.backlight_state_on = turn_on
 
     def get_backlight_is_on(self):
@@ -236,7 +237,11 @@ class LCD:
         self.logo_text_size = size
 
     def show_image(self, image):
-        self.lcd.image(image, 0, 0)
+        if (self.lcd_present == 0):
+            image.save(IMG_OUT)
+        else:
+            self.lcd.image(image, 0, 0)
+
 
     def show_logo(self, x=0, y=0):
         if (self.lcd_present == 0):

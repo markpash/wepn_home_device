@@ -1,5 +1,7 @@
+locale-gen "en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 PPROXY_HOME=/usr/local/pproxy/
+PPROXY_VENV=/var/local/pproxy/wepn-env
 OVPN_ENABLED=0
 
 ######################################
@@ -37,16 +39,16 @@ adduser wepn-api --disabled-password --disabled-login --home $PPROXY_HOME/local_
 adduser pproxy gpio 
 
 echo -e "\nCorrecing owners..."
-chown pproxy.pproxy $PPROXY_HOME
-chown -R pproxy.pproxy $PPROXY_HOME/* 
-chown -R pproxy.pproxy $PPROXY_HOME/.* 
+chown pproxy:pproxy $PPROXY_HOME
+chown -R pproxy:pproxy $PPROXY_HOME/* 
+chown -R pproxy:pproxy $PPROXY_HOME/.* 
 mkdir -p /var/local/pproxy
 mkdir -p /var/local/pproxy/shadow/
 touch /var/local/pproxy/status.ini
-chown pproxy.pproxy /var/local/pproxy
-chown pproxy.pproxy /var/local/pproxy/*
-chown pproxy.pproxy /var/local/pproxy/.*
-chown pproxy.pproxy /var/local/pproxy/shadow/*
+chown pproxy:pproxy /var/local/pproxy
+chown pproxy:pproxy /var/local/pproxy/*
+chown pproxy:pproxy /var/local/pproxy/.*
+chown pproxy:pproxy /var/local/pproxy/shadow/*
 
 echo -e "correcting scripts that run as sudo"
 for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system wepn_git prevent_location_issue iptables-flush
@@ -57,24 +59,20 @@ done
 # led manager runs as service by root
 # led client sends it messages via a socket
 # TODO: new led user & group, put pproxy in that group, run as that
-chown root.root $PPROXY_HOME/system_services/led_manager.py
+chown root:root $PPROXY_HOME/system_services/led_manager.py
 
 cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
-python3 -m pip install --upgrade pip
-PIP=/usr/local/bin/pip3
-if ! command -v $PIP -V &> /dev/null
-then
-	PIP=pip3
-fi
+python3 -m venv $PPROXY_VENV
+source $PPROXY_VENV/bin/activate
 
-$PIP install --upgrade pip
-$PIP install -r $PPROXY_HOME/setup/requirements.txt
+pi3 install --upgrade pip
+pip3 install -r $PPROXY_HOME/setup/requirements.txt
 if [ ! $? -eq 0 ]; then
 	echo "Doing one-by-one pip install"
 	for pkg in `cat $PPROXY_HOME/setup/requirements.txt`
 	do
-		$PIP install --ignore-installed $pkg
+		pip3 install --ignore-installed $pkg
 	done
 fi
 
