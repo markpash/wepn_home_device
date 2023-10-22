@@ -102,13 +102,15 @@ def claim_info():
     status = WStatus(logger)
     serial_number = config.get('django', 'serial_number')
     is_claimed = status.get_field('status', 'claimed')
+    e2e_key = status.get_field('status', 'e2e_key')
     if int(is_claimed) == 1:
         dev_key = "CLAIMED"
     else:
         dev_key = status.get_field('status', 'temporary_key')
     return "{\"claimed\":\"" + is_claimed + "\", \
         \"serial_number\": \"" + str(serial_number) + \
-        "\", \"device_key\":\"" + dev_key + "\"}"
+        "\", \"device_key\":\"" + dev_key + "\", \"e2e_key\":\"" +
+        e2e_key+ "\"}"
 
 
 @app.route('/api/v1/claim/progress', methods=['GET'])
