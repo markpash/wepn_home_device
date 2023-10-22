@@ -8,4 +8,4 @@
 #/usr/bin/upnpc -e 'reverse proxy' -r 8888  TCP
 #/usr/bin/hts --max-connection-age 2000 --forward-port localhost:1194 8888
 #forward all shadowsocks ports
-/usr/bin/python3 /usr/local/pproxy/periodic/forward_ports.py
+/var/local/pproxy/wepn-env/bin/python3 /usr/local/pproxy/periodic/forward_ports.py

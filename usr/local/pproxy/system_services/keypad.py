@@ -1,6 +1,9 @@
-import RPi.GPIO as GPIO
-from adafruit_bus_device import i2c_device
-import adafruit_aw9523
+try:
+    import RPi.GPIO as GPIO
+    from adafruit_bus_device import i2c_device
+    import adafruit_aw9523
+except:
+    print("RPi import failed")
 from PIL import Image, ImageDraw, ImageFont
 import logging
 import board
@@ -19,6 +22,7 @@ from diag import WPDiag  # noqa E402 need up_dir first
 from lcd import LCD as LCD  # noqa E402 need up_dir first
 import constants as consts  # noqa E402 need up_dir first
 from constants import LOG_CONFIG # noqa E402 need up_dir first
+from constants import FORCE_SCREEN_ON # noqa E402 need up_dir first
 
 try:
     from self.configparser import configparser
@@ -94,6 +98,8 @@ class KEYPAD:
         self.channel = "prod"
 
     def init_i2c(self):
+        if (int(self.config.get('hw', 'buttons'))) == 0:
+            return
         GPIO.setmode(GPIO.BCM)
         i2c = board.I2C()
         # Set this to the GPIO of the interrupt:
@@ -791,8 +797,8 @@ def main():
             # this allows showing LED error even with in different menu
             keypad.refresh_status(True)
         # print("menu_active_countdown: " + str(keypad.menu_active_countdown) +
-        #      " countdown_to_turnoff_screen: " + str(keypad.countdown_to_turn_off_screen) +
-        #      " screen is off? " + str(keypad.screen_timed_out))
+        #     " countdown_to_turnoff_screen: " + str(keypad.countdown_to_turn_off_screen) +
+        #     " screen is off? " + str(keypad.screen_timed_out))
         keypad.menu_active_countdown -= 1
         if keypad.menu_active_countdown == 0:
             # this part ensures we read status and update screen info
@@ -801,8 +807,9 @@ def main():
         if keypad.screen_timed_out is False:
             keypad.countdown_to_turn_off_screen -= 1
         if keypad.countdown_to_turn_off_screen == 0:
-            keypad.screen_timed_out = True
-            keypad.clear_screen()
+            if not FORCE_SCREEN_ON:
+                keypad.screen_timed_out = True
+                keypad.clear_screen()
 
 
 if __name__ == '__main__':
