@@ -136,7 +136,8 @@ class LCD:
                     spaces = 20 - len(current_str)
                     out.write("row:[" + str(row) + "] \tstring:[\t" + current_str + " " * spaces
                               + "]\ttype:[" + str(vtype) + "]  color:[" + str(color) + "]\n")
-
+        if size < 10:
+            size = 10
         # Draw some shapes.
         # First define some constants to allow easy resizing of shapes.
         padding = 1

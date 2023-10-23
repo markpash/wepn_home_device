@@ -1,6 +1,9 @@
 Adafruit-Blinka==8.23.0
+adafruit-circuitpython-aw9523==1.1.8
 adafruit-circuitpython-busdevice==5.2.6
+adafruit-circuitpython-register==1.9.17
 adafruit-circuitpython-requests==2.0.2
+adafruit-circuitpython-rgb-display==3.12.2
 adafruit-circuitpython-typing==1.9.5
 Adafruit-GPIO==1.0.3
 Adafruit-PlatformDetect==3.53.0
@@ -22,7 +25,7 @@ cycler==0.12.1
 dataset==1.6.2
 decorator==5.1.1
 docopt==0.6.2
-Flask==3.0.0
+Flask==2.3.0
 Flask-API==3.1
 fonttools==4.43.1
 getmac==0.9.4
@@ -63,6 +66,7 @@ python-json-logger==2.0.7
 pyusb==1.2.1
 qrcode==7.4.2
 requests==2.31.0
+rpi-ws281x==5.0.0
 RPi.GPIO==0.7.1
 s3transfer==0.7.0
 sanitize-filename==1.2.0
@@ -71,8 +75,11 @@ self==2020.12.3
 six==1.16.0
 spidev==3.6
 SQLAlchemy==1.4.49
+ST7789==0.0.4
+sysv-ipc==1.1.0
 typing_extensions==4.8.0
 upnpclient==1.0.3
 urllib3==2.0.7
-Werkzeug==3.0.0
+uWSGI==2.0.22
+Werkzeug==2.3.0
 yarg==0.1.9

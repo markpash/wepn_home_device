@@ -109,7 +109,7 @@ def claim_info():
         dev_key = status.get_field('status', 'temporary_key')
     return "{\"claimed\":\"" + is_claimed + "\", \
         \"serial_number\": \"" + str(serial_number) + \
-        "\", \"device_key\":\"" + dev_key + "\", \"e2e_key\":\"" +
+        "\", \"device_key\":\"" + dev_key + "\", \"e2e_key\":\"" + \
         e2e_key+ "\"}"
 
 
