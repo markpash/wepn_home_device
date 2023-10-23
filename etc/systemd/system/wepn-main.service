@@ -6,7 +6,7 @@ Wants=network-online.target
 
 [Service]
 User=pproxy
-ExecStart=/usr/bin/python3 /usr/local/pproxy/run.py
+ExecStart=/var/local/pproxy/wepn-env/bin/python3 /usr/local/pproxy/run.py
 KillMode=control-group
 Restart=on-failure
 RestartPreventExitStatus=255
