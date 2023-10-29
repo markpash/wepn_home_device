@@ -1,5 +1,7 @@
+sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
 locale-gen "en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
+export LANG=en_US.UTF-8
 PPROXY_HOME=/usr/local/pproxy/
 PPROXY_VENV=/var/local/pproxy/wepn-env
 OVPN_ENABLED=0
@@ -66,7 +68,7 @@ cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 python3 -m venv $PPROXY_VENV
 source $PPROXY_VENV/bin/activate
 
-pi3 install --upgrade pip
+pip3 install --upgrade pip
 pip3 install -r $PPROXY_HOME/setup/requirements.txt
 if [ ! $? -eq 0 ]; then
 	echo "Doing one-by-one pip install"
