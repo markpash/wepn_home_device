@@ -253,13 +253,16 @@ class Device():
         while still_counting:
             try:
                 port_candidate = self.get_port_mapping_by_index(index)
-                if "NewPortMappingDescription" in port_candidate:
-                    if "wepn" in port_candidate["NewPortMappingDescription"].lower():
-                        # to avoid collecting unnecessary information,
-                        # only collect port mappings we have opened ourselves
-                        ports.append((port_candidate["NewExternalPort"],
-                                      port_candidate["NewPortMappingDescription"]))
-                index += 1
+                if port_candidate is not None:
+                    if "NewPortMappingDescription" in port_candidate:
+                        if "wepn" in port_candidate["NewPortMappingDescription"].lower():
+                            # to avoid collecting unnecessary information,
+                            # only collect port mappings we have opened ourselves
+                            ports.append((port_candidate["NewExternalPort"],
+                                          port_candidate["NewPortMappingDescription"]))
+                    index += 1
+                else:
+                    still_counting = False
             except upnp.soap.SOAPError:
                 # UPNP is weird, and instead of having statevars.PortMappingNumberOfEntries
                 # we have to keep looking until we hit an error

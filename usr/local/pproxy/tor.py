@@ -42,13 +42,16 @@ class Tor(Service):
         pass
 
     def delete_user(self, cname):
-        local_db = dataset.connect(
-            'sqlite:///' + self.config.get('tor', 'db-path'))
-        servers = local_db['servers']
-        server = servers.find_one(certname=cname)
-        if server is not None:
-            servers.delete(certname=cname)
-        local_db.close()
+        try:
+            local_db = dataset.connect(
+                'sqlite:///' + self.config.get('tor', 'db-path'))
+            servers = local_db['servers']
+            server = servers.find_one(certname=cname)
+            if server is not None:
+                servers.delete(certname=cname)
+            local_db.close()
+        except Exception e:
+            pass
         return
 
     def start_all(self):
