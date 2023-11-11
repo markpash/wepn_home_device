@@ -50,7 +50,7 @@ class Tor(Service):
             if server is not None:
                 servers.delete(certname=cname)
             local_db.close()
-        except Exception e:
+        except Exception as e:
             pass
         return
 
