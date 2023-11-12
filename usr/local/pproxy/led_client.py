@@ -35,6 +35,10 @@ class LEDClient:
                 self.device = device.Device(logger)
                 self.device.execute_setuid("1 14")
                 self.client.connect(LM_SOCKET_PATH)
+            except Exception:
+                self.client = None
+                logger.exception("LED Client failed to connect")
+                pass
 
     def __del__(self):
         if self.client is not None:

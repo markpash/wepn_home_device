@@ -76,7 +76,7 @@ class Messages():
                 self.logger.critical("Message " + str(id) + "was marked as read, but it was not pending")
         return response
 
-    def send_msg(self, text, secure=True):
+    def send_msg(self, text, destination="APP", secure=True):
         nonce = ""
         if secure:
             text, nonce = self.encrypt_message(text)
@@ -91,7 +91,7 @@ class Messages():
                 "is_secure": secure,
                 "nonce": nonce
             },
-            "destination": "Device",
+            "destination": destination.upper(),
             "is_read": False,
             "is_expired": False,
         }

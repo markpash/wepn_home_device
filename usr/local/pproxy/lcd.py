@@ -112,12 +112,13 @@ class LCD:
         self.display((), 0)
 
     def set_backlight(self, turn_on=True):
-        if gpio_enable:
-            GPIO.setup(self.BL, GPIO.OUT)
-            if turn_on:
-                GPIO.output(self.BL, GPIO.HIGH)
-            else:
-                GPIO.output(self.BL, GPIO.LOW)
+        if self.lcd_present:
+            if gpio_enable:
+                GPIO.setup(self.BL, GPIO.OUT)
+                if turn_on:
+                    GPIO.output(self.BL, GPIO.HIGH)
+                else:
+                    GPIO.output(self.BL, GPIO.LOW)
         self.backlight_state_on = turn_on
 
     def get_backlight_is_on(self):
