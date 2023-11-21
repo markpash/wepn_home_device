@@ -102,7 +102,7 @@ class Messages():
             self.logger.critical("Could not send message: " + str(response.text))
 
     def encrypt_message(self, private_msg):
-        key = bytes(self.status.get('status', 'e2e_key'), "utf-8")
+        key = base64.b64decode(str(self.status.get('status', 'e2e_key')))
         nonce = os.urandom(12)
         encryptor = Cipher(algorithms.AES(key), modes.GCM(nonce), default_backend()).encryptor()
         padder = padding.PKCS7(algorithms.AES(key).block_size).padder()
@@ -111,7 +111,7 @@ class Messages():
         return encrypted_text, nonce
 
     def decrypt_message(self, encoded_encrypted_msg, nonce):
-        key = bytes(self.status.get('status', 'e2e_key'), "utf-8")
+        key = base64.b64decode(str(self.status.get('status', 'e2e_key')))
         encoded_encrypted_msg = base64.urlsafe_b64decode(encoded_encrypted_msg)
         nonce = base64.urlsafe_b64decode(nonce)
         padder = padding.PKCS7(algorithms.AES(key).block_size).padder()
