@@ -434,7 +434,7 @@ class PProxy():
                                        files_in=attachments,
                                        unsubscribe_link=unsubscribe_link)
                     # alse send a message to the app via Messaging API
-                    self.messages.send_msg(txt, secure=True)
+                    self.messages.send_msg(txt, cert_id=username, secure=True)
 
             except BaseException:
                 self.logger.exception("Unhandled exception adding friend")
@@ -475,8 +475,6 @@ class PProxy():
                                     "</b> is revoked.</p>",
                                files_in=None,
                                unsubscribe_link=None)  # at this point, friend is removed from backend db
-            # alse send a message to the app via Messaging API
-            self.messages.send_msg("deleted user " + username + " from " + ip_address, secure=False)
         elif (data['action'] == 'reboot_device'):
             self.save_state("3")
             self.device.reboot()

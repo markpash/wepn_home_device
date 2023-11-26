@@ -76,11 +76,11 @@ class Messages():
                 self.logger.critical("Message " + str(id) + "was marked as read, but it was not pending")
         return response
 
-    def send_msg(self, text, destination="APP", secure=True):
+    def send_msg(self, text, destination="APP", cert_id="", secure=True):
         nonce = ""
         if secure:
-            text, nonce = self.encrypt_message(text)
-            text = base64.urlsafe_b64encode(text).decode("utf-8")
+            secure_text, nonce = self.encrypt_message(text)
+            text = base64.urlsafe_b64encode(secure_text).decode("utf-8")
             nonce = base64.urlsafe_b64encode(nonce).decode("utf-8")
         url = self.config.get('django', 'url') + "/api/message/"
         data = {
@@ -89,6 +89,7 @@ class Messages():
             "message_body": {
                 "message": text,
                 "is_secure": secure,
+                "cert_id": cert_id,
                 "nonce": nonce
             },
             "destination": destination.upper(),
