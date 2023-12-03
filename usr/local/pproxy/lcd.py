@@ -244,7 +244,6 @@ class LCD:
         else:
             self.lcd.image(image, 0, 0)
 
-
     def show_logo(self, x=0, y=0):
         if (self.lcd_present == 0):
             with open(TEXT_OUT, 'w') as out:

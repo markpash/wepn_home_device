@@ -51,6 +51,7 @@ class Tor(Service):
                 servers.delete(certname=cname)
             local_db.close()
         except Exception as e:
+            print("Delete user error: " + str(e))
             pass
         return
 
@@ -116,6 +117,9 @@ class Tor(Service):
         local_db.close()
         return found
 
+    def get_short_link_text(self, cname, ip_address):
+        return ip_address + ":" + str(self.config.get('tor', 'orport'))
+
     def get_add_email_text(self, cname, ip_address, lang, is_new_user=False):
         txt = ''
         html = ''
@@ -124,11 +128,11 @@ class Tor(Service):
         if self.is_enabled() and self.can_email() and self.is_user_registered(cname):
             manuals = []
             subject = "Your New Tor Bridge Access Details"
-            txt = "You have been granted access to a private Tor bridge. "
+            txt = "\nYou have been granted access to a private Tor bridge. "
             txt += "Install Onion Browser, and enter the below link as Tor Bridge address"
             html = "<h2>You have been granted access to a private Tor.</h2>"
             html += "Install Onion Browser, and enter the below link as Tor Bridge address: "
-            txt += ip_address + ":" + self.config.get('tor', 'orport')
+            txt += self.get_short_link_text(cname, ip_address)
             html += "<center><b>" + ip_address + ":" + \
                 self.config.get('tor', 'orport') + "</b></center>"
         return txt, html, manuals, subject

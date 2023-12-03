@@ -433,8 +433,10 @@ class PProxy():
                                        data['passcode'] + '</b></p>' + html,
                                        files_in=attachments,
                                        unsubscribe_link=unsubscribe_link)
-                    # alse send a message to the app via Messaging API
-                    self.messages.send_msg(txt, cert_id=username, secure=True)
+                # alse send a message to the app via Messaging API
+                short_link = services.get_short_link_text(username, server_address)
+                if short_link != "":
+                    self.messages.send_msg(short_link, cert_id=username, secure=True)
 
             except BaseException:
                 self.logger.exception("Unhandled exception adding friend")

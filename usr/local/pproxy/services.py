@@ -81,10 +81,18 @@ class Services:
                 is_new_user |= newly_added
         return is_new_user
 
-    def delete_user(self, certname):
+    def delete_user(self, certname, tunnel="all"):
         for service in self.services:
-            service['obj'].delete_user(certname)
+            if tunnel == "all" or tunnel == service["name"]:
+                service['obj'].delete_user(certname)
         return
+
+    def get_short_link_text(self, cname, ip_address, tunnel="all"):
+        links = ""
+        for service in self.services:
+            if tunnel == "all" or tunnel == service["name"]:
+                links = links + str(service['obj'].get_short_link_text(cname, ip_address))
+        return links
 
     def get_add_email_text(self, certname, ip_address, lang, tunnel="all", is_new_user=False):
         txt = '\n'

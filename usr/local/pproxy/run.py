@@ -82,7 +82,7 @@ headers = {'Content-Type': 'application/json'}
 
 while not server_checkin_done:
     try:
-        response = requests.post(url_address, data=data, headers=headers)
+        response = requests.post(url_address, data=data, headers=headers, timeout=10)
         is_claimed = (response.status_code == 200)
         logger.error("is_claimed updated to " + str(is_claimed))
         leds.progress_wheel_step(color=(255, 255, 255))
@@ -117,7 +117,7 @@ if 1 == int(status.get('status', 'claimed')):
             PPROXY_PROCESS.start()
         except Exception:
             logger.exception("Exception in main runner thread")
-            del(PPROXY_PROCESS)
+            del (PPROXY_PROCESS)
             logger.debug("Retrying in 60 seconds ....")
             leds.blink(color=(255, 0, 0),
                        wait=200,
@@ -141,7 +141,7 @@ else:
         except Exception:
             logger.exception("Exception in onboarding")
             if ONBOARD:
-                del(ONBOARD)
+                del (ONBOARD)
             logger.debug("Retrying in 60 seconds ....")
             leds.blink(color=(255, 0, 0),
                        wait=50,

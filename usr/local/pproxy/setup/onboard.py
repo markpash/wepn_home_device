@@ -1,9 +1,11 @@
 import base64
 from collections import deque
 import time
-import ssl
 import random
+import secrets
 import signal
+import ssl
+
 try:
     from self.configparser import configparser
 except ImportError:
@@ -82,8 +84,8 @@ class OnBoard():
         self.rand_key = self.rand_key + str(self.checksum(str(self.rand_key)))
 
     def generate_rand_e2e_key(self):
-        keybinary = random.SystemRandom().randint(0, pow(2, 128)).to_bytes(16, byteorder='big')
-        self.rand_e2e_key = base64.urlsafe_b64encode(keybinary).decode("utf-8").strip()
+        t_key = secrets.token_bytes(16)
+        self.rand_e2e_key = base64.urlsafe_b64encode(t_key).decode("utf-8").strip()
 
     # this is used for checking previous keys used
     def set_rand_key(self, key):

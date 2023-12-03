@@ -14,6 +14,7 @@ from constants import LOG_CONFIG
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
 STATUS_FILE = '/var/local/pproxy/status.ini'
+GET_TIMEOUT = 10
 logging.config.fileConfig(LOG_CONFIG,
                           disable_existing_loggers=False)
 
@@ -42,18 +43,21 @@ class Messages():
         }
         headers = {"Content-Type": "application/json"}
         data_json = json.dumps(data)
-        response = requests.get(url, data=data_json, headers=headers)
+        response = requests.get(url, data=data_json, headers=headers, timeout=GET_TIMEOUT)
         all_messages = []
         for msg in response.json():
             self.pending_items.append(msg["id"])
             try:
-                if msg["message_body"]["is_secure"]:
-                    # TODO: return this updated array instead
-                    msg_nonce = str.encode(msg["message_body"]["nonce"])
-                    msg_txt = msg["message_body"]["message"]
-                    msg["message_body"]["decrypted"] = self.decrypt_message(msg_txt, msg_nonce)
+                if "message_body" in msg and "is_secure" in msg["message_body"]:
+                    if msg["message_body"]["is_secure"]:
+                        # TODO: return this updated array instead
+                        msg_nonce = str.encode(msg["message_body"]["nonce"])
+                        msg_txt = msg["message_body"]["message"]
+                        msg["message_body"]["decrypted"] = self.decrypt_message(msg_txt, msg_nonce)
             except KeyError as e:
                 print("key not found:" + str(e))
+            except Exception as d:
+                print("key not found:" + str(d))
             all_messages.append(msg)
         return all_messages
 
@@ -67,7 +71,7 @@ class Messages():
         headers = {"Content-Type": "application/json"}
         data_json = json.dumps(data)
         self.logger.info(data_json)
-        response = requests.patch(url, data=data_json, headers=headers)
+        response = requests.patch(url, data=data_json, headers=headers, timeout=GET_TIMEOUT)
         if response.status_code != 200:
             self.logger.critical("Cannot mark message as read: " + str(response.content))
             try:
@@ -98,7 +102,7 @@ class Messages():
         }
         headers = {"Content-Type": "application/json"}
         data_json = json.dumps(data)
-        response = requests.post(url, data=data_json, headers=headers)
+        response = requests.post(url, data=data_json, headers=headers, timeout=GET_TIMEOUT)
         if response.status_code != 201:
             self.logger.critical("Could not send message: " + str(response.text))
 

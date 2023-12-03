@@ -74,6 +74,9 @@ class Service:
     def get_usage_daily(self):
         return {}
 
+    def get_short_link_text(self, cname, ip_address):
+        return ""
+
     def get_add_email_text(self, certname, ip_address, lang, is_new_user=False):
         txt = ''
         html = ''
