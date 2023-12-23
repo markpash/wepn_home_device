@@ -167,19 +167,28 @@ sudo resolvconf --enable-updates
 sudo resolvconf -u
 
 ##################################
+# Create and correct permissions
+##################################
+
+addgroup wepn-web
+adduser pproxy wepn-web
+adduser wepn-api wepn-web
+adduser wepn-api shadow-runners
+chown pproxy:shadow-runners /var/local/pproxy/shadow.db*
+chmod 664 /var/local/pproxy/shadow.db*
+touch /var/local/pproxy/tor.db
+chown pproxy:shadow-runners /var/local/pproxy/tor.db*
+chmod 664 /var/local/pproxy/tor.db*
+chown pproxy:shadow-runners /var/local/pproxy/shadow/shadow.sock
+chown pproxy:shadow-runners /var/local/pproxy/
+
+##################################
 # Create SSL invalid certifcates
 ##################################
 echo -e "\n Setting up the local INVALID certificates"
 echo -e "These are ONLY used for local network communications."
 echo -e "Local API server will disable itself if it detects port exposure to external IP."
 echo -e "See: https://go.we-pn.com/waiver-3"
-addgroup wepn-web
-adduser pproxy wepn-web
-adduser wepn-api wepn-web
-adduser wepn-api shadow-runners
-chown pproxy:shadow-runners /var/local/pproxy/shadow.db
-chown pproxy:shadow-runners /var/local/pproxy/shadow/shadow.sock
-chown pproxy:shadow-runners /var/local/pproxy/
 cd $PPROXY_HOME/local_server/
 openssl genrsa -out wepn-local.key 2048 
 openssl req -new -key wepn-local.key -out wepn-local.csr -subj "/C=US/ST=California/L=California/O=WEPN/OU=Local WEPN Device/CN=invalid.com"

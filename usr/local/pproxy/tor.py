@@ -149,25 +149,28 @@ class Tor(Service):
         return
 
     def get_access_link(self, cname):
-        local_db = dataset.connect('sqlite:///' + self.config.get('tor', 'db-path'))
-        ipw = IPW()
-        ip_address = shlex.quote(ipw.myip())
-        if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
-            # we have good DDNS, lets use it
-            server_address = self.config.get("dyndns", "hostname")
-        else:
-            server_address = ip_address
-        servers = local_db['servers']
-        server = servers.find_one(certname=cname)
         link = None
-        if server is not None:
-            # our tor config right now is vanilla, this needs work
-            uri = server_address + ":" + self.config.get('tor', 'orport')
-            link = "{\"type\":\"tor\", \"link\":\""
-            link += uri
-            link += "\", \"digest\": \""
-            link += str(hashlib.sha256(uri.encode()).hexdigest()[:10]) + "\" }"
-        local_db.close()
+        try:
+            local_db = dataset.connect('sqlite:///' + self.config.get('tor', 'db-path'))
+            ipw = IPW()
+            ip_address = shlex.quote(ipw.myip())
+            if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
+                # we have good DDNS, lets use it
+                server_address = self.config.get("dyndns", "hostname")
+            else:
+                server_address = ip_address
+            servers = local_db['servers']
+            server = servers.find_one(certname=cname)
+            if server is not None:
+                # our tor config right now is vanilla, this needs work
+                uri = server_address + ":" + self.config.get('tor', 'orport')
+                link = "{\"type\":\"tor\", \"link\":\""
+                link += uri
+                link += "\", \"digest\": \""
+                link += str(hashlib.sha256(uri.encode()).hexdigest()[:10]) + "\" }"
+            local_db.close()
+        except Exception:
+            self.logger.exception("Error getting Tor access link")
         return link
 
     def self_test(self):

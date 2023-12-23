@@ -610,7 +610,7 @@ class Shadow(Service):
                     ss_client_cmd, True)
                 time.sleep(3)
                 if int(failed) == 0:
-                    r = requests.get('https://twitter.com/',
+                    r = requests.get('http://connectivity.we-pn.com/',
                                      timeout=5,
                                      proxies=proxies)
                     success &= (r.status_code == 200)
