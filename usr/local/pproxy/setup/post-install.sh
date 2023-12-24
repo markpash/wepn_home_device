@@ -77,6 +77,8 @@ if [ ! $? -eq 0 ]; then
 		pip3 install --ignore-installed $pkg
 	done
 fi
+chown pproxy:pproxy $PPROXY_VENV
+chown pproxy:pproxy $PPROXY_VENV* -R
 
 #config initialized/fixed
 mkdir -p /etc/pproxy/

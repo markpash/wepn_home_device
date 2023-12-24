@@ -173,6 +173,12 @@ config.set('tor', 'db-path', "/var/local/pproxy/tor.db")
 # forcing this to always be 9040, correcting previous error
 config.set('tor', 'orport', "8991")
 
+if not status.has_option('status', 'e2e_key'):
+    import secrets
+    import base64
+    t_key = secrets.token_bytes(16)
+    rand_e2e_key = base64.urlsafe_b64encode(t_key).decode("utf-8").strip()
+    status.set('status', 'e2e_key', str(rand_e2e_key))
 
 # Wireguard installation and config
 if not config.has_section('wireguard'):

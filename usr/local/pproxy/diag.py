@@ -91,7 +91,7 @@ class WPDiag:
         self.listener.setDaemon(True)
         self.listener.start()
         return self.device.open_port(port=port,
-                                     text='pproxy test port', timeout=1000)
+                                     text='pproxy test port', timeout=10)
 
     def close_test_port(self, port):
         self.shutdown_listener = True

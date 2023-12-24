@@ -32,6 +32,10 @@ class Messages():
             self.logger = logging.getLogger("messages")
         pass
 
+    def e2ee_available(self):
+        # this can be expanded to check server capability
+        return self.status.has_option('status', 'e2e_key')
+
     def get_messages(self, is_read=False, is_expired=False):
         url = self.config.get('django', 'url') + "/api/message/"
         data = {

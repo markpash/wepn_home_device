@@ -62,7 +62,7 @@ class HeartBeat:
             try:
                 # connect to the host -- tells us if the host is actually
                 # reachable
-                requests.get(url, timeout=1000)
+                requests.get(url, timeout=10)
                 return True
             except:
                 self.logger.exception("Could not connect to the internet")
@@ -180,7 +180,7 @@ class HeartBeat:
         self.logger.debug("HB data to send: " + data_json)
         url = self.config.get('django', 'url') + "/api/device/heartbeat/"
         try:
-            response = requests.get(url, data=data_json, headers=headers, timeout=1000)
+            response = requests.get(url, data=data_json, headers=headers, timeout=10)
             self.logger.debug("Response to HB" + str(response.status_code))
         except requests.exceptions.RequestException as exception_error:
             self.logger.error(
