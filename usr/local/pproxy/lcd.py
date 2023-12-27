@@ -267,6 +267,7 @@ class LCD:
 
             img = DIR + 'wepn_240_240.png'
             image = Image.open(img)
+            image = image.convert('RGB')
             if self.logo_text is not None:
                 rubik_regular = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf',
                                                    self.logo_text_size)
