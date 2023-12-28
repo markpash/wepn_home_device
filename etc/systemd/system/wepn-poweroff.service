@@ -7,8 +7,8 @@ After=final.target wepn-leds.service
 RemainAfterExit=yes
 Type=oneshot
 User=pproxy
-ExecStart=/usr/bin/python3 /usr/local/pproxy/system_services/blank_state.py
-ExecStop=/usr/bin/python3 /usr/local/pproxy/system_services/blank_state.py
+ExecStart=/var/local/pproxy/wepn-env/bin/python3 /usr/local/pproxy/system_services/blank_state.py
+ExecStop=/var/local/pproxy/wepn-env/bin/python3 /usr/local/pproxy/system_services/blank_state.py
 
 [Install]
 WantedBy=final.target

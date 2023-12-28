@@ -2,8 +2,9 @@ try:
     import RPi.GPIO as GPIO
     from adafruit_bus_device import i2c_device
     import adafruit_aw9523
-except:
+except Exception as e:
     print("RPi import failed")
+    print(e)
 from PIL import Image, ImageDraw, ImageFont
 import logging
 import board

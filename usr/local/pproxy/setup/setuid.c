@@ -5,7 +5,7 @@
 
 #define SRV_CNT 6
 #define CMD_CNT 6
-#define SPECIAL_CMD_CNT 15
+#define SPECIAL_CMD_CNT 16
 
 int sanitize(char* input) {
 	static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
@@ -68,6 +68,7 @@ int main(int argc, char * argv[])
 	scommands[12]= "umount /mnt/";
 	scommands[13]= "ssh-keygen -A";
 	scommands[14]= "chown root.pproxy /var/local/pproxy/ledmanagersocket.sock; chmod 660 /var/local/pproxy/ledmanagersocket.sock";
+	scommands[15]= "/usr/bin/systemctl stop wepn-api ; /usr/bin/sleep 1 && /usr/bin/systemctl start wepn-api";
 
 	int c,s,t;
 
@@ -75,7 +76,7 @@ int main(int argc, char * argv[])
 
 	if (argc != 4 && argc != 3 && argc != 5) {
 		printf(" usage: ./run type service_identifier command_identifier");
-		printf("\n* type: \n 0: services 1: special commands");
+		printf("\n* type: \n\t 0: services \n\t 1: special commands");
 
 		printf("\n* services:\n");
 		for (i=0; i < SRV_CNT; i++){

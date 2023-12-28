@@ -8,8 +8,8 @@ from diag import WPDiag  # noqa E402 need up_dir first
 from wstatus import WStatus  # noqa E402 need up_dir first
 from heartbeat import HeartBeat  # noqa E402 need up_dir first
 from device import random_cron_delay
+from constants import LOG_CONFIG
 
-LOG_CONFIG = "/etc/pproxy/logging.ini"
 logging.config.fileConfig(LOG_CONFIG, disable_existing_loggers=False)
 logger = logging.getLogger("heartbeat")
 

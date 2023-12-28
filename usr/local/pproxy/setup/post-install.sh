@@ -1,5 +1,7 @@
+sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
 locale-gen "en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
+export LANG=en_US.UTF-8
 PPROXY_HOME=/usr/local/pproxy/
 PPROXY_VENV=/var/local/pproxy/wepn-env
 OVPN_ENABLED=0
@@ -15,9 +17,9 @@ if [ ! -f "/var/local/pproxy/status.bak" ]; then
     cp /var/local/pproxy/status.ini /var/local/pproxy/status.bak
 fi
 
-chown pproxy.pproxy /var/local/pproxy/config.bak
+chown pproxy:pproxy /var/local/pproxy/config.bak
 chmod 0600 /var/local/pproxy/config.bak
-chown pproxy.pproxy /var/local/pproxy/status.bak
+chown pproxy:pproxy /var/local/pproxy/status.bak
 chmod 0600 /var/local/pproxy/status.bak
 
 ######################################
@@ -53,7 +55,7 @@ chown pproxy:pproxy /var/local/pproxy/shadow/*
 echo -e "correcting scripts that run as sudo"
 for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system wepn_git prevent_location_issue iptables-flush
 do
-	chown root.root /usr/local/sbin/$SCRIPT.sh
+	chown root:root /usr/local/sbin/$SCRIPT.sh
 	chmod 755 /usr/local/sbin/$SCRIPT.sh
 done
 # led manager runs as service by root
@@ -66,7 +68,7 @@ cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 python3 -m venv $PPROXY_VENV
 source $PPROXY_VENV/bin/activate
 
-pi3 install --upgrade pip
+pip3 install --upgrade pip
 pip3 install -r $PPROXY_HOME/setup/requirements.txt
 if [ ! $? -eq 0 ]; then
 	echo "Doing one-by-one pip install"
@@ -75,6 +77,8 @@ if [ ! $? -eq 0 ]; then
 		pip3 install --ignore-installed $pkg
 	done
 fi
+chown pproxy:pproxy $PPROXY_VENV
+chown pproxy:pproxy $PPROXY_VENV* -R
 
 #config initialized/fixed
 mkdir -p /etc/pproxy/
@@ -82,7 +86,7 @@ chmod ugo+rx /etc/pproxy/
 if [[ ! -f /etc/pproxy/config.ini ]];
 then
 	cp $PPROXY_HOME/setup/config.ini.orig /etc/pproxy/config.ini
-	chown pproxy.pproxy /etc/pproxy/config.ini
+	chown pproxy:pproxy /etc/pproxy/config.ini
 	chmod 744 /etc/pproxy/config.ini
 else
 	/usr/bin/python3 $PPROXY_HOME/setup/update_config.py
@@ -90,11 +94,11 @@ fi
 
 # this was missing when using git and not dpkg
 cp /var/local/pproxy/git/home_device/etc/pproxy/acl.conf /etc/pproxy/acl.conf
-chown pproxy.pproxy /etc/pproxy/*
+chown pproxy:pproxy /etc/pproxy/*
 chmod 644 /etc/pproxy/*
 
 REMOTE_KEY=/var/local/pproxy/shared_remote_key.priv
-chown pproxy.pproxy $REMOTE_KEY
+chown pproxy:pproxy $REMOTE_KEY
 chmod 0600 $REMOTE_KEY
 
 ######################################
@@ -132,7 +136,7 @@ if [ $OVPN_ENABLED -eq 1 ]; then
 	chmod g+rwx /etc/openvpn/* -R
 	chmod g+rwx /etc/openvpn
 
-	chown pproxy.pproxy /etc/openvpn/easy-rsa/pki/.rnd
+	chown pproxy:pproxy /etc/openvpn/easy-rsa/pki/.rnd
 	chmod 600 /etc/openvpn/easy-rsa/pki/.rnd
 fi
 
@@ -165,15 +169,28 @@ sudo resolvconf --enable-updates
 sudo resolvconf -u
 
 ##################################
+# Create and correct permissions
+##################################
+
+addgroup wepn-web
+adduser pproxy wepn-web
+adduser wepn-api wepn-web
+adduser wepn-api shadow-runners
+chown pproxy:shadow-runners /var/local/pproxy/shadow.db*
+chmod 664 /var/local/pproxy/shadow.db*
+touch /var/local/pproxy/tor.db
+chown pproxy:shadow-runners /var/local/pproxy/tor.db*
+chmod 664 /var/local/pproxy/tor.db*
+chown pproxy:shadow-runners /var/local/pproxy/shadow/shadow.sock
+chown pproxy:shadow-runners /var/local/pproxy/
+
+##################################
 # Create SSL invalid certifcates
 ##################################
 echo -e "\n Setting up the local INVALID certificates"
 echo -e "These are ONLY used for local network communications."
 echo -e "Local API server will disable itself if it detects port exposure to external IP."
 echo -e "See: https://go.we-pn.com/waiver-3"
-addgroup wepn-web
-adduser pproxy wepn-web
-adduser wepn-api wepn-web
 cd $PPROXY_HOME/local_server/
 openssl genrsa -out wepn-local.key 2048 
 openssl req -new -key wepn-local.key -out wepn-local.csr -subj "/C=US/ST=California/L=California/O=WEPN/OU=Local WEPN Device/CN=invalid.com"
@@ -213,15 +230,18 @@ cp $PPROXY_HOME/setup/shadowsocks-libev.service /lib/systemd/system/
 cp $PPROXY_HOME/setup/shadowsocks-libev-manager /etc/default/
 cp $PPROXY_HOME/setup/shadowsocks-libev /etc/default/
 cp $PPROXY_HOME/setup/config.json /etc/shadowsocks-libev/config.json
-chown shadowsocks.shadow-runners /etc/shadowsocks-libev/config.json
+chown shadowsocks:shadow-runners /etc/shadowsocks-libev/config.json
 chmod 775 /etc/shadowsocks-libev/config.json
-chown pproxy.shadow-runners /var/local/pproxy/shadow/shadow.sock
+chown pproxy:shadow-runners /var/local/pproxy/shadow/shadow.sock
 chmod 775 /var/local/pproxy/shadow/shadow.sock
-chown pproxy.shadow-runners /var/local/pproxy/shadow/
+chown pproxy:shadow-runners /var/local/pproxy/shadow/
 chmod 775 /var/local/pproxy/shadow/
 touch /var/local/pproxy/error.log
-chown pproxy.pproxy /var/local/pproxy/error.log
-chmod 650 /var/local/pproxy/error.log
+touch /var/local/pproxy/error.log.1
+touch /var/local/pproxy/error.log.2
+touch /var/local/pproxy/error.log.3
+chown pproxy:wepn-api /var/local/pproxy/error.log*
+chmod 650 /var/local/pproxy/error.log*
 
 /bin/ln -s /etc/init.d/shadowsocks-libev /etc/rc3.d/S01shadowsocks-libev
 /bin/ln -s /etc/init.d/shadowsocks-libev /etc/rc5.d/S01shadowsocks-libev
@@ -268,8 +288,8 @@ modprobe i2c_dev
 modprobe i2c_bcm2708
 modprobe spi-bcm2835
 chmod 0655 /etc/modprobe.d/snd-bcm2835.conf
-chown root.root /etc/modprobe.d/snd-bcm2835.conf
-chown root.root /etc/logrotate.conf
+chown root:root /etc/modprobe.d/snd-bcm2835.conf
+chown root:root /etc/logrotate.conf
 
 
 
@@ -281,7 +301,7 @@ chown root.root /etc/logrotate.conf
 echo -e "\n compiling setuid"
 SRUN=/usr/local/sbin/wepn-run
 gcc setuid.c  -o $SRUN
-chown root.wepn-web $SRUN
+chown root:wepn-web $SRUN
 # setuid user, writable by root, read and execute by wepn-web group
 chmod 4750 $SRUN
 ls -la $SRUN

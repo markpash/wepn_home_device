@@ -112,12 +112,13 @@ class LCD:
         self.display((), 0)
 
     def set_backlight(self, turn_on=True):
-        if gpio_enable:
-            GPIO.setup(self.BL, GPIO.OUT)
-            if turn_on:
-                GPIO.output(self.BL, GPIO.HIGH)
-            else:
-                GPIO.output(self.BL, GPIO.LOW)
+        if self.lcd_present:
+            if gpio_enable:
+                GPIO.setup(self.BL, GPIO.OUT)
+                if turn_on:
+                    GPIO.output(self.BL, GPIO.HIGH)
+                else:
+                    GPIO.output(self.BL, GPIO.LOW)
         self.backlight_state_on = turn_on
 
     def get_backlight_is_on(self):
@@ -136,7 +137,8 @@ class LCD:
                     spaces = 20 - len(current_str)
                     out.write("row:[" + str(row) + "] \tstring:[\t" + current_str + " " * spaces
                               + "]\ttype:[" + str(vtype) + "]  color:[" + str(color) + "]\n")
-
+        if size < 10:
+            size = 10
         # Draw some shapes.
         # First define some constants to allow easy resizing of shapes.
         padding = 1
@@ -221,6 +223,7 @@ class LCD:
             image.save(IMG_OUT)
         else:
             if self.version == 3:
+                image = image.convert('RGB')
                 self.lcd.image(image, 0, 0)
             elif self.version == 2:
                 image = image.rotate(270)
@@ -240,8 +243,8 @@ class LCD:
         if (self.lcd_present == 0):
             image.save(IMG_OUT)
         else:
+            image = image.convert('RGB')
             self.lcd.image(image, 0, 0)
-
 
     def show_logo(self, x=0, y=0):
         if (self.lcd_present == 0):
@@ -266,6 +269,7 @@ class LCD:
 
             img = DIR + 'wepn_240_240.png'
             image = Image.open(img)
+            image = image.convert('RGB')
             if self.logo_text is not None:
                 rubik_regular = ImageFont.truetype(DIR + 'rubik/Rubik-Light.ttf',
                                                    self.logo_text_size)
@@ -550,6 +554,7 @@ class LCD:
                 self.lcd.image(image, 0, 0)
             elif self.version == 2:
                 image = image.rotate(270)
+                image = image.convert('RGB')
                 self.lcd.image(image, 0, 0)
             else:
                 disp.image(image)

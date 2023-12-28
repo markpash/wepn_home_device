@@ -42,13 +42,17 @@ class Tor(Service):
         pass
 
     def delete_user(self, cname):
-        local_db = dataset.connect(
-            'sqlite:///' + self.config.get('tor', 'db-path'))
-        servers = local_db['servers']
-        server = servers.find_one(certname=cname)
-        if server is not None:
-            servers.delete(certname=cname)
-        local_db.close()
+        try:
+            local_db = dataset.connect(
+                'sqlite:///' + self.config.get('tor', 'db-path'))
+            servers = local_db['servers']
+            server = servers.find_one(certname=cname)
+            if server is not None:
+                servers.delete(certname=cname)
+            local_db.close()
+        except Exception as e:
+            print("Delete user error: " + str(e))
+            pass
         return
 
     def start_all(self):
@@ -113,6 +117,9 @@ class Tor(Service):
         local_db.close()
         return found
 
+    def get_short_link_text(self, cname, ip_address):
+        return ip_address + ":" + str(self.config.get('tor', 'orport'))
+
     def get_add_email_text(self, cname, ip_address, lang, is_new_user=False):
         txt = ''
         html = ''
@@ -121,11 +128,11 @@ class Tor(Service):
         if self.is_enabled() and self.can_email() and self.is_user_registered(cname):
             manuals = []
             subject = "Your New Tor Bridge Access Details"
-            txt = "You have been granted access to a private Tor bridge. "
+            txt = "\nYou have been granted access to a private Tor bridge. "
             txt += "Install Onion Browser, and enter the below link as Tor Bridge address"
             html = "<h2>You have been granted access to a private Tor.</h2>"
             html += "Install Onion Browser, and enter the below link as Tor Bridge address: "
-            txt += ip_address + ":" + self.config.get('tor', 'orport')
+            txt += self.get_short_link_text(cname, ip_address)
             html += "<center><b>" + ip_address + ":" + \
                 self.config.get('tor', 'orport') + "</b></center>"
         return txt, html, manuals, subject
@@ -142,25 +149,28 @@ class Tor(Service):
         return
 
     def get_access_link(self, cname):
-        local_db = dataset.connect('sqlite:///' + self.config.get('tor', 'db-path'))
-        ipw = IPW()
-        ip_address = shlex.quote(ipw.myip())
-        if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
-            # we have good DDNS, lets use it
-            server_address = self.config.get("dyndns", "hostname")
-        else:
-            server_address = ip_address
-        servers = local_db['servers']
-        server = servers.find_one(certname=cname)
         link = None
-        if server is not None:
-            # our tor config right now is vanilla, this needs work
-            uri = server_address + ":" + self.config.get('tor', 'orport')
-            link = "{\"type\":\"tor\", \"link\":\""
-            link += uri
-            link += "\", \"digest\": \""
-            link += str(hashlib.sha256(uri.encode()).hexdigest()[:10]) + "\" }"
-        local_db.close()
+        try:
+            local_db = dataset.connect('sqlite:///' + self.config.get('tor', 'db-path'))
+            ipw = IPW()
+            ip_address = shlex.quote(ipw.myip())
+            if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
+                # we have good DDNS, lets use it
+                server_address = self.config.get("dyndns", "hostname")
+            else:
+                server_address = ip_address
+            servers = local_db['servers']
+            server = servers.find_one(certname=cname)
+            if server is not None:
+                # our tor config right now is vanilla, this needs work
+                uri = server_address + ":" + self.config.get('tor', 'orport')
+                link = "{\"type\":\"tor\", \"link\":\""
+                link += uri
+                link += "\", \"digest\": \""
+                link += str(hashlib.sha256(uri.encode()).hexdigest()[:10]) + "\" }"
+            local_db.close()
+        except Exception:
+            self.logger.exception("Error getting Tor access link")
         return link
 
     def self_test(self):

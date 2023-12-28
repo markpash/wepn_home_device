@@ -1,12 +1,12 @@
 
-import sys
 import os
 import logging.config
+import sys
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
-from ipw import IPW
 from device import Device
 from device import random_cron_delay
+from ipw import IPW
 
 # commenting out these lines, since ddns runs as user pi
 # and user pi cannot write to the error.log file

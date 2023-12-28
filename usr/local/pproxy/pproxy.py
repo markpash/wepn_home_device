@@ -179,10 +179,9 @@ class PProxy():
 
     def get_messages(self):
         self.logger.debug("getting messages")
-        messages = Messages()
 
         # loop through the message array, process them one by one.
-        for message in messages.get_messages():
+        for message in self.messages.get_messages():
             id = int(message["id"])
             self.logger.info("message ID processing: " + str(id))
             '''
@@ -201,7 +200,7 @@ class PProxy():
             self.logger.info(self.rest_not_pending_mqtt)
             th = Thread(target=self.on_message_handler, args=(message["message_body"], self.mqtt_lock))
             th.start()
-            messages.mark_msg_read(id)
+            self.messages.mark_msg_read(id)
             self.logger.info("message ID processed: " + str(id))
 
     def send_mail(self, send_from, send_to,
@@ -433,8 +432,10 @@ class PProxy():
                                        data['passcode'] + '</b></p>' + html,
                                        files_in=attachments,
                                        unsubscribe_link=unsubscribe_link)
-                    # alse send a message to the app via Messaging API
-                    self.messages.send_msg(txt, secure=True)
+                # alse send a message to the app via Messaging API
+                short_link = services.get_short_link_text(username, server_address)
+                if short_link != "" and self.messages.e2ee_available():
+                    self.messages.send_msg(short_link, cert_id=username, secure=True)
 
             except BaseException:
                 self.logger.exception("Unhandled exception adding friend")

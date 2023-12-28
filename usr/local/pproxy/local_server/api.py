@@ -40,8 +40,6 @@ def valid_token(incoming):
     status = WStatus(logger)
     valid_token = status.get_field('status', 'local_token')
     prev_token = status.get_field('status', 'prev_token')
-    print(incoming)
-    print(valid_token)
     return (sanitize_str(incoming) == str(valid_token) or
             sanitize_str(incoming) == str(prev_token))
 
@@ -109,8 +107,21 @@ def claim_info():
         dev_key = status.get_field('status', 'temporary_key')
     return "{\"claimed\":\"" + is_claimed + "\", \
         \"serial_number\": \"" + str(serial_number) + \
-        "\", \"device_key\":\"" + dev_key + "\", \"e2e_key\":\"" +
-        e2e_key+ "\"}"
+        "\", \"device_key\":\"" + dev_key + "\", \"e2e_key\":\"" + \
+        e2e_key + "\"}"
+
+
+@app.route('/api/v1/e2e_key', methods=['GET'])
+def e2e_key():
+    if exposed:
+        return "Not accessible: API exposed to internet", \
+            http_status.HTTP_503_SERVICE_UNAVAILABLE
+    if valid_token(request.args.get('local_token')):
+        status = WStatus(logger)
+        e2e_key = status.get_field('status', 'e2e_key')
+        return str(e2e_key)
+    else:
+        return "Not allowed", http_status.HTTP_401_UNAUTHORIZED
 
 
 @app.route('/api/v1/claim/progress', methods=['GET'])

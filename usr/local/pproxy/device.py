@@ -23,6 +23,8 @@ import shlex
 from wstatus import WStatus as WStatus
 from constants import SKIP_OTA_CHECK
 
+GET_TIMEOUT = 10
+
 COL_PINS = [26]  # BCM numbering
 ROW_PINS = [19, 13, 6]  # BCM numbering
 KEYPAD = [
@@ -253,13 +255,16 @@ class Device():
         while still_counting:
             try:
                 port_candidate = self.get_port_mapping_by_index(index)
-                if "NewPortMappingDescription" in port_candidate:
-                    if "wepn" in port_candidate["NewPortMappingDescription"].lower():
-                        # to avoid collecting unnecessary information,
-                        # only collect port mappings we have opened ourselves
-                        ports.append((port_candidate["NewExternalPort"],
-                                      port_candidate["NewPortMappingDescription"]))
-                index += 1
+                if port_candidate is not None:
+                    if "NewPortMappingDescription" in port_candidate:
+                        if "wepn" in port_candidate["NewPortMappingDescription"].lower():
+                            # to avoid collecting unnecessary information,
+                            # only collect port mappings we have opened ourselves
+                            ports.append((port_candidate["NewExternalPort"],
+                                          port_candidate["NewPortMappingDescription"]))
+                    index += 1
+                else:
+                    still_counting = False
             except upnp.soap.SOAPError:
                 # UPNP is weird, and instead of having statevars.PortMappingNumberOfEntries
                 # we have to keep looking until we hit an error
@@ -450,7 +455,7 @@ class Device():
         r = requests.get(self.config.get('dyndns', 'url').format(
             self.config.get('dyndns', 'username'),
             self.config.get('dyndns', 'password'),
-            self.config.get('dyndns', 'hostname'), ip_address))
+            self.config.get('dyndns', 'hostname'), ip_address), timeout=GET_TIMEOUT)
         if r.status_code != requests.codes.ok:
             self.logger.debug(r.content)
             try:
@@ -497,7 +502,7 @@ class Device():
         dist = "bullseye"
         url = "https://repo.we-pn.com/debian/dists/" + dist + "/main/binary-armhf/Packages"
         try:
-            resp = requests.get(url)
+            resp = requests.get(url, timeout=GET_TIMEOUT)
             res = re.findall(r"Version: ((\d+)\.(\d+)\.(\d+)).*", resp.text)
             if len(res) > 0 and len(res[0]) > 0:
                 self.repo_pkg_version = res[0][0]
@@ -512,7 +517,7 @@ class Device():
         self.repo_pkg_version = None
         url = "https://repo.we-pn.com/ota.json"
         try:
-            resp = requests.get(url)
+            resp = requests.get(url, timeout=GET_TIMEOUT)
             if resp.status_code == 200:
                 try:
                     data = resp.json()

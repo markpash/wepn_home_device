@@ -458,26 +458,36 @@ class Shadow(Service):
         local_db.close()
         return days
 
-    def get_add_email_text(self, cname, ip_address, lang, is_new_user=False):
-        txt = ''
-        html = ''
-        manuals = []
-        subject = ''
-        if self.is_enabled() and self.can_email():
+    def get_short_link_text(self, cname, ip_address):
+        uri64 = ""
+        count = 0
+        while count < 5:
             local_db = dataset.connect(
                 'sqlite:///' + self.config.get('shadow', 'db-path'))
             servers = local_db['servers']
             server = servers.find_one(certname=cname)
             if server is not None:
-                manuals = ['/usr/local/pproxy/ui/' + lang + '/outline.png',
-                           '/usr/local/pproxy/ui/' + lang + '/potatso.png']
-                subject = "Your New VPN Access Details"
                 uri = str(self.config.get('shadow', 'method')) + ':' + str(
                     server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
                 uri64 = 'ss://' + \
-                    base64.urlsafe_b64encode(str.encode(uri)).decode(
-                        'utf-8') + "#WEPN-" + str(cname)
+                        base64.urlsafe_b64encode(str.encode(uri)).decode(
+                            'utf-8') + "#WEPN-" + str(cname)
+                return uri64
+            else:
+                count += 1
+        return uri64
 
+    def get_add_email_text(self, cname, ip_address, lang, tunnel="all", is_new_user=False):
+        txt = ''
+        html = ''
+        manuals = []
+        subject = ''
+        if self.is_enabled() and self.can_email():
+            uri64 = self.get_short_link_text(cname, ip_address)
+            if uri64 is not None:
+                manuals = ['/usr/local/pproxy/ui/' + lang + '/outline.png',
+                           '/usr/local/pproxy/ui/' + lang + '/potatso.png']
+                subject = "Your New VPN Access Details"
                 if not is_new_user:
                     txt = "You have been granted access to a private VPN server. "
                     txt += 'This VPN server uses Shadowsocks server. To start using this service:'
@@ -600,7 +610,7 @@ class Shadow(Service):
                     ss_client_cmd, True)
                 time.sleep(3)
                 if int(failed) == 0:
-                    r = requests.get('https://twitter.com/',
+                    r = requests.get('http://connectivity.we-pn.com/',
                                      timeout=5,
                                      proxies=proxies)
                     success &= (r.status_code == 200)

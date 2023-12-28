@@ -54,5 +54,5 @@ groupadd tor-log
 usermod -a -G tor-log pi
 usermod -a -G tor-log debian-tor 
 
-chown debian-tor.tor-log /run/tor/control.authcookie
+chown debian-tor:tor-log /run/tor/control.authcookie
 chmod 660 /run/tor/control.authcookie

@@ -23,7 +23,7 @@ EOF
 fi
 
 if [[ $UNAME == $DEST_VERSION_START* ]]; then
-	echo "Already upgraded"
+	echo "Already upgraded" >> /tmp/update-out
 	exit
 fi
 
@@ -46,8 +46,8 @@ apt-get --yes  -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-
 apt-get --yes  -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" dist-upgrade >> /tmp/update-out 2>&1
 
 
-/bin/bash /usr/local/sbin/update-system.sh
+/bin/bash /usr/local/sbin/update-system.sh >> /tmp/update-out 2>&1
 
-apt-get --yes  -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" upgrade shadowsocks-libev  >> /tmp/update-out 2>&1
+sleep 300
 
 reboot

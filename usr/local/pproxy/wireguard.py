@@ -83,10 +83,14 @@ class Wireguard(Service):
         return {}
 
     def is_user_registered(self, certname):
-        cert_dir = self.santizie_service_filename(certname)
-        self.logger.debug("checking for user: " + cert_dir)
-        print((USERS_DIR + cert_dir + "/wg.conf"))
-        return os.path.exists(USERS_DIR + cert_dir + "/wg.conf")
+        try:
+            cert_dir = self.santizie_service_filename(certname)
+            self.logger.debug("checking for user: " + cert_dir)
+            print((USERS_DIR + cert_dir + "/wg.conf"))
+            return os.path.exists(USERS_DIR + cert_dir + "/wg.conf")
+        except Exception:
+            self.logger.exception("Could not check if wireguard registered")
+            return False
 
     def get_user_config_file_path(self, certname):
         if self.is_user_registered(certname):
@@ -94,6 +98,14 @@ class Wireguard(Service):
             return USERS_DIR + cert_dir + "/wg.conf"
         else:
             return None
+
+    def get_short_link_text(self, cname, ip_address):
+        encoded_string = ""
+        filename = self.get_user_config_file_path(cname)
+        if filename is not None:
+            with open(filename, "rb") as file:
+                encoded_string = base64.b64encode(file.read())
+        return encoded_string
 
     def get_add_email_text(self, certname, ip_address, lang, is_new_user=False):
         txt = ''
