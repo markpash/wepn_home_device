@@ -1,6 +1,7 @@
 
 from threading import Thread
 import board
+import grp
 import sys
 import neopixel
 import time
@@ -13,6 +14,8 @@ up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
 
 LM_SOCKET_PATH = "/var/local/pproxy/ledmanagersocket.sock"
+PPROXY_GID = grp.getgrnam("pproxy").gr_gid
+
 # The order of the pixel colors - RGB or GRB.
 # Some NeoPixels have red and green reversed!
 # For RGBW NeoPixels, simply change the ORDER to RGBW or GRBW.
@@ -345,9 +348,10 @@ if __name__ == '__main__':
 
     server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     server.bind(LM_SOCKET_PATH)
+    # let user pproxy write to this scoket file
     permission = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH | stat.S_IWGRP | stat.S_IWUSR
-    os.chmod(LM_SOCKET_PATH,
-             permission)
+    os.chown(LM_SOCKET_PATH, -1, PPROXY_GID)
+    os.chmod(LM_SOCKET_PATH, permission)
 
     while True:
         try:
