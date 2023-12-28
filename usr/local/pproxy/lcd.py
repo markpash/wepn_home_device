@@ -551,10 +551,10 @@ class LCD:
             image.save(IMG_OUT)
         else:
             if self.version == 3:
+                image = image.convert('RGB')
                 self.lcd.image(image, 0, 0)
             elif self.version == 2:
                 image = image.rotate(270)
-                image = image.convert('RGB')
                 self.lcd.image(image, 0, 0)
             else:
                 disp.image(image)
