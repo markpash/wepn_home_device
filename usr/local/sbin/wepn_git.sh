@@ -4,8 +4,10 @@
 
 GIT_DIR=/var/local/pproxy/git
 WEPN_DIR=/usr/local/pproxy
+OLD_WEPN_DIR=/usr/local/old-pproxy
 
-
+mv $WEPN_DIR $OLD_WEPN_DIR
+su -c "/bin/bash $OLD_WEPN_DIR/setup/sync.sh" pproxy
 cp -r $GIT_DIR/home_device/etc/* /etc/
 cp -r $GIT_DIR/home_device/usr/local/sbin/* /usr/local/sbin/
 
