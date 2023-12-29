@@ -43,3 +43,4 @@ try:
     print(r.text)
 except:
     print("OK: API port is not reachable externally.")
+
