@@ -1,1 +1,4 @@
+#!/bin/bash
+
 /bin/bash /usr/local/pproxy/setup/post-install.sh
+exit 0
