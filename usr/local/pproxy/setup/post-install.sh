@@ -1,3 +1,4 @@
+#!/bin/bash
 sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
 locale-gen "en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
@@ -337,22 +338,29 @@ else
 	systemctl disable openvpn
 	systemctl stop openvpn
 fi
-systemctl daemon-reload 
-systemctl restart shadowsocks-libev
-systemctl restart shadowsocks-libev-manager
-systemctl enable wepn-api
-systemctl restart wepn-api
-systemctl enable wepn-keypad
-systemctl restart wepn-keypad
-systemctl enable wepn-leds
-systemctl restart wepn-leds
-systemctl restart wepn-keypad
-systemctl enable wepn-poweroff
+
+# TODO: these have to move to use debhelper#dh_installsystemd
+SYSTEMCTL="/usr/bin/systemctl --no-block --no-pager --quiet"
+$SYSTEMCTL daemon-reload 
+$SYSTEMCTL restart shadowsocks-libev
+$SYSTEMCTL restart shadowsocks-libev-manager
+$SYSTEMCTL enable wepn-api
+$SYSTEMCTL restart wepn-api
+$SYSTEMCTL enable wepn-keypad
+$SYSTEMCTL restart wepn-keypad
+$SYSTEMCTL enable wepn-leds
+$SYSTEMCTL restart wepn-leds
+$SYSTEMCTL restart wepn-keypad
+$SYSTEMCTL enable wepn-poweroff
 # pproxy has moved to wepn-main on systemctl
-#/bin/sh /etc/init.d/pproxy restart
-update-rc.d pproxy disable
-systemctl enable wepn-main
-systemctl restart wepn-main
+
+if test -f /etc/rc3.d/S01pproxy; then
+  /bin/sh /etc/init.d/pproxy restart
+  update-rc.d pproxy disable
+fi
+
+$SYSTEMCTL enable wepn-main
+$SYSTEMCTL restart wepn-main
 
 
 echo -e "Installation of WEPN done."

@@ -1,8 +1,12 @@
+#!/bin/bash
 export DEBIAN_FRONTEND=noninteractive
 export DEBIAN_PRIORITY=critical
 
 DEST_VERSION_START=6
 UNAME=`uname -r`
+
+# exit until bookworm upgrade if finalized
+exit 0
 
 if [[ `uname -m` -eq "aarch64" ]]
 then
@@ -26,9 +30,6 @@ if [[ $UNAME == $DEST_VERSION_START* ]]; then
 	echo "Already upgraded" >> /tmp/update-out
 	exit
 fi
-
-
-
 
 cat > /etc/apt/sources.list.d/raspi.list << EOF
 deb http://archive.raspberrypi.org/debian/ bullseye main
