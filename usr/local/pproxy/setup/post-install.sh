@@ -341,29 +341,13 @@ else
 	systemctl stop openvpn
 fi
 
-# TODO: these have to move to use debhelper#dh_installsystemd
-SYSTEMCTL="/usr/bin/systemctl --no-block --no-pager --quiet"
-$SYSTEMCTL daemon-reload 
-$SYSTEMCTL restart shadowsocks-libev
-$SYSTEMCTL restart shadowsocks-libev-manager
-$SYSTEMCTL enable wepn-api
-$SYSTEMCTL restart wepn-api
-$SYSTEMCTL enable wepn-keypad
-$SYSTEMCTL restart wepn-keypad
-$SYSTEMCTL enable wepn-leds
-$SYSTEMCTL restart wepn-leds
-$SYSTEMCTL restart wepn-keypad
-$SYSTEMCTL enable wepn-poweroff
-# pproxy has moved to wepn-main on systemctl
+# restart services independently to use this new update
+SERVICE_SH=/usr/local/pproxy/setup/set-services.sh
 
-if test -f /etc/rc3.d/S01pproxy; then
-  /bin/sh /etc/init.d/pproxy restart
-  update-rc.d pproxy disable
-fi
-
-$SYSTEMCTL enable wepn-main
-$SYSTEMCTL restart wepn-main
-
+# TODO: this is not a good way to do this, but debhelper
+# can only handle one systemctl service ATM.
+chmod 755 $SERVICE_SH
+nohup $SERVICE_SH > /tmp/sets >2&1
 
 echo -e "Installation of WEPN done."
 exit 0
