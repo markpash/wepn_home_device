@@ -341,13 +341,18 @@ else
 	systemctl stop openvpn
 fi
 
-# restart services independently to use this new update
-SERVICE_SH=/usr/local/pproxy/setup/set-services.sh
-
+#########################################################
 # TODO: this is not a good way to do this, but debhelper
 # can only handle one systemctl service ATM.
-chmod 755 $SERVICE_SH
-nohup $SERVICE_SH > /tmp/sets 2>&1
+# restart services independently to use this new update
+########################################################
 
+SERVICE_SH=/usr/local/pproxy/setup/set-services.sh
+chmod 755 $SERVICE_SH
+FLG="/var/local/pproxy/pending-set-service"
+echo "1" > $FLG
+chown pproxy:pproxy $FLG
+
+########################################################
 echo -e "Installation of WEPN done."
 exit 0
