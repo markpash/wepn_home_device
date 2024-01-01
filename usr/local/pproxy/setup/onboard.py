@@ -209,7 +209,8 @@ class OnBoard():
             self.config.set('django', 'device_key', self.rand_key)
             self.status.set('status', 'claimed', '1')
             self.status.set('status', 'temporary_key', "CLAIMED")
-            self.status.set('status', 'e2e_key', self.rand_e2e_key)
+            if self.rand_e2e_key is not None:
+                self.status.set('status', 'e2e_key', str(self.rand_e2e_key))
             with open(CONFIG_FILE, 'w') as configfile:
                 self.config.write(configfile)
             with open(STATUS_FILE, 'w') as statusfile:
