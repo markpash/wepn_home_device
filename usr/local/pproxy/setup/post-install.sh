@@ -5,6 +5,7 @@ export LC_ALL="en_US.UTF-8"
 export LANG=en_US.UTF-8
 PPROXY_HOME=/usr/local/pproxy/
 PPROXY_VENV=/var/local/pproxy/wepn-env
+venv_flag_file=/var/local/pproxy/wepn-venv-installed
 OVPN_ENABLED=0
 
 ######################################
@@ -54,7 +55,7 @@ chown pproxy:pproxy /var/local/pproxy/.*
 chown pproxy:pproxy /var/local/pproxy/shadow/*
 
 echo -e "correcting scripts that run as sudo"
-for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system wepn_git prevent_location_issue iptables-flush
+for SCRIPT in ip-shadow restart-pproxy update-pproxy update-system wepn_git prevent_location_issue iptables-flush check-venv
 do
 	chown root:root /usr/local/sbin/$SCRIPT.sh
 	chmod 755 /usr/local/sbin/$SCRIPT.sh
@@ -68,6 +69,7 @@ cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
 python3 -m venv $PPROXY_VENV
 source $PPROXY_VENV/bin/activate
+touch $venv_flag_file
 
 pip3 install --upgrade pip
 pip3 install -r $PPROXY_HOME/setup/requirements.txt
