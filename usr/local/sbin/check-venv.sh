@@ -23,7 +23,7 @@ source $PPROXY_VENV/bin/activate
 if [ $? -ne 0 ]; then
 	need_reinstall=true
 fi
-$PPROXY_VENV/bin/python3 -v
+$PPROXY_VENV/bin/python3 -V
 if [ $? -ne 0 ]; then
 	need_reinstall=true
 fi
@@ -42,14 +42,23 @@ done
 
 
 if [ "$need_reinstall" = true ]; then
-	su pproxy -c "python -m venv --clear $PPROXY_VENV"
+	/usr/bin/python3 -m venv --clear $PPROXY_VENV
+	pip_pid=$!
+	wait $pip_pid
 	if [ "$add_flag" = true ]; then
 		touch $flag_file
 	fi
 	source $PPROXY_VENV/bin/activate
-	pip3 install -r $PPROXY_HOME/setup/requirements.txt
-	#echo /bin/bash $PPROXY_HOME/setup/post-install.sh
+	#pip3 install -r $PPROXY_HOME/setup/requirements.txt
+	#pip_pid=$!
+	#wait $pip_pid
+	chown pproxy:shadow-runners $PPROXY_VENV
+	chown pproxy:shadow-runners $PPROXY_VENV/* -R
+	echo "done installing venv"
+	/bin/bash $PPROXY_HOME/setup/post-install.sh
+	echo "done installing WEPN source"
+	post_pid=$!
+	wait $post_pid
+	/bin/bash $PPROXY_HOME/setup/set-services.sh
+	echo "DONE restarting WEPN services"
 fi
-
-
-
