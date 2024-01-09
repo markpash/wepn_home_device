@@ -9,6 +9,14 @@ venv_flag_file=/var/local/pproxy/wepn-venv-installed
 OVPN_ENABLED=0
 
 ######################################
+## add heartbeat to crontab
+## system updates to weekly/daily crontab
+######################################
+/usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
+/usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
+/usr/bin/crontab -u pi $PPROXY_HOME/setup/cron-pi
+
+######################################
 ## Copy back up config files
 ## helps when files get corrupted
 ######################################
@@ -143,13 +151,6 @@ if [ $OVPN_ENABLED -eq 1 ]; then
 	chmod 600 /etc/openvpn/easy-rsa/pki/.rnd
 fi
 
-# temporarily disable for UX upgrade rollout
-##empty crontab
-##add heartbeat to crontab
-##add apt-get update && apt-get install pproxy-rpi to weekly crontab
-/usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
-/usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
-/usr/bin/crontab -u pi $PPROXY_HOME/setup/cron-pi
 
 #install iptables, configure iptables for port forwarding and blocking
 if [ $OVPN_ENABLED -eq 1 ]; then
