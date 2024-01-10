@@ -36,7 +36,7 @@ CookieAuthFileGroupReadable 1
 Nickname WETor
 EOF
 
-setcap cap_net_bind_service=+ep /usr/bin/obfs4proxy
+/usr/sbin/setcap cap_net_bind_service=+ep /usr/bin/obfs4proxy
 
 if ! grep -q "NoNewPrivileges=no" /lib/systemd/system/tor@default.service ;
 then
@@ -50,9 +50,9 @@ systemctl restart tor.service
 # make authcookie usable for user pi
 # helps with nyx
 
-groupadd tor-log
-usermod -a -G tor-log pi
-usermod -a -G tor-log debian-tor 
+/usr/sbin/groupadd tor-log
+/usr/sbin/usermod -a -G tor-log pi
+/usr/sbin/usermod -a -G tor-log debian-tor
 
 chown debian-tor:tor-log /run/tor/control.authcookie
 chmod 660 /run/tor/control.authcookie

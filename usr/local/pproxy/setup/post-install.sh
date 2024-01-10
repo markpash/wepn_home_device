@@ -9,6 +9,8 @@ PPROXY_HOME=/usr/local/pproxy/
 PPROXY_VENV=/var/local/pproxy/wepn-env
 venv_flag_file=/var/local/pproxy/wepn-venv-installed
 OVPN_ENABLED=0
+adduser=/usr/sbin/$adduser
+addgroup=/usr/sbin/$addgroup
 
 ######################################
 ## add heartbeat to crontab
@@ -46,16 +48,16 @@ echo -e "These are usually harmless errors."
 rm -rf /.git/*
 
 echo -e "\nAdding users"
-adduser pproxy --disabled-password --disabled-login --home $PPROXY_HOME --quiet --gecos "WEPN PPROXY User"
-adduser openvpn --disabled-password --disabled-login  --quiet --gecos "OpenVPN User"
+$adduser pproxy --disabled-password --disabled-login --home $PPROXY_HOME --quiet --gecos "WEPN PPROXY User"
+$adduser openvpn --disabled-password --disabled-login  --quiet --gecos "OpenVPN User"
 # Adding specific API user so it can have access to local network
-adduser wepn-api --disabled-password --disabled-login --home $PPROXY_HOME/local_server --quiet --gecos "WEPN-API User"
-adduser pproxy gpio 
+$adduser wepn-api --disabled-password --disabled-login --home $PPROXY_HOME/local_server --quiet --gecos "WEPN-API User"
+$adduser pproxy gpio
 
 echo -e "\nCorrecing owners..."
 chown pproxy:pproxy $PPROXY_HOME
-chown -R pproxy:pproxy $PPROXY_HOME/* 
-chown -R pproxy:pproxy $PPROXY_HOME/.* 
+chown -R pproxy:pproxy $PPROXY_HOME/*
+chown -R pproxy:pproxy $PPROXY_HOME/.*
 mkdir -p /var/local/pproxy
 mkdir -p /var/local/pproxy/shadow/
 touch /var/local/pproxy/status.ini
@@ -121,31 +123,31 @@ if [ $OVPN_ENABLED -eq 1 ]; then
 
 	echo -e "\nSet up OpenVPN ..."
 
-	if [[ ! -f /etc/openvpn/server.conf ]]; then 
+	if [[ ! -f /etc/openvpn/server.conf ]]; then
 	  echo -e "\n\nSeems like OpenVPN is not configured, initializing that now"
 	  echo -e "this can take a LONG time (hours)"
 	  cd $PPROXY_HOME/setup/
 	  /bin/bash $PPROXY_HOME/setup/init_vpn.sh
 	  cd $PPROXY_HOME/
 	fi
-	addgroup easy-rsa
-	adduser openvpn easy-rsa
-	adduser pproxy easy-rsa 
+	$addgroup easy-rsa
+	$adduser openvpn easy-rsa
+	$adduser pproxy easy-rsa
 	/bin/sh /etc/init.d/openvpn restart
 
 
 	chgrp easy-rsa /etc/openvpn
-	chgrp easy-rsa /etc/openvpn/ca.crt 
+	chgrp easy-rsa /etc/openvpn/ca.crt
 	chgrp easy-rsa /etc/openvpn/crl.pem
-	chgrp easy-rsa /etc/openvpn/openvpn-status.log 
+	chgrp easy-rsa /etc/openvpn/openvpn-status.log
 	chgrp easy-rsa /etc/openvpn/easy-rsa/pki/* -R
 	chgrp easy-rsa /etc/openvpn/easy-rsa/pki/ -R
-	chgrp easy-rsa /etc/openvpn/easy-rsa/pki/private/ 
-	chgrp easy-rsa /etc/openvpn/easy-rsa/pki/private/* 
+	chgrp easy-rsa /etc/openvpn/easy-rsa/pki/private/
+	chgrp easy-rsa /etc/openvpn/easy-rsa/pki/private/*
 	chmod g+rw /etc/openvpn/openvpn-status.log
 	chmod g+rw /etc/openvpn/easy-rsa/pki/* -R
 	chmod g+rwx /etc/openvpn/easy-rsa/pki/	
-	chmod g+rw /etc/openvpn/crl.pem 
+	chmod g+rw /etc/openvpn/crl.pem
 	chmod g+rwx /etc/openvpn/* -R
 	chmod g+rwx /etc/openvpn
 
@@ -161,7 +163,7 @@ fi
 
 ##################################
 # Setup DNS
-# This can be used to make 
+# This can be used to make
 # queries faster and safer
 ##################################
 echo "Setting up DNS (local/remote)"
@@ -178,10 +180,10 @@ sudo resolvconf -u
 # Create and correct permissions
 ##################################
 
-addgroup wepn-web
-adduser pproxy wepn-web
-adduser wepn-api wepn-web
-adduser wepn-api shadow-runners
+$addgroup wepn-web
+$adduser pproxy wepn-web
+$adduser wepn-api wepn-web
+$adduser wepn-api shadow-runners
 chown pproxy:shadow-runners /var/local/pproxy/shadow.db*
 chmod 664 /var/local/pproxy/shadow.db*
 touch /var/local/pproxy/tor.db
@@ -198,7 +200,7 @@ echo -e "These are ONLY used for local network communications."
 echo -e "Local API server will disable itself if it detects port exposure to external IP."
 echo -e "See: https://go.we-pn.com/waiver-3"
 cd $PPROXY_HOME/local_server/
-openssl genrsa -out wepn-local.key 2048 
+openssl genrsa -out wepn-local.key 2048
 openssl req -new -key wepn-local.key -out wepn-local.csr -subj "/C=US/ST=California/L=California/O=WEPN/OU=Local WEPN Device/CN=invalid.com"
 openssl x509 -req -days 365 -in wepn-local.csr -signkey wepn-local.key -out wepn-local.crt
 openssl x509 -in wepn-local.crt -pubkey -noout \
@@ -207,8 +209,8 @@ openssl x509 -in wepn-local.crt -pubkey -noout \
    | openssl base64 > wepn-local.sig
 
 chown wepn-api wepn-local.*
-chgrp wepn-web wepn-local.* 
-chgrp wepn-web . 
+chgrp wepn-web wepn-local.*
+chgrp wepn-web .
 chmod g+r wepn-local.*
 chmod g+r .
 
@@ -225,12 +227,12 @@ cd $PPROXY_HOME/setup/
 # Configure ShadowSocks
 ##################################
 echo -e "\n ShadowSocks is being set up ... "
-adduser shadowsocks --disabled-password --disabled-login  --quiet --gecos "ShadowSocks User"
-addgroup shadow-runners
-adduser pproxy shadow-runners
-adduser shadowsocks shadow-runners
-addgroup wireguard-runners
-adduser pproxy wireguard-runners
+$adduser shadowsocks --disabled-password --disabled-login  --quiet --gecos "ShadowSocks User"
+$addgroup shadow-runners
+$adduser pproxy shadow-runners
+$adduser shadowsocks shadow-runners
+$addgroup wireguard-runners
+$adduser pproxy wireguard-runners
 cp $PPROXY_HOME/setup/shadowsocks-libev-manager.service /lib/systemd/system/
 cp $PPROXY_HOME/setup/shadowsocks-libev.service /lib/systemd/system/
 cp $PPROXY_HOME/setup/shadowsocks-libev-manager /etc/default/
@@ -258,16 +260,16 @@ systemctl enable shadowsocks-libev-manager
 
 
 echo -e "\n enabling i2c"
-adduser pproxy i2c
-adduser pproxy gpio
-if grep -Fxq "dtparam=i2c_arm=on" /boot/config.txt 
+$adduser pproxy i2c
+$adduser pproxy gpio
+if grep -Fxq "dtparam=i2c_arm=on" /boot/config.txt
 then
    echo "i2c aleady enabled"
 else
    echo -e 'dtparam=i2c_arm=on' >> /boot/config.txt
 fi
 
-if grep -Fxq "hdmi_force_hotplug=1" /boot/config.txt 
+if grep -Fxq "hdmi_force_hotplug=1" /boot/config.txt
 then
    echo "audio already rerouted"
 else
@@ -275,14 +277,14 @@ else
    echo -e 'hdmi_force_edid_audio=1' >> /boot/config.txt
 fi
 
-if ! grep -Fq "i2c" /etc/modules 
+if ! grep -Fq "i2c" /etc/modules
 then
    echo -e 'i2c-bcm2708' >> /etc/modules
    echo -e 'i2c-dev' >> /etc/modules
 fi
 
 echo -e "\n enabling spi"
-if grep -Fxq "dtparam=spi=on" /boot/config.txt 
+if grep -Fxq "dtparam=spi=on" /boot/config.txt
 then
    echo "spi aleady enabled"
 else
@@ -290,12 +292,12 @@ else
 fi
 
 echo -e "\n#### Restarting services ####"
-modprobe i2c_dev
-modprobe i2c_bcm2708
-modprobe spi-bcm2835
+/usr/sbin/modprobe i2c_dev
+/usr/sbin/modprobe i2c_bcm2708
+/usr/sbin/modprobe spi-bcm2835
 chmod 0655 /etc/modprobe.d/snd-bcm2835.conf
-chown root:root /etc/modprobe.d/snd-bcm2835.conf
-chown root:root /etc/logrotate.conf
+/usr/bin/chown root:root /etc/modprobe.d/snd-bcm2835.conf
+/usr/bin/chown root:root /etc/logrotate.conf
 
 
 
