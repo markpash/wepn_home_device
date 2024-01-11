@@ -1,14 +1,14 @@
 #!/bin/bash
 sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
-locale-gen "en_US.UTF-8"
+/usr/sbin/locale-gen "en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 export LANG=en_US.UTF-8
 PPROXY_HOME=/usr/local/pproxy/
 PPROXY_VENV=/var/local/pproxy/wepn-env
 venv_flag_file=/var/local/pproxy/wepn-venv-installed
 OVPN_ENABLED=0
-adduser=/usr/sbin/$adduser
-addgroup=/usr/sbin/$addgroup
+adduser=/usr/sbin/adduser
+addgroup=/usr/sbin/addgroup
 
 ######################################
 ## add heartbeat to crontab

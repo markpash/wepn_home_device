@@ -16,17 +16,33 @@ if ! [ -f $flag_file ]; then
 fi
 
 if ! [ -d $PPROXY_VENV ]; then
+	echo "venv missing"
 	need_reinstall=true
 fi
 
 source $PPROXY_VENV/bin/activate
 if [ $? -ne 0 ]; then
+	echo "pip not activated"
 	need_reinstall=true
 fi
 $PPROXY_VENV/bin/python3 -V
 if [ $? -ne 0 ]; then
+	echo "python missing"
 	need_reinstall=true
 fi
+
+##############################################
+# This part is disabled for now. Some packages
+# are installed differently when installed.
+##############################################
+# $PPROXY_VENV/bin/pip freeze > /tmp/reqs.txt
+# /usr/bin/diff /tmp/reqs.txt $PPROXY_HOME/setup/requirements.txt
+# if [ $? -ne 0 ]; then
+# 	echo "delta in pip packages"
+# 	need_reinstall=true
+# fi
+##############################################
+
 
 wget -q --spider http://connectivity.we-pn.com
 retval=$?
@@ -34,11 +50,19 @@ retval=$?
 until [ $retval -eq 0 ];
 do
 	# offline, sleep 5 seconds
+	# we need this to avoid pip install without internet
 	sleep 5
 	wget -q --spider http://connectivity.we-pn.com
 	retval=$?
 done
 
+service_state=`systemctl show -p SubState --value wepn-main`
+
+if ! [ "$service_state" = "running" ]
+then
+	echo "service failed: $service_state"
+	need_reinstall=true
+fi
 
 
 if [ "$need_reinstall" = true ]; then
@@ -54,11 +78,11 @@ if [ "$need_reinstall" = true ]; then
 	#wait $pip_pid
 	chown pproxy:shadow-runners $PPROXY_VENV
 	chown pproxy:shadow-runners $PPROXY_VENV/* -R
-	echo "done installing venv"
+	echo "starting post-install"
 	/bin/bash $PPROXY_HOME/setup/post-install.sh
-	echo "done installing WEPN source"
 	post_pid=$!
 	wait $post_pid
+	echo "done installing WEPN source"
 	/bin/bash $PPROXY_HOME/setup/set-services.sh
 	echo "DONE restarting WEPN services"
 fi
