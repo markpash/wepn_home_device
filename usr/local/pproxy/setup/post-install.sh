@@ -1,7 +1,10 @@
+#!/bin/bash
 sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
 locale-gen "en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 export LANG=en_US.UTF-8
+export PATH=$PATH:/usr/local/sbin/:/usr/sbin/
+
 PPROXY_HOME=/usr/local/pproxy/
 PPROXY_VENV=/var/local/pproxy/wepn-env
 OVPN_ENABLED=0

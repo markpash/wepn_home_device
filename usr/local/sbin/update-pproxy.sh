@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH=$PATH:/usr/local/sbin/:/usr/sbin/
 
 date > /var/local/pproxy/last-update 2>&1
 date > /tmp/update-out 2>&1
