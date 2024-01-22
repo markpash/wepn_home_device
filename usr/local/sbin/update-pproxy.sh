@@ -1,6 +1,7 @@
 #!/bin/bash
 export DEBIAN_FRONTEND=noninteractive
 export DEBIAN_PRIORITY=critical
+export PATH=$PATH:/usr/local/sbin/:/usr/sbin/
 
 PKG=pproxy-rpi
 FLG="/var/local/pproxy/pending-set-service"

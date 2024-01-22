@@ -3,9 +3,13 @@ sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
 /usr/sbin/locale-gen "en_US.UTF-8"
 export LC_ALL="en_US.UTF-8"
 export LANG=en_US.UTF-8
-PPROXY_HOME=/usr/local/pproxy/
+export PATH=$PATH:/usr/local/sbin/:/usr/sbin/
+export DEBIAN_FRONTEND=noninteractive
+
+PPROXY_HOME=/usr/local/pproxy
 PPROXY_VENV=/var/local/pproxy/wepn-env
-venv_flag_file=/var/local/pproxy/wepn-venv-installed
+PIP_CACHE=/var/local/pproxy/pip-cache
+VENV_FLAG_FILE=/var/local/pproxy/wepn-venv-installed
 OVPN_ENABLED=0
 adduser=/usr/sbin/adduser
 addgroup=/usr/sbin/addgroup
@@ -17,6 +21,9 @@ addgroup=/usr/sbin/addgroup
 /usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
 /usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
 /usr/bin/crontab -u pi $PPROXY_HOME/setup/cron-pi
+
+WHO=`whoami`
+echo -e "$WHO"
 
 ######################################
 ## Copy back up config files
@@ -79,10 +86,14 @@ cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
 python3 -m venv $PPROXY_VENV
 source $PPROXY_VENV/bin/activate
-touch $venv_flag_file
+touch $VENV_FLAG_FILE
 
-pip3 install --upgrade pip
-pip3 install -r $PPROXY_HOME/setup/requirements.txt
+mkdir -p $PIP_CACHE
+chown root $PIP_CACHE
+chown root $PIP_CACHE/* -R
+
+pip3 install --upgrade pip --cache-dir $PIP_CACHE
+pip3 install -r $PPROXY_HOME/setup/requirements.txt --cache-dir $PIP_CACHE
 if [ ! $? -eq 0 ]; then
 	echo "Doing one-by-one pip install"
 	for pkg in `cat $PPROXY_HOME/setup/requirements.txt`
@@ -91,7 +102,9 @@ if [ ! $? -eq 0 ]; then
 	done
 fi
 chown pproxy:pproxy $PPROXY_VENV
-chown pproxy:pproxy $PPROXY_VENV* -R
+chown pproxy:pproxy $PPROXY_VENV/* -R
+chown pproxy:pproxy $PIP_CACHE
+chown pproxy:pproxy $PIP_CACHE/* -R
 
 #config initialized/fixed
 mkdir -p /etc/pproxy/
