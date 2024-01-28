@@ -4,6 +4,7 @@ import random
 from getmac import get_mac_address
 import netifaces
 import atexit
+import os
 import upnpclient as upnp
 import requests
 import re
@@ -647,16 +648,24 @@ class Device():
             cmd_sudo = SRUN + " 1 11"
             self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
             time.sleep(5)
-
-            # use the setup file there to generate the config, get contents
-            sys.path.append("/mnt/device_setup/")
-            # write to the current config
-            from setup_mod import create_config  # noqa: setup_mod is defined on the USB drive just mounted
-            new_config_str = create_config()
+            preset_config = "/mnt/wepn.ini"
+            new_config_str = None
+            if os.path.isfile(preset_config):
+                with open(preset_config) as f:
+                    new_config_str = f.read()
+            else:
+                # use the setup file there to generate the config, get contents
+                sys.path.append("/mnt/device_setup/")
+                # write to the current config
+                from setup_mod import create_config  # noqa: setup_mod is defined on the USB drive just mounted
+                new_config_str = create_config()
             print(new_config_str)
-            config_file = open("/etc/pproxy/config.ini", 'w')
-            config_file.write(new_config_str)
-            config_file.close()
+            if new_config_str is not None:
+                config_file = open("/etc/pproxy/config.ini", 'w')
+                config_file.write(new_config_str)
+                config_file.close()
+            else:
+                self.logger.error("new config str is empty")
         except Exception:
             self.logger.exception("Error generating new config file")
         finally:

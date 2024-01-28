@@ -43,6 +43,12 @@ BUTTONS = ["0", "1", "2", "up", "down", "back", "home"]
 # Unit of time: how often it wakes from sleep
 # in seconds
 UNIT_TIMEOUT = 30
+
+# number of retries to wait before checking
+# for OTA version again.
+# 1 hr = 60 * (60/UNIT_TIMEOUT)
+TIMEOUTS_BETWEEN_OTA_CHECK = 60 * (60 / UNIT_TIMEOUT)
+
 # Multiply by unit above for all below timeouts
 NRML_SCREEN_TIMEOUT = 40
 # if an error is detected, keep screen
@@ -96,6 +102,7 @@ class KEYPAD:
         self.prev_diag_code = 0
         self.err_pending_ack = False
         self.dev_remaining = 7
+        self.retries_before_ota_check = 0
         self.channel = "prod"
 
     def init_i2c(self):
@@ -340,7 +347,8 @@ class KEYPAD:
                        (3, "Serial #", 0, "blue"), (4, serial_number, 0, "white"),
                        (5, "[ID]", 0, "blue"), (6, device_number, 0, "white"),
                        (7, current_e2e_key, 0, "white")]
-        self.lcd.display(display_str, 20)
+        if self.screen_timed_out is False:
+            self.lcd.display(display_str, 20)
         # self.render()
         return True  # exit the menu
 
@@ -350,7 +358,8 @@ class KEYPAD:
         serial_number = self.config.get('django', 'serial_number')
         display_str = [(1, "https://red.we-pn.com/?pk=" + str(current_e2e_key) + "&s=" +
                         str(serial_number) + "&k=" + str(current_key), 2, "white"), ]
-        self.lcd.display(display_str, 20)
+        if self.screen_timed_out is False:
+            self.lcd.display(display_str, 20)
         return True  # exit the menu
 
     def restart(self):
@@ -446,12 +455,18 @@ class KEYPAD:
         except:
             warmed = True
         if int(self.status.get("status", "claimed")) == 0:
-            if self.device.needs_package_update():
-                # Disable showing QR Code when software needs upgrade
-                # This way the update screen will not be covered
-                # Other menus work though.
-                # TODO: We need a proper WindowManager
-                return
+            # we don't want to check OTA status every single time
+            # for example: every hour not every 3 seconds
+            if self.retries_before_ota_check == 0:
+                if self.device.needs_package_update():
+                    # Disable showing QR Code when software needs upgrade
+                    # This way the update screen will not be covered
+                    # Other menus work though.
+                    # TODO: We need a proper WindowManager
+                    return
+                self.retries_before_ota_check = TIMEOUTS_BETWEEN_OTA_CHECK
+            else:
+                self.retries_before_ota_check -= 1
             self.show_claim_info_qrcode()
         else:
             # show the status info
