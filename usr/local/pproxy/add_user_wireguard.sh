@@ -33,11 +33,11 @@ PrivateKey = $priv
 
 [Peer]
 PublicKey = $pub
-AllowedIPs = 0.0.0.0/0
+AllowedIPs = 10.0.0.2/32
 Endpoint = $ip:$clean_port
 EOF
 
-#sudo wg set wg0 peer $pub allowed-ips 0.0.0.0/0
+#sudo wg set wg0 peer $pub allowed-ips 10.0.0.2/32
 wepn-run 1 6 $pub
 
 #sudo wg-quick save wg0
