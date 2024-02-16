@@ -649,9 +649,16 @@ class Device():
             self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
             time.sleep(5)
             preset_config = "/mnt/wepn.ini"
+            previous_config = "/mnt/etc/pproxy/config.ini"
             new_config_str = None
+
+            # priority 1: SD card has wepn.ini in root folder
             if os.path.isfile(preset_config):
                 with open(preset_config) as f:
+                    new_config_str = f.read()
+            # priority 2: SD card is a previous WEPN SD card
+            elif os.path.isfile(previous_config):
+                with open(previous_config) as f:
                     new_config_str = f.read()
             else:
                 # use the setup file there to generate the config, get contents
