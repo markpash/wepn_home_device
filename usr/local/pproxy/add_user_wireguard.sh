@@ -38,10 +38,10 @@ Endpoint = $ip:$clean_port
 EOF
 
 #sudo wg set wg0 peer $pub allowed-ips 10.0.0.2/32
-wepn-run 1 6 $pub
+wepn-run 1 6 0 $pub
 
 #sudo wg-quick save wg0
 #wg-quick save wg0
-wepn-run 1 7
+wepn-run 1 7 0
 
-wepn-run 0 2 2
+wepn-run 0 2 2 0

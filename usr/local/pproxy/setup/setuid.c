@@ -7,13 +7,11 @@
 #define CMD_CNT 6
 #define SPECIAL_CMD_CNT 16
 
-int sanitize(char* input) {
+char* sanitize(char input[]) {
 	static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		"1234567890_-.@+=/";
-	char user_data[] = "Bad char 1:} Bad char 2:{ bad char3: /  char4:\\";
-	char *cp = user_data; /* Cursor into string */
-	const char *end = user_data + strlen( user_data);
+		"1234567890_-.@+=";
+
 	int i = 0;
 	while (input[i] != '\0') {
 		if (strchr(ok_chars, input[i]) == NULL) {
@@ -23,7 +21,7 @@ int sanitize(char* input) {
 		i++;
 	}
 	puts(input);
-	return i;
+	return input;
 }
 
 
@@ -36,7 +34,7 @@ int main(int argc, char * argv[])
 	const char* services[SRV_CNT];
 	services[0]="openvpn";
 	services[1]="shadowsocks-libev";
-	services[2]="wg-quick@wg0";
+	services[2]="wg-quick@wg%s";
 	services[3]="tor";
 	services[4]="ssh";
 	services[5]="vncserver-x11-serviced";
@@ -58,8 +56,8 @@ int main(int argc, char * argv[])
 	scommands[3]="/bin/sh /usr/local/sbin/update-pproxy.sh";
 	scommands[4]="/bin/sh /usr/local/sbin/update-system.sh";
 	scommands[5]= "/usr/local/sbin/wepn_git.sh";
-	scommands[6]= "wg set wg0 peer %s allowed-ips 10.0.0.2/32";
-	scommands[7]= "wg-quick save wg0";
+	scommands[6]= "wg set wg%s peer %s allowed-ips 10.0.0.2/32";
+	scommands[7]= "wg-quick save wg%s";
 	scommands[8]= "/bin/sh /usr/local/sbin/iptables-flush.sh";
 	scommands[9]= "/bin/bash /usr/local/sbin/prevent_location_issue.sh";
 	scommands[10]= "/bin/bash /usr/local/sbin/ip-shadow.sh";
@@ -73,8 +71,14 @@ int main(int argc, char * argv[])
 	int c,s,t;
 
 	char cmd[255];
+	char scmd[255];
+
+	for (int i = 0; i < argc; i++) {
+		printf("param[%d] = %s\n", i, argv[i]);
+	}
 
 	if (argc != 4 && argc != 3 && argc != 5) {
+		// help line
 		printf(" usage: ./run type service_identifier command_identifier");
 		printf("\n* type: \n\t 0: services \n\t 1: special commands");
 
@@ -99,8 +103,7 @@ int main(int argc, char * argv[])
 	char* ptr;
 	t = strtol(argv[1], &ptr, 10);
 	s = strtol(argv[2], &ptr, 10);
-
-
+	printf("t=%d s=%d argc=%d\n", t, s, argc);
 
 
 	if (s > SPECIAL_CMD_CNT || t > 3) {
@@ -111,22 +114,60 @@ int main(int argc, char * argv[])
 	}
 
 	if (t == 0) {
+		// command is to control services
+		// get the command index:
 		c = strtol(argv[3], &ptr, 10);
 		if (c > CMD_CNT) {
 			printf("Out of range commands index\n");
 			return(-1);
 		}
-		sprintf(cmd, "systemctl %s %s", commands[c], services[s]); 
+		if (s == 2) {
+			if (argc != 5) {
+				printf("Missing params: assuming wg0\n");
+				sprintf(scmd, "0");
+			}
+			else {
+				// update wg%d to match incoming interface
+				// wg index:
+				sanitize(argv[4]);
+				sprintf(scmd, services[2], argv[4]);
+			}
+			sprintf(cmd, "systemctl %s %s", commands[c], scmd);
+		} else {
+			sprintf(cmd, "systemctl %s %s", commands[c], services[s]);
+		}
 	}
+
 	if (t == 1) {
-		if (argc == 4 && s == 6) {
-			printf("\noriginal: %s\nduring: \n", argv[3]);
+		// special commands
+		if (s == 6) {
+			// spcial commands that takes in arguments
+			if (argc != 5) {
+				printf("Missing params: provide wg index and peer string\n");
+				return(-1);
+			}
+			// wg set wg%s peer %s allowed-ips 10.0.0.2/32
+			// wg index:
 			sanitize(argv[3]);
-			printf("\nafter: %s\n", argv[3]);
-			sprintf(cmd, scommands[6], argv[3]);
-		 } else {
+			// peer index:
+			sanitize(argv[4]);
+			sprintf(cmd, scommands[6], argv[3], argv[4]);
+		}
+		else if (s == 7) {
+			// spcial commands that takes in arguments
+			if (argc != 4) {
+				printf("Missing params: assuming wg0\n");
+				sprintf(scmd, "0");
+				sprintf(cmd, scommands[7], "0");
+			} else {
+				// wg-quick save wg%s
+				// wg index:
+				sanitize(argv[3]);
+				sprintf(cmd, scommands[7], argv[3]);
+			}
+		} else {
 			sprintf(cmd, "%s", scommands[s]);
-		 }
+		}
 	}
 	printf("\ncmd= %s\n", cmd);
 	printf("\n");
