@@ -343,7 +343,7 @@ echo -e "\n done with setuid"
 #######################################
 # Install Wireguard
 #######################################
-#/bin/bash install_wireguard.sh
+/bin/bash install_wireguard.sh
 
 usermod -a -G spi pproxy
 usermod -a -G audio pproxy

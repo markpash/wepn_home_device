@@ -2,7 +2,7 @@
 
 # Function to check internet connection
 function is_connected() {
-  ping -c 1 google.com &> /dev/null
+  ping -c 2 connectivity.we-pn.com &> /dev/null
   [[ $? -eq 0 ]] && return 0 || return 1
 }
 
@@ -19,18 +19,20 @@ if ! is_connected; then
     # Check each WireGuard interface
     for wg_interface in $wg_interfaces; do
       echo "Testing interface $wg_interface..."
-      # Turn on service for this interface
-      ## systemctl start wg-quick@$wg_interface.service &> /dev/null
-      /usr/local/sbin/wepn-run 0 2 1 $wg_interfce
+      # Turn off service for this interface
+      ## systemctl stop wg-quick@$wg_interface.service &> /dev/null
+      /usr/local/sbin/wepn-run 0 2 0 $wg_interfce
 
       # Check if internet connected with this interface
       if is_connected; then
-        echo "Internet connected with interface $wg_interface on attempt $attempt!"
+        echo "Internet connected with interface $wg_interface off on attempt $attempt!"
         exit 0
       else
-        echo "No internet connection with interface $wg_interface. Stopping service..."
-        ## systemctl stop wg-quick@$wg_interface.service &> /dev/null
-        /usr/local/sbin/wepn-run 0 2 0 $wg_interface
+	# this is when even turning off wg doesn't change. so we resture wg to on again
+	# most probably a normal connectivity issue
+        echo "No internet connection even with interface $wg_interface off. Resuming service..."
+        ## systemctl start wg-quick@$wg_interface.service &> /dev/null
+        /usr/local/sbin/wepn-run 0 2 1 $wg_interface
       fi
     done
 
