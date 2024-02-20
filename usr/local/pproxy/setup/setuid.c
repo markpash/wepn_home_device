@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+//#define DEBUG
 #define SRV_CNT 6
 #define CMD_CNT 6
 #define SPECIAL_CMD_CNT 18
@@ -20,7 +21,9 @@ char* sanitize(char input[]) {
 		}
 		i++;
 	}
+#ifdef DEBUG
 	puts(input);
+#endif
 	return input;
 }
 
@@ -74,10 +77,11 @@ int main(int argc, char * argv[])
 
 	char cmd[255];
 	char scmd[255];
-
+#ifdef DEBUG
 	for (int i = 0; i < argc; i++) {
 		printf("param[%d] = %s\n", i, argv[i]);
 	}
+#endif
 
 	if (argc != 4 && argc != 3 && argc != 5) {
 		// help line
@@ -105,7 +109,9 @@ int main(int argc, char * argv[])
 	char* ptr;
 	t = strtol(argv[1], &ptr, 10);
 	s = strtol(argv[2], &ptr, 10);
+#ifdef DEBUG
 	printf("t=%d s=%d argc=%d\n", t, s, argc);
+#endif
 
 
 	if (s > SPECIAL_CMD_CNT || t > 3) {
