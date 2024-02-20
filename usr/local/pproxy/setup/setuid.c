@@ -5,7 +5,7 @@
 
 #define SRV_CNT 6
 #define CMD_CNT 6
-#define SPECIAL_CMD_CNT 16
+#define SPECIAL_CMD_CNT 18
 
 char* sanitize(char input[]) {
 	static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
@@ -56,8 +56,8 @@ int main(int argc, char * argv[])
 	scommands[3]="/bin/sh /usr/local/sbin/update-pproxy.sh";
 	scommands[4]="/bin/sh /usr/local/sbin/update-system.sh";
 	scommands[5]= "/usr/local/sbin/wepn_git.sh";
-	scommands[6]= "wg set wg%s peer %s allowed-ips 10.0.0.2/32";
-	scommands[7]= "wg-quick save wg%s";
+	scommands[6]= "/usr/bin/wg set wg%s peer %s allowed-ips 10.0.0.2/32";
+	scommands[7]= "/usr/bin/wg-quick save wg%s";
 	scommands[8]= "/bin/sh /usr/local/sbin/iptables-flush.sh";
 	scommands[9]= "/bin/bash /usr/local/sbin/prevent_location_issue.sh";
 	scommands[10]= "/bin/bash /usr/local/sbin/ip-shadow.sh";
@@ -67,6 +67,8 @@ int main(int argc, char * argv[])
 	scommands[13]= "ssh-keygen -A";
 	scommands[14]= "chown root.pproxy /var/local/pproxy/ledmanagersocket.sock; chmod 660 /var/local/pproxy/ledmanagersocket.sock";
 	scommands[15]= "/usr/bin/systemctl stop wepn-api ; /usr/bin/sleep 1 && /usr/bin/systemctl start wepn-api";
+	scommands[16]= "/usr/bin/wg-quick down wg%s";
+	scommands[17]= "/usr/bin/wg set wg%s peer %s remove";
 
 	int c,s,t;
 
@@ -124,7 +126,7 @@ int main(int argc, char * argv[])
 		if (s == 2) {
 			if (argc != 5) {
 				printf("Missing params: assuming wg0\n");
-				sprintf(scmd, "0");
+				sprintf(scmd, "wg-quick@wg0");
 			}
 			else {
 				// update wg%d to match incoming interface
@@ -140,30 +142,34 @@ int main(int argc, char * argv[])
 
 	if (t == 1) {
 		// special commands
-		if (s == 6) {
+		if (s == 6 || s == 17) {
 			// spcial commands that takes in arguments
 			if (argc != 5) {
 				printf("Missing params: provide wg index and peer string\n");
 				return(-1);
 			}
 			// wg set wg%s peer %s allowed-ips 10.0.0.2/32
+			// or
+			// wg set wg%s peer %s remove
+
 			// wg index:
 			sanitize(argv[3]);
 			// peer index:
 			sanitize(argv[4]);
-			sprintf(cmd, scommands[6], argv[3], argv[4]);
+			sprintf(cmd, scommands[s], argv[3], argv[4]);
 		}
-		else if (s == 7) {
+		else if (s == 7 || s == 16) {
 			// spcial commands that takes in arguments
 			if (argc != 4) {
 				printf("Missing params: assuming wg0\n");
-				sprintf(scmd, "0");
-				sprintf(cmd, scommands[7], "0");
+				sprintf(cmd, scommands[s], "0");
 			} else {
-				// wg-quick save wg%s
+				// 7: wg-quick save wg%s
+				// or
+				// 16: wg-quick down wg%s
 				// wg index:
 				sanitize(argv[3]);
-				sprintf(cmd, scommands[7], argv[3]);
+				sprintf(cmd, scommands[s], argv[3]);
 			}
 		} else {
 			sprintf(cmd, "%s", scommands[s]);

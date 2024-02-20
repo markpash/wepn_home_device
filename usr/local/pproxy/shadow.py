@@ -59,7 +59,7 @@ class Shadow(Service):
     def add_user(self, cname, ip_address, password, unused_port, lang):
         is_new_user = False
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         # get max of assigned ports, new port is 1+ that.
         # if no entry in DB, copy from config default port start
         servers = local_db['servers']
@@ -123,7 +123,7 @@ class Shadow(Service):
     def delete_user(self, cname):
         # stop the service for that cert
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         server = servers.find_one(certname=cname)
         if server is not None:
@@ -180,7 +180,7 @@ class Shadow(Service):
         # used at boot time
         # loop over cert files, start each
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         if len(servers) == 0:
             return
@@ -193,7 +193,7 @@ class Shadow(Service):
         # used at service stop time
         # loop over cert files, stop all
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         try:
             if not servers:
@@ -212,7 +212,7 @@ class Shadow(Service):
 
     def forward_all(self):
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         device = Device(self.logger)
         try:
@@ -238,7 +238,7 @@ class Shadow(Service):
 
     def get_service_creds_summary(self, ip_address):
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         creds = {}
         if not servers or not self.is_enabled():
@@ -273,7 +273,9 @@ class Shadow(Service):
         return response
 
     def get_access_link(self, cname):
-        local_db = dataset.connect('sqlite:///' + self.config.get('shadow', 'db-path'))
+        local_db = dataset.connect(
+            'sqlite:///' + self.config.get('shadow', 'db-path') +
+            "?check_same_thread=False")
         ipw = IPW()
         ip_address = shlex.quote(ipw.myip())
         if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
@@ -315,7 +317,7 @@ class Shadow(Service):
 
         self.logger.debug("---summary -----")
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         usage_results = {}
         if not servers or not self.is_enabled():
@@ -331,7 +333,7 @@ class Shadow(Service):
         self.logger.debug(raw_str)
         response = json.loads(raw_str)
         usage_db = dataset.connect(
-            'sqlite:///' + self.config.get('usage', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
 
         usage_servers = usage_db['servers']
         usage_daily = usage_db['daily']
@@ -428,10 +430,10 @@ class Shadow(Service):
 
     def get_usage_daily(self):
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         usage_db = dataset.connect(
-            'sqlite:///' + self.config.get('usage', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         usage_daily = usage_db['daily']
         days = {}
         for server in servers:
@@ -463,7 +465,7 @@ class Shadow(Service):
         count = 0
         while count < 5:
             local_db = dataset.connect(
-                'sqlite:///' + self.config.get('shadow', 'db-path'))
+                'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
             servers = local_db['servers']
             server = servers.find_one(certname=cname)
             if server is not None:
@@ -527,7 +529,7 @@ class Shadow(Service):
 
     def get_max_port(self):
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         # get max of assigned ports
         # if no entry in DB, copy from config default port start
         try:
@@ -543,7 +545,7 @@ class Shadow(Service):
     def recover_missing_servers(self):
         pid_missing = True
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         if not servers:
             self.logger.debug('no servers for recovery')
@@ -569,7 +571,7 @@ class Shadow(Service):
         success = True
         local_port = 10000 + randrange(10)  # nosec: not used for cryptography
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         if not servers:
             # if no entry in DB, just return true. No fail is a pass

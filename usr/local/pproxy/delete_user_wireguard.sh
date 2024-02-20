@@ -13,7 +13,8 @@ then
 else
 	pub=`cat $userdir/publickey`
 	echo wg set wg0 peer $pub remove
-	wg set wg0 peer $pub remove
+	# wg set wg0 peer $pub remove
+	wepn-run 1 17 0 $pub
 	echo wg show
 	wg show
 	rm $userdir/wg.conf

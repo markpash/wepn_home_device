@@ -29,12 +29,15 @@ class Wireguard(Service):
         return s
 
     def add_user(self, certname, ip_address, password, port, lang):
-        cmd = '/bin/bash ./add_user_wireguard.sh '
-        cmd += self.santizie_service_filename(certname)
-        cmd += " " + self.config.get("wireguard", "wireport")
-        self.logger.debug(cmd)
-        self.execute_cmd(cmd)
-        return False
+        if not self.is_user_registered(certname):
+            cmd = '/bin/bash ./add_user_wireguard.sh '
+            cmd += self.santizie_service_filename(certname)
+            cmd += " " + self.config.get("wireguard", "wireport")
+            self.logger.debug(cmd)
+            self.execute_cmd(cmd)
+            return True
+        else:
+            return False
 
     def delete_user(self, certname):
         cmd = '/bin/bash ./delete_user_wireguard.sh '
