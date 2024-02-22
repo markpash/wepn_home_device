@@ -36,6 +36,15 @@ CookieAuthFileGroupReadable 1
 Nickname WETor
 EOF
 
+# add Tor's repo to get their updates
+wget -qO- https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor | tee /usr/share/keyrings/tor-archive-keyring.gpg >/dev/null
+DISTRIBUTION=`lsb_release -c | awk '{print $2}'`
+cat > /etc/apt/sources.list.d/tor.list <<EOF
+   deb     [signed-by=/usr/share/keyrings/tor-archive-keyring.gpg] https://deb.torproject.org/torproject.org $DISTRIBUTION main
+   deb-src [signed-by=/usr/share/keyrings/tor-archive-keyring.gpg] https://deb.torproject.org/torproject.org $DISTRIBUTION main
+EOF
+# end of adding Tor repo
+
 /usr/sbin/setcap cap_net_bind_service=+ep /usr/bin/obfs4proxy
 
 if ! grep -q "NoNewPrivileges=no" /lib/systemd/system/tor@default.service ;
