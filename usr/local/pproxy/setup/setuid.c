@@ -66,7 +66,7 @@ int main(int argc, char * argv[])
 	scommands[10]= "/bin/bash /usr/local/sbin/ip-shadow.sh";
 	// hard coding sda1 since this command is primarily used in factory for provisioning configs
 	scommands[11]= "mount -o umask=0022,gid=1001,uid=1001 /dev/sda1 /mnt/";
-	scommands[12]= "umount /mnt/";
+	scommands[12]= "ls /dev/sda* | xargs -r -n1 umount -l";
 	scommands[13]= "ssh-keygen -A";
 	scommands[14]= "chown root.pproxy /var/local/pproxy/ledmanagersocket.sock; chmod 660 /var/local/pproxy/ledmanagersocket.sock";
 	scommands[15]= "/usr/bin/systemctl stop wepn-api ; /usr/bin/sleep 1 && /usr/bin/systemctl start wepn-api";
