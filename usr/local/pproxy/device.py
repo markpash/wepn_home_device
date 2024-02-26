@@ -643,6 +643,10 @@ class Device():
     def generate_new_config(self):
         # check if the current config is valid
         # if so, abort
+        # umount all USB drives first
+        cmd_sudo = SRUN + " 1 12"
+        self.execute_cmd_output(cmd_sudo, True)
+        time.sleep(5)
         try:
             # mount USB drive
             cmd_sudo = SRUN + " 1 11"
