@@ -59,7 +59,7 @@ int main(int argc, char * argv[])
 	scommands[3]="/bin/sh /usr/local/sbin/update-pproxy.sh";
 	scommands[4]="/bin/sh /usr/local/sbin/update-system.sh";
 	scommands[5]= "/usr/local/sbin/wepn_git.sh";
-	scommands[6]= "/usr/bin/wg set wg%s peer %s allowed-ips 10.0.0.2/32";
+	scommands[6]= "/usr/bin/wg set wg%s peer %s preshared-key %s allowed-ips %s/32";
 	scommands[7]= "/usr/bin/wg-quick save wg%s";
 	scommands[8]= "/bin/sh /usr/local/sbin/iptables-flush.sh";
 	scommands[9]= "/bin/bash /usr/local/sbin/prevent_location_issue.sh";
@@ -148,14 +148,12 @@ int main(int argc, char * argv[])
 
 	if (t == 1) {
 		// special commands
-		if (s == 6 || s == 17) {
+		if (s == 17) {
 			// spcial commands that takes in arguments
 			if (argc != 5) {
 				printf("Missing params: provide wg index and peer string\n");
 				return(-1);
 			}
-			// wg set wg%s peer %s allowed-ips 10.0.0.2/32
-			// or
 			// wg set wg%s peer %s remove
 
 			// wg index:
@@ -163,6 +161,25 @@ int main(int argc, char * argv[])
 			// peer index:
 			sanitize(argv[4]);
 			sprintf(cmd, scommands[s], argv[3], argv[4]);
+		}
+		else if (s == 6) {
+			// spcial commands that takes in arguments
+			if (argc != 5) {
+				printf("Missing params: provide wg index and peer string\n");
+				return(-1);
+			}
+			// wg set wg%s peer %s allowed-ips preshared-key %s 0.0.0.0/0
+
+			// wg index:
+			sanitize(argv[3]);
+			// peer index:
+			sanitize(argv[4]);
+			// psk
+			sanitize(argv[5]);
+			// allowed ip
+			sanitize(argv[6]);
+
+			sprintf(cmd, scommands[s], argv[3], argv[4], argv[5], argv[6], argv[7]);
 		}
 		else if (s == 7 || s == 16) {
 			// spcial commands that takes in arguments
