@@ -13,6 +13,7 @@ from packaging import version
 import sys
 from pystemd.systemd1 import Unit
 import psutil
+import json
 
 try:
     from configparser import configparser
@@ -640,28 +641,54 @@ class Device():
         cmd_sudo = SRUN + " 1 5"
         self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
 
+    def get_serial_from_eeprom(self):
+        try:
+            with open("/proc/device-tree/hat/custom_0", "r") as f:
+                data = json.load(f)
+                return data["serial_number"]
+        except (KeyError, TypeError, FileNotFoundError, json.JSONDecodeError):
+            return None
+
+    def config_matches_serial(self, config_path, serial_number):
+        if serial_number is None:
+            return True
+        cfg = configparser.ConfigParser()
+        cfg.read(config_path)
+        try:
+            s = cfg.get('django', 'serial_number')
+            if s == serial_number:
+                return True
+            else:
+                return False
+        except:
+            return False
+
     def generate_new_config(self):
-        # check if the current config is valid
-        # if so, abort
         # umount all USB drives first
         cmd_sudo = SRUN + " 1 12"
         self.execute_cmd_output(cmd_sudo, True)
         time.sleep(5)
         try:
-            # mount USB drive
+            # now mount USB drive
             cmd_sudo = SRUN + " 1 11"
             self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
             time.sleep(5)
+
             preset_config = "/mnt/wepn.ini"
             previous_config = "/mnt/etc/pproxy/config.ini"
             new_config_str = None
+            # read serial number that is written on eeprom
+            board_serial = self.get_serial_from_eeprom()
+            # This allows us to force overriding the serial number match
+            if os.path.isfile("/mnt/ignore-serial-match.txt"):
+                board_serial = None
 
-            # priority 1: SD card has wepn.ini in root folder
-            if os.path.isfile(preset_config):
+            # priority 1: SD card has wepn.ini in root folder and serial matches device
+            if os.path.isfile(preset_config) and self.config_matches_serial(preset_config, board_serial):
                 with open(preset_config) as f:
                     new_config_str = f.read()
-            # priority 2: SD card is a previous WEPN SD card
-            elif os.path.isfile(previous_config):
+            # priority 2: SD card is a previous WEPN SD card and serial matches device
+            elif os.path.isfile(previous_config) and self.config_matches_serial(previous_config, board_serial):
                 with open(previous_config) as f:
                     new_config_str = f.read()
             else:
@@ -670,7 +697,6 @@ class Device():
                 # write to the current config
                 from setup_mod import create_config  # noqa: setup_mod is defined on the USB drive just mounted
                 new_config_str = create_config()
-            print(new_config_str)
             if new_config_str is not None:
                 config_file = open("/etc/pproxy/config.ini", 'w')
                 config_file.write(new_config_str)
