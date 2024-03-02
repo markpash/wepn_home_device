@@ -35,6 +35,7 @@ class Shadow(Service):
         fd, self.socket_path = tempfile.mkstemp()
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.prefix = "HTTP%2F1.1%20"
         try:
             self.sock.bind(self.socket_path)
         except OSError:
@@ -236,6 +237,21 @@ class Shadow(Service):
         self.stop_all()
         return
 
+    def create_link_and_hash(self, password, ip, port, certname):
+        try:
+            uri = str(self.config.get('shadow', 'method')) + ':' + str(
+                password)
+            access_params = '@' + str(ip) + ':' + str(port)
+            if self.prefix is not None:
+                access_params += "/?prefix=" + str(self.prefix)
+            uri64 = 'ss://' + \
+                base64.urlsafe_b64encode(str.encode(uri)).decode(
+                    'utf-8') + access_params + "#WEPN-" + certname
+            hash_link = hashlib.sha256(uri64.encode()).hexdigest()[:10]
+            return uri64, hash_link
+        except:
+            return "", ""
+
     def get_service_creds_summary(self, ip_address):
         local_db = dataset.connect(
             'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
@@ -249,13 +265,8 @@ class Shadow(Service):
                 self.logger.error("Certname is empty, skipping")
                 continue
             self.logger.debug("creds for " + server['certname'])
-            uri = str(self.config.get('shadow', 'method')) + ':' + str(
-                server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
-            uri64 = 'ss://' + \
-                base64.urlsafe_b64encode(str.encode(uri)).decode(
-                    'utf-8') + "#WEPN-" + str(server['certname'])
-            creds[server['certname']] = hashlib.sha256(
-                uri64.encode()).hexdigest()[:10]
+            link, hash_link = self.create_link_and_hash(server['password'], ip_address, server['server_port'], server['certname'])
+            creds[server['certname']] = hash_link
         return creds
 
     # TODO: this function is still a copy of creds, and needs work
@@ -285,17 +296,11 @@ class Shadow(Service):
             server_address = ip_address
         servers = local_db['servers']
         server = servers.find_one(certname=cname)
-        uri = "unknown"
         uri64 = "empty"
         digest = ""
         link = None
         if server is not None:
-            uri = str(self.config.get('shadow', 'method')) + ':' + \
-                str(server['password']) + '@' + str(server_address) + ':' + str(server['server_port'])
-            uri64 = 'ss://' + \
-                base64.urlsafe_b64encode(str.encode(uri)).decode(
-                    'utf-8') + "#WEPN-" + str(server['certname'])
-            digest = hashlib.sha256(uri64.encode()).hexdigest()[:10]
+            uri64, digest = self.create_link_and_hash(server['password'], server_address, server['server_port'], server['certname'])
             link = "{\"type\":\"shadowsocks\", \"link\":\"" \
                 + uri64 + "\", \"digest\": \"" + str(digest) + "\" }"
         local_db.close()
@@ -469,11 +474,7 @@ class Shadow(Service):
             servers = local_db['servers']
             server = servers.find_one(certname=cname)
             if server is not None:
-                uri = str(self.config.get('shadow', 'method')) + ':' + str(
-                    server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
-                uri64 = 'ss://' + \
-                        base64.urlsafe_b64encode(str.encode(uri)).decode(
-                            'utf-8') + "#WEPN-" + str(cname)
+                uri64, digest = self.create_link_and_hash(server['password'], ip_address, server['server_port'], server['certname'])
                 return uri64
             else:
                 count += 1
