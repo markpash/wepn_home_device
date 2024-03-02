@@ -29,15 +29,17 @@ class Wireguard(Service):
         return s
 
     def add_user(self, certname, ip_address, password, port, lang):
-        if not self.is_user_registered(certname):
-            cmd = '/bin/bash ./add_user_wireguard.sh '
-            cmd += self.santizie_service_filename(certname)
-            cmd += " " + self.config.get("wireguard", "wireport")
-            self.logger.debug(cmd)
-            self.execute_cmd(cmd)
-            return True
-        else:
-            return False
+        if self.is_user_registered(certname):
+            old_ip, old_port = self.get_external_ip_port_in_conf(certname)
+            if old_ip == ip_address and old_port == int(port):
+                # nothing has changed, do nothing
+                return False
+        cmd = '/bin/bash ./add_user_wireguard.sh '
+        cmd += self.santizie_service_filename(certname)
+        cmd += " " + self.config.get("wireguard", "wireport")
+        self.logger.debug(cmd)
+        self.execute_cmd(cmd)
+        return self.is_user_registered(certname)
 
     def delete_user(self, certname):
         cmd = '/bin/bash ./delete_user_wireguard.sh '
@@ -85,11 +87,23 @@ class Wireguard(Service):
     def get_usage_daily(self):
         return {}
 
+    def get_external_ip_port_in_conf(self, certname):
+        config_file_path = self.get_user_config_file_path(certname)
+        if config_file_path is None:
+            return None, None
+
+        with open(config_file_path, "r") as f:
+            contents = f.read()
+            endpoint_match = re.search(r"^Endpoint\s*=\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)\s*$", contents, re.MULTILINE)
+        if endpoint_match:
+            return endpoint_match.group(1), int(endpoint_match.group(2))
+        else:
+            return None, None
+
     def is_user_registered(self, certname):
         try:
             cert_dir = self.santizie_service_filename(certname)
             self.logger.debug("checking for user: " + cert_dir)
-            print((USERS_DIR + cert_dir + "/wg.conf"))
             return os.path.exists(USERS_DIR + cert_dir + "/wg.conf")
         except Exception:
             self.logger.exception("Could not check if wireguard registered")

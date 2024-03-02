@@ -8,7 +8,7 @@
 #define CMD_CNT 6
 #define SPECIAL_CMD_CNT 18
 
-char* sanitize(char input[]) {
+char* _sanitize(char input[], short type) {
 	static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		"1234567890_-.@+=";
@@ -17,7 +17,10 @@ char* sanitize(char input[]) {
 	while (input[i] != '\0') {
 		if (strchr(ok_chars, input[i]) == NULL) {
 			//illegal character, remove
-			input[i] = '_';
+			//unless it's a / in a field expected to be base64 (type 1)
+			if (!(type == 1 && input[i] == '/')) {
+				input[i] = '_';
+			}
 		}
 		i++;
 	}
@@ -25,6 +28,15 @@ char* sanitize(char input[]) {
 	puts(input);
 #endif
 	return input;
+}
+
+char* sanitize(char input[]) {
+	return _sanitize(input, 0);
+}
+
+
+char* sanitize_b64(char input[]) {
+	return _sanitize(input, 1);
 }
 
 
@@ -59,7 +71,7 @@ int main(int argc, char * argv[])
 	scommands[3]="/bin/sh /usr/local/sbin/update-pproxy.sh";
 	scommands[4]="/bin/sh /usr/local/sbin/update-system.sh";
 	scommands[5]= "/usr/local/sbin/wepn_git.sh";
-	scommands[6]= "/usr/bin/wg set wg%s peer %s preshared-key %s allowed-ips %s/32";
+	scommands[6]= "/usr/bin/wg set wg%s peer %s preshared-key /var/local/pproxy/users/%s/psk allowed-ips %s/32";
 	scommands[7]= "/usr/bin/wg-quick save wg%s";
 	scommands[8]= "/bin/sh /usr/local/sbin/iptables-flush.sh";
 	scommands[9]= "/bin/bash /usr/local/sbin/prevent_location_issue.sh";
@@ -83,7 +95,7 @@ int main(int argc, char * argv[])
 	}
 #endif
 
-	if (argc != 4 && argc != 3 && argc != 5) {
+	if (argc <3) {
 		// help line
 		printf(" usage: ./run type service_identifier command_identifier");
 		printf("\n* type: \n\t 0: services \n\t 1: special commands");
@@ -158,13 +170,13 @@ int main(int argc, char * argv[])
 
 			// wg index:
 			sanitize(argv[3]);
-			// peer index:
-			sanitize(argv[4]);
+			// peer public key
+			sanitize_b64(argv[4]);
 			sprintf(cmd, scommands[s], argv[3], argv[4]);
 		}
 		else if (s == 6) {
 			// spcial commands that takes in arguments
-			if (argc != 5) {
+			if (argc != 7) {
 				printf("Missing params: provide wg index and peer string\n");
 				return(-1);
 			}
@@ -172,8 +184,8 @@ int main(int argc, char * argv[])
 
 			// wg index:
 			sanitize(argv[3]);
-			// peer index:
-			sanitize(argv[4]);
+			// peer public key:
+			sanitize_b64(argv[4]);
 			// psk
 			sanitize(argv[5]);
 			// allowed ip

@@ -24,31 +24,38 @@ main_users_dir=/var/local/pproxy/users
 userdir=$main_users_dir/$clean_name
 mkdir -p $userdir
 
-# find an unassigned ip address
-# inspired by https://github.com/angristan/wireguard-install/blob/master/wireguard-install.sh
-USED=0
-for DOT_IP in {2..254}; do
+if ! test -f $userdir/privatekey; then
+	# new user
+
+	# find an unassigned ip address
+	# inspired by https://github.com/angristan/wireguard-install/blob/master/wireguard-install.sh
 	USED=0
-	for f in `find $main_users_dir -name wg.conf`; do
-		DOT_EXISTS=$(grep -sc "${inv_ip_server::-1}${DOT_IP}" "$f" )
-		if [[ ${DOT_EXISTS} != '0' ]]; then
-			# echo "Found $DOT_IP in $f"
-			USED=1
+	for DOT_IP in {2..254}; do
+		USED=0
+		for f in `find $main_users_dir -name wg.conf`; do
+			DOT_EXISTS=$(grep -sc "${inv_ip_server::-1}${DOT_IP}" "$f" )
+			if [[ ${DOT_EXISTS} != '0' ]]; then
+				# echo "Found $DOT_IP in $f"
+				USED=1
+				break
+			fi
+		done
+		if [[ $USED == 0 ]]; then
+			#echo "Found free: $DOT_IP"
 			break
 		fi
 	done
-	if [[ $USED == 0 ]]; then
-		#echo "Found free: $DOT_IP"
-		break
-	fi
-done
-inv_ip=${inv_ip_server::-1}${DOT_IP}
+	inv_ip=${inv_ip_server::-1}${DOT_IP}
 
-wg genkey | tee $userdir/privatekey | wg pubkey > $userdir/publickey
-wg genpsk > $userdir/psk
+	wg genkey | tee $userdir/privatekey | wg pubkey > $userdir/publickey
+	wg genpsk > $userdir/psk
+else
+	# existing user, reuse keys + invalid IP but update external IP
+	inv_ip=`cat $userdir/wg.conf | grep Address | grep -Eo '[0-9\.]+' | head -1`
+fi
 priv=`cat $userdir/privatekey`
 pub=`cat $userdir/publickey`
-psk=$userdir/psk
+psk=`cat $userdir/psk`
 
 cat > $userdir/wg.conf << EOF
 [Interface]
@@ -63,8 +70,8 @@ Endpoint = $ip:$clean_port
 AllowedIPs = 0.0.0.0/0
 EOF
 
-#sudo wg set wg0 peer $pub preshared-key $psk allowed-ips $inv_ip/32
-wepn-run 1 6 0 $pub $psk $inv_ip
+#sudo wg set wg0 peer $pub preshared-key /var/local/pproxy/users/$clean_name/psk allowed-ips $inv_ip/32
+wepn-run 1 6 0 $pub $clean_name $inv_ip
 
 #sudo wg-quick save wg0
 #wg-quick save wg0

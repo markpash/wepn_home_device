@@ -477,7 +477,7 @@ class PProxy():
                                files_in=None,
                                unsubscribe_link=None)  # at this point, friend is removed from backend db
             # alse send a message to the app via Messaging API
-            self.messages.send_msg("deleted user " + username + " from " + ip_address, secure=False)
+            self.messages.send_msg("deleted user " + str(username) + " from " + str(ip_address), secure=False)
         elif (data['action'] == 'reboot_device'):
             self.save_state("3")
             self.device.reboot()
