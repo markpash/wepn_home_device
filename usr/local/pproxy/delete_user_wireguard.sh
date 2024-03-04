@@ -20,6 +20,7 @@ else
 	rm $userdir/wg.conf
 	rm $userdir/privatekey
 	rm $userdir/publickey
+	rm $userdir/psk
 	rmdir $userdir/
 	echo wg-quick save wg0
 	wepn-run 1 7 0

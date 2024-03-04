@@ -50,6 +50,9 @@ if ! test -f $userdir/privatekey; then
 	wg genkey | tee $userdir/privatekey | wg pubkey > $userdir/publickey
 	wg genpsk > $userdir/psk
 else
+	if ! test -f $userdir/psk; then
+		wg genpsk > $userdir/psk
+	fi
 	# existing user, reuse keys + invalid IP but update external IP
 	inv_ip=`cat $userdir/wg.conf | grep Address | grep -Eo '[0-9\.]+' | head -1`
 fi
