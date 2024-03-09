@@ -433,7 +433,7 @@ class PProxy():
                                        files_in=attachments,
                                        unsubscribe_link=unsubscribe_link)
                 # alse send a message to the app via Messaging API
-                short_link = services.get_short_link_text(username, server_address)
+                short_link = services.get_short_link_text(username, server_address, tunnel)
                 if short_link != "" and self.messages.e2ee_available():
                     self.messages.send_msg(short_link, cert_id=username, secure=True)
 
