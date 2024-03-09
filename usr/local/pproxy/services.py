@@ -90,8 +90,12 @@ class Services:
     def get_short_link_text(self, cname, ip_address, tunnel="all"):
         links = ""
         for service in self.services:
-            if tunnel == "all" or tunnel == service["name"]:
+            if tunnel == "all":
+                if links != "":
+                    links += ", "
                 links = links + str(service['obj'].get_short_link_text(cname, ip_address))
+            elif tunnel == service["name"]:
+                return str(service['obj'].get_short_link_text(cname, ip_address))
         return links
 
     def get_add_email_text(self, certname, ip_address, lang, tunnel="all", is_new_user=False):

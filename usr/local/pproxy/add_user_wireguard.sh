@@ -64,7 +64,7 @@ cat > $userdir/wg.conf << EOF
 [Interface]
 PrivateKey = $priv
 Address = $inv_ip/32
-DNS = $inv_ip_server
+DNS = $inv_ip_server,8.8.8.8
 
 [Peer]
 PublicKey = $pub

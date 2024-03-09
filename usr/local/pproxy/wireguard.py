@@ -121,7 +121,7 @@ class Wireguard(Service):
         filename = self.get_user_config_file_path(cname)
         if filename is not None:
             with open(filename, "rb") as file:
-                encoded_string = base64.b64encode(file.read())
+                encoded_string = "wg://" + base64.b64encode(file.read())
         return encoded_string
 
     def get_add_email_text(self, certname, ip_address, lang, is_new_user=False):
@@ -146,7 +146,7 @@ class Wireguard(Service):
                 conf64 = base64.urlsafe_b64encode(conf)
                 digest = hashlib.sha256(conf64).hexdigest()[:10]
                 return "{\"type\":\"wireguard\", \"link\":\"" + \
-                    conf64.decode('utf-8') + \
+                    "wg://" + conf64.decode('utf-8') + \
                     "\", \"digest\": \"" + str(digest) + "\"}"
             except Exception:
                 self.logger.exception("Wireguard link crashing")
