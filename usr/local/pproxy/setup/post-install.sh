@@ -347,6 +347,8 @@ echo -e "\n done with setuid"
 
 usermod -a -G spi pproxy
 usermod -a -G audio pproxy
+# below line needed for setup time prints
+usermod -a -G lp pproxy
 
 
 if [ $OVPN_ENABLED -eq 1 ]; then
