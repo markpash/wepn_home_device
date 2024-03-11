@@ -3,7 +3,7 @@
 name=$1
 CLEAN=${name//_/}
 CLEAN=${CLEAN// /_}
-CLEAN=${CLEAN//[^a-zA-Z0-9_]/}
+CLEAN=${CLEAN//[^a-zA-Z0-9_\.]/}
 clean_name=`echo -n $CLEAN | tr A-Z a-z`
 userdir=/var/local/pproxy/users/$clean_name
 
@@ -15,8 +15,6 @@ else
 	echo wg set wg0 peer $pub remove
 	# wg set wg0 peer $pub remove
 	wepn-run 1 17 0 $pub
-	echo wg show
-	wg show
 	rm $userdir/wg.conf
 	rm $userdir/privatekey
 	rm $userdir/publickey

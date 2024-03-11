@@ -184,13 +184,6 @@ class PProxy():
         for message in self.messages.get_messages():
             id = int(message["id"])
             self.logger.info("message ID processing: " + str(id))
-            '''
-            fake_msg = mqtt.MQTTMessage()
-            fake_msg._topic = b"REST"
-            fake_msg.payload = json.dumps(message["message_body"]).encode('utf-8')
-            self.logger.debug(fake_msg.payload.decode("utf-8"))
-            self.on_message("", "", fake_msg)
-            '''
             if id in self.mqtt_pending_notifications:
                 self.mqtt_pending_notifications.remove(id)
             else:
@@ -210,6 +203,10 @@ class PProxy():
         if int(self.config.get('email', 'enabled')) == 0:
             # email is completely disabled
             self.logger.debug("Email feature is completely off.")
+            return
+
+        # prevent accidentally sending an empty email
+        if text == "" and html == "":
             return
 
         html_option = False
@@ -352,7 +349,7 @@ class PProxy():
                 us_flag = "true"
             us_uuid = self.sanitize_str(data['uuid'])
             unsubscribe_link = self.config.get('django', 'url') + "/api/friend/" + us_id + "/subscribe/?uuid=" \
-                + us_uuid + "&subscribe=" + us_flag
+                + us_uuid + "&subscribe=" + us_flag + "&did=" + self.config.get('django', 'id')
             # print(unsubscribe_link)
 
         if (data['action'] == 'add_user'):
@@ -366,7 +363,7 @@ class PProxy():
                 lock.acquire()
                 self.logger.debug("lock acquired")
                 username = self.sanitize_str(data['cert_name'])
-                if "tunnel" in data["config"]:
+                if "config" in data and "tunnel" in data["config"]:
                     tunnel = data["config"]["tunnel"]
                 else:
                     tunnel = "all"
@@ -418,6 +415,7 @@ class PProxy():
                     self.leds.blink(color=(255, 0, 0),
                                     wait=200,
                                     repetitions=6)
+                    send_email = False
 
                 if txt is not None:
                     self.logger.debug("add_user: " + txt)
@@ -450,6 +448,10 @@ class PProxy():
                 self.logger.error("username to be removed was empty")
                 return
             self.logger.debug("Removing user: " + username)
+            if "config" in data and "tunnel" in data["config"]:
+                tunnel = data["config"]["tunnel"]
+            else:
+                tunnel = "all"
             ip_address = ipw.myip()
             try:
                 # show a blue led ring fill down pattern when
@@ -457,7 +459,7 @@ class PProxy():
                 self.leds.fill_downfrom(color=(0, 0, 255),
                                         percentage=1,
                                         wait=50)
-                services.delete_user(username)
+                services.delete_user(username, tunnel)
             except BaseException:
                 self.logger.exception("delete friend failed!")
                 # blink led red for 5 times if exception happens

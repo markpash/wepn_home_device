@@ -1,3 +1,4 @@
 {{text}}
 
-* You can stop receiving these updates by unsubscribing here: {{unsubscribe_link}}. You will lose access if the VPN changes IP address.
+* You will lose access if the VPN changes IP address.
+* You can stop receiving these updates by unsubscribing here: {{unsubscribe_link}}.

@@ -97,17 +97,45 @@ class Tor(Service):
         return
 
     def get_service_creds_summary(self, ip_address):
-        return ""
+        local_db = dataset.connect(
+            'sqlite:///' + self.config.get('tor', 'db-path') + "?check_same_thread=False")
+        servers = local_db['servers']
+        creds = {}
+        if not servers or not self.is_enabled():
+            self.logger.debug("No servers found for Tor access creds")
+            return {}
+        for server in local_db['servers']:
+            if server['certname'] == "''" or not server['certname']:
+                self.logger.error("Certname is empty, skipping")
+                continue
+            self.logger.debug("creds for " + server['certname'])
+            link = self.get_short_link_text(server["certname"], ip_address)
+            hash_link = hashlib.sha256(link.encode()).hexdigest()[:10]
+            creds[server['certname']] = hash_link
+        return creds
 
     def get_usage_status_summary(self):
-        return {}
+        local_db = dataset.connect(
+            'sqlite:///' + self.config.get('tor', 'db-path') + "?check_same_thread=False")
+        servers = local_db['servers']
+        creds = {}
+        if not servers or not self.is_enabled():
+            self.logger.debug("No servers found for Tor access creds")
+            return {}
+        for server in local_db['servers']:
+            if server['certname'] == "''" or not server['certname']:
+                self.logger.error("Certname is empty, skipping")
+                continue
+            self.logger.debug("creds for " + server['certname'])
+            creds[server['certname']] = -1
+        return creds
 
     def get_usage_daily(self):
         return ""
 
     def is_user_registered(self, cname):
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('tor', 'db-path'))
+            'sqlite:///' + self.config.get('tor', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         server = servers.find_one(certname=cname)
         if server is None:
@@ -129,7 +157,7 @@ class Tor(Service):
             manuals = []
             subject = "Your New Tor Bridge Access Details"
             txt = "\nYou have been granted access to a private Tor bridge. "
-            txt += "Install Onion Browser, and enter the below link as Tor Bridge address"
+            txt += "Install Onion Browser, and enter the below link as Tor Bridge address: "
             html = "<h2>You have been granted access to a private Tor.</h2>"
             html += "Install Onion Browser, and enter the below link as Tor Bridge address: "
             txt += self.get_short_link_text(cname, ip_address)

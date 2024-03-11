@@ -18,7 +18,7 @@ clean_port=${port//[^0-9]/}
 
 CLEAN=${name//_/}
 CLEAN=${CLEAN// /_}
-CLEAN=${CLEAN//[^a-zA-Z0-9_]/}
+CLEAN=${CLEAN//[^a-zA-Z0-9_\.]/}
 clean_name=`echo -n $CLEAN | tr A-Z a-z`
 main_users_dir=/var/local/pproxy/users
 userdir=$main_users_dir/$clean_name

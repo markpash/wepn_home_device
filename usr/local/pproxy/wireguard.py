@@ -24,7 +24,7 @@ class Wireguard(Service):
 
     def santizie_service_filename(self, filename):
         s = sanitize(filename)
-        s = re.sub(r'[^a-zA-Z0-9]', '', s)
+        s = re.sub(r'[^a-zA-Z0-9\.]', '', s)
         s = s.lower()
         return s
 
@@ -78,11 +78,24 @@ class Wireguard(Service):
         self.execute_setuid(cmd)
         return
 
+    def get_users_list(self):
+        users = []
+        for d in os.listdir(USERS_DIR):
+            if (os.path.isdir(USERS_DIR + d) and os.path.isfile(USERS_DIR + d + "/wg.conf")):
+                users.append(d)
+        return users
+
     def get_service_creds_summary(self, ip_address):
-        return {}
+        creds = {}
+        for d in self.get_users_list():
+            creds[d] = hashlib.sha256(self.get_short_link_text(d, ip_address).encode()).hexdigest()[:10]
+        return creds
 
     def get_usage_status_summary(self):
-        return {}
+        usage = {}
+        for d in self.get_users_list():
+            usage[d] = -1
+        return usage
 
     def get_usage_daily(self):
         return {}
@@ -121,20 +134,20 @@ class Wireguard(Service):
         filename = self.get_user_config_file_path(cname)
         if filename is not None:
             with open(filename, "rb") as file:
-                encoded_string = "wg://" + base64.b64encode(file.read())
+                encoded_string = "wg://" + str(base64.b64encode(file.read()).decode('utf-8'))
         return encoded_string
 
     def get_add_email_text(self, certname, ip_address, lang, is_new_user=False):
         txt = ''
         html = ''
-        subject = ''
+        subject = "Your New VPN Access Details"
         attachments = []
         if self.is_enabled() and self.can_email() and self.is_user_registered(certname):
             txt = "To use Wireguard (" + ip_address + \
-                ") \n\n1. download the attached certificate, \n 2. install Wireguard Client." + \
-                "\n 3. Import the certificate you downloaded in step 1."
+                  "): \n\n1. Download the attached certificate, \n2. Install Wireguard Client." + \
+                  "\n3. Import the certificate you downloaded in step 1."
             html = "To use Wireguard (" + ip_address + \
-                ")<ul><li>download the attached certificate, \n <li>install Wireguard Client." + \
+                ")<ul><li>Download the attached certificate, \n <li>Install Wireguard Client." + \
                 "<li> Import the certificate you downloaded in step 1.</ul>"
             attachments.append(self.get_user_config_file_path(certname))
         return txt, html, attachments, subject

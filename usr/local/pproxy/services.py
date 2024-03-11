@@ -102,7 +102,7 @@ class Services:
         txt = '\n'
         html = ''
         attachments = []
-        subject = ''
+        subject = 'Your New VPN Access Details'
         for service in self.services:
             if tunnel == "all" or tunnel == service["name"]:
                 ttxt, thtml, tattachments, tsubject = service['obj'].get_add_email_text(
@@ -111,7 +111,7 @@ class Services:
                 html += thtml + '<br />'
                 attachments.extend(tattachments)
                 # this would assume only one service has a subject
-                subject += tsubject
+                # subject += tsubject
         return txt, html, attachments, subject
 
     def get_service_creds_summary(self, ip_address):
