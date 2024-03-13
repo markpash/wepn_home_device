@@ -29,17 +29,23 @@ class Wireguard(Service):
         return s
 
     def add_user(self, certname, ip_address, password, port, lang):
-        if self.is_user_registered(certname):
-            old_ip, old_port = self.get_external_ip_port_in_conf(certname)
-            if old_ip == ip_address and old_port == int(port):
-                # nothing has changed, do nothing
-                return False
-        cmd = '/bin/bash ./add_user_wireguard.sh '
-        cmd += self.santizie_service_filename(certname)
-        cmd += " " + self.config.get("wireguard", "wireport")
-        self.logger.debug(cmd)
-        self.execute_cmd(cmd)
-        return self.is_user_registered(certname)
+        try:
+            if not os.path.isdir(USERS_DIR):
+                os.mkdir(USERS_DIR)
+            if self.is_user_registered(certname):
+                old_ip, old_port = self.get_external_ip_port_in_conf(certname)
+                if old_ip == ip_address and old_port == int(port):
+                    # nothing has changed, do nothing
+                    return False
+            cmd = '/bin/bash ./add_user_wireguard.sh '
+            cmd += self.santizie_service_filename(certname)
+            cmd += " " + self.config.get("wireguard", "wireport")
+            self.logger.debug(cmd)
+            self.execute_cmd(cmd)
+            return self.is_user_registered(certname)
+        except Exception as e:
+            self.logger.exception(e)
+            return False
 
     def delete_user(self, certname):
         cmd = '/bin/bash ./delete_user_wireguard.sh '
@@ -80,9 +86,15 @@ class Wireguard(Service):
 
     def get_users_list(self):
         users = []
-        for d in os.listdir(USERS_DIR):
-            if (os.path.isdir(USERS_DIR + d) and os.path.isfile(USERS_DIR + d + "/wg.conf")):
-                users.append(d)
+        try:
+            if os.path.isdir(USERS_DIR):
+                for d in os.listdir(USERS_DIR):
+                    if (os.path.isdir(USERS_DIR + d) and os.path.isfile(USERS_DIR + d + "/wg.conf")):
+                        users.append(d)
+            else:
+                os.mkdir(USERS_DIR)
+        except Exception as e:
+            self.logger.exception(e)
         return users
 
     def get_service_creds_summary(self, ip_address):

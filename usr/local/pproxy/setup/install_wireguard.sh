@@ -20,6 +20,10 @@
 PORT=`cat /etc/pproxy/config.ini  | grep wireport | awk '{print $3}'`
 PORT=${ORPORT:=6711}
 
+configs_path=/var/local/pproxy/users/
+mkdir $configs_path
+chown pproxy:pproxy $configs_path
+
 cd /etc/wireguard
 
 umask 077
