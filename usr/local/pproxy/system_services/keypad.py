@@ -1,5 +1,5 @@
 try:
-    import RPi.GPIO as GPIO
+    from gpiozero import Button
     from adafruit_bus_device import i2c_device
     import adafruit_aw9523
 except Exception as e:
@@ -7,9 +7,9 @@ except Exception as e:
     print(e)
 from PIL import Image, ImageDraw, ImageFont
 import logging
-import board
 import math
 import time
+import board
 import signal
 import os
 import sys
@@ -108,10 +108,7 @@ class KEYPAD:
     def init_i2c(self):
         if (int(self.config.get('hw', 'buttons'))) == 0:
             return
-        GPIO.setmode(GPIO.BCM)
         i2c = board.I2C()
-        # Set this to the GPIO of the interrupt:
-        GPIO.setup(INT_EXPANDER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         try:
             self.aw = adafruit_aw9523.AW9523(i2c, 0x58)
             new_i2c = i2c_device.I2CDevice(i2c, 0x58)
@@ -163,7 +160,8 @@ class KEYPAD:
         #    print("Inputs: {:016b}".format(self.aw.inputs))
         #    time.sleep(0.5)
         time.sleep(0.5)
-        GPIO.add_event_detect(INT_EXPANDER, GPIO.FALLING, callback=self.key_press_cb)
+        button = Button(5)
+        button.when_pressed = self.key_press_cb
 
     def key_press_cb(self, channel):
         inputs = self.aw.inputs
