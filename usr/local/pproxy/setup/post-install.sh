@@ -84,7 +84,8 @@ chown root:root $PPROXY_HOME/system_services/led_manager.py
 
 cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
-python3 -m venv $PPROXY_VENV
+/usr/sbin/dhclient
+python3 -m venv $PPROXY_VENV --system
 source $PPROXY_VENV/bin/activate
 touch $VENV_FLAG_FILE
 
