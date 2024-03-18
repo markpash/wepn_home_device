@@ -85,7 +85,7 @@ chown root:root $PPROXY_HOME/system_services/led_manager.py
 cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
 /usr/sbin/dhclient
-python3 -m venv $PPROXY_VENV --system
+python -m venv $PPROXY_VENV --system
 source $PPROXY_VENV/bin/activate
 touch $VENV_FLAG_FILE
 
@@ -93,15 +93,30 @@ mkdir -p $PIP_CACHE
 chown root $PIP_CACHE
 chown root $PIP_CACHE/* -R
 
-pip3 install --upgrade pip --cache-dir $PIP_CACHE
-pip3 install -r $PPROXY_HOME/setup/requirements.txt --cache-dir $PIP_CACHE
+pip install --upgrade pip --cache-dir $PIP_CACHE
+pip install -r $PPROXY_HOME/setup/requirements.txt --cache-dir $PIP_CACHE
 if [ ! $? -eq 0 ]; then
 	echo "Doing one-by-one pip install"
 	for pkg in `cat $PPROXY_HOME/setup/requirements.txt`
 	do
-		pip3 install --ignore-installed $pkg
+		pip install --ignore-installed $pkg
 	done
 fi
+
+##############################################################################
+# remove extra dependency that kills keypad. this is not a proper fix, just a
+# workaround. Both these packages add a "board.py"
+# in root of venv. Hence the need to reinstall Adafruit-Blinka
+
+pip show board
+if [  $? -eq 0 ]; then
+	# board should not be installed
+	pip uninstall board
+	pip install --force-reinstall Adafruit-Blinka==8.35.0
+fi
+
+##############################################################################
+
 chown pproxy:pproxy $PPROXY_VENV
 chown pproxy:pproxy $PPROXY_VENV/* -R
 chown pproxy:pproxy $PIP_CACHE
@@ -193,6 +208,7 @@ sudo resolvconf -u
 ##################################
 
 $addgroup wepn-web
+$addgroup shadow-runners
 $adduser pproxy wepn-web
 $adduser wepn-api wepn-web
 $adduser wepn-api shadow-runners
@@ -274,19 +290,20 @@ systemctl enable shadowsocks-libev-manager
 echo -e "\n enabling i2c"
 $adduser pproxy i2c
 $adduser pproxy gpio
-if grep -Fxq "dtparam=i2c_arm=on" /boot/config.txt
+BOOT_CONFIG=/boot/firmware/config.txt
+if grep -Fxq "dtparam=i2c_arm=on" $BOOT_CONFIG
 then
    echo "i2c aleady enabled"
 else
-   echo -e 'dtparam=i2c_arm=on' >> /boot/config.txt
+   echo -e 'dtparam=i2c_arm=on' >> $BOOT_CONFIG
 fi
 
-if grep -Fxq "hdmi_force_hotplug=1" /boot/config.txt
+if grep -Fxq "hdmi_force_hotplug=1" $BOOT_CONFIG
 then
    echo "audio already rerouted"
 else
-   echo -e 'hdmi_force_hotplug=1' >> /boot/config.txt
-   echo -e 'hdmi_force_edid_audio=1' >> /boot/config.txt
+   echo -e 'hdmi_force_hotplug=1' >> $BOOT_CONFIG
+   echo -e 'hdmi_force_edid_audio=1' >> $BOOT_CONFIG
 fi
 
 if ! grep -Fq "i2c" /etc/modules
@@ -296,11 +313,11 @@ then
 fi
 
 echo -e "\n enabling spi"
-if grep -Fxq "dtparam=spi=on" /boot/config.txt
+if grep -Fxq "dtparam=spi=on" $BOOT_CONFIG
 then
    echo "spi aleady enabled"
 else
-   echo -e 'dtparam=spi=on' >> /boot/config.txt
+   echo -e 'dtparam=spi=on' >> $BOOT_CONFIG
 fi
 
 echo -e "\n#### Restarting services ####"
