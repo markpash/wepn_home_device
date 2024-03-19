@@ -157,10 +157,10 @@ class Wireguard(Service):
         if self.is_enabled() and self.can_email() and self.is_user_registered(certname):
             txt = "To use Wireguard (" + ip_address + \
                   "): \n\n1. Download the attached certificate, \n2. Install Wireguard Client." + \
-                  "\n3. Import the certificate you downloaded in step 1."
+                  "\n3. Import the certificate you downloaded in the first step."
             html = "To use Wireguard (" + ip_address + \
                 ")<ul><li>Download the attached certificate, \n <li>Install Wireguard Client." + \
-                "<li> Import the certificate you downloaded in step 1.</ul>"
+                "<li> Import the certificate you downloaded in the first step.</ul>"
             attachments.append(self.get_user_config_file_path(certname))
         return txt, html, attachments, subject
 

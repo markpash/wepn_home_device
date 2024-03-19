@@ -492,12 +492,12 @@ class Shadow(Service):
                            '/usr/local/pproxy/ui/' + lang + '/potatso.png']
                 subject = "Your New VPN Access Details"
                 if not is_new_user:
-                    txt = "You have been granted access to a private VPN server(" + str(ip_address) + ")."
+                    txt = "You have been granted access to a private VPN server (" + str(ip_address) + "). "
                     txt += 'This VPN server uses Shadowsocks server. To start using this service:'
-                    html = "<h2>You have been granted access to a private VPN server.</h2>"
+                    html = "<h2>You have been granted access to a private VPN server (" + str(ip_address) + "). </h2>"
                     html += 'This VPN server uses Shadowsocks server. To start using this service, '
                 else:
-                    txt = "Your access link to the private VPN server is updated."
+                    txt = "Your access link to the private VPN server is updated. "
                     txt += "This might be due to an IP change, among other reasons."
                     html = "<h2>Your access link to the private VPN server is updated.</h2>"
                     html += "This might be due to an IP change, among other reasons."
