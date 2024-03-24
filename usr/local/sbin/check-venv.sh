@@ -11,6 +11,11 @@ if ! [ -z $installer_pid ]; then
 	wait $installer_pid
 fi
 
+# wait 5 mins for the device to become stable.
+# also helps prevent removing pip env when filesystem
+# is expanding after first boot.
+sleep 300
+
 if ! [ -f $flag_file ]; then
 	need_reinstall=true
 fi
