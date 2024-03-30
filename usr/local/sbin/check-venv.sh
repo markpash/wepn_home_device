@@ -61,13 +61,19 @@ do
 	retval=$?
 done
 
-service_state=`systemctl show -p SubState --value wepn-main`
+# Disabling this check
+# this has made re-insall, a very expensive process, much
+# more common since ALL start failures trigger a reinstall.
+#
+#
+# service_state=`systemctl show -p SubState --value wepn-main`
 
-if ! [ "$service_state" = "running" ]
-then
-	echo "service failed: $service_state"
-	need_reinstall=true
-fi
+# if ! [ "$service_state" = "running" ]
+# then
+# 	echo "service failed: $service_state"
+#	need_reinstall=true
+# fi
+#
 
 
 if [ "$need_reinstall" = true ]; then
