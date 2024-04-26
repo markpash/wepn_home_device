@@ -44,22 +44,29 @@ class WStatus:
     def set_field(self, section, field, value):
         if not isinstance(value, str):
             value = str(value)
-        self.status.set(section, field, value)
+        self.status[section][field] = value
         self.logger.debug('setting ' + field + ' to ' + value)
 
     def get(self, field):
         try:
             return self.get_field('status', field)
         except:
-            self.logger.error("Unknown field: " + field)
+            self.logger.exception("Unknown field: " + field)
             return ""
 
     def get_field(self, section, field):
         try:
-            return self.status.get(section, field)
+            res = ""
+            ret = self.status.get(section, field)
+            if "[" in ret and "]" in ret:
+                res = ret.strip('][\'\"').split(', ')
+            if isinstance(res, list):
+                return res[0]
+            else:
+                return ret
         except:
-            self.logger.error("Unknown section/field: "
-                              + section + ":" + field)
+            self.logger.exception("Unknown section/field: "
+                                  + section + ":" + field)
             return ""
 
     def set_service_status(self, service_name, is_enabled):

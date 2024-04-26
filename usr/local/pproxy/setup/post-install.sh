@@ -99,7 +99,7 @@ if [ ! $? -eq 0 ]; then
 	echo "Doing one-by-one pip install"
 	for pkg in `cat $PPROXY_HOME/setup/requirements.txt`
 	do
-		pip install --ignore-installed $pkg
+		pip install $pkg
 	done
 fi
 
