@@ -1,29 +1,30 @@
 try:
-    from gpiozero import Button
     from adafruit_bus_device import i2c_device
     import adafruit_aw9523
 except Exception as e:
     print("RPi import failed")
     print(e)
 from PIL import Image, ImageDraw, ImageFont
+import board
 import logging
 import math
-import time
-import board
-import signal
 import os
+import signal
 import sys
+import time
+
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
+
 # above line is needed for following classes:
-from led_client import LEDClient  # noqa E402 need up_dir first
-from heartbeat import HeartBeat  # noqa E402 need up_dir first
-from device import Device  # noqa E402 need up_dir first
-from diag import WPDiag  # noqa E402 need up_dir first
-from lcd import LCD as LCD  # noqa E402 need up_dir first
 import constants as consts  # noqa E402 need up_dir first
 from constants import LOG_CONFIG # noqa E402 need up_dir first
 from constants import FORCE_SCREEN_ON # noqa E402 need up_dir first
+from device import Device  # noqa E402 need up_dir first
+from diag import WPDiag  # noqa E402 need up_dir first
+from heartbeat import HeartBeat  # noqa E402 need up_dir first
+from lcd import LCD as LCD  # noqa E402 need up_dir first
+from led_client import LEDClient  # noqa E402 need up_dir first
 
 try:
     from self.configparser import configparser
@@ -160,8 +161,16 @@ class KEYPAD:
         #    print("Inputs: {:016b}".format(self.aw.inputs))
         #    time.sleep(0.5)
         time.sleep(0.5)
-        button = Button(5)
-        button.when_pressed = self.key_press_cb
+        if self.device.is_legacy_gpio():
+            import RPi.GPIO as GPIO
+            GPIO.setmode(GPIO.BCM)
+            # Set this to the GPIO of the interrupt:
+            GPIO.setup(INT_EXPANDER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO.add_event_detect(INT_EXPANDER, GPIO.FALLING, callback=self.key_press_cb)
+        else:
+            from gpiozero import Button
+            button = Button(5)
+            button.when_pressed = self.key_press_cb
 
     def key_press_cb(self, channel):
         inputs = self.aw.inputs

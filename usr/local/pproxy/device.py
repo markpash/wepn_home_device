@@ -1,19 +1,21 @@
-import time
+import atexit
+from json import JSONDecodeError
+import json
 import getopt
-import random
 from getmac import get_mac_address
 import netifaces
-import atexit
 import os
-import upnpclient as upnp
+from packaging import version
+from packaging.version import Version
+import platform
+import psutil
+from pystemd.systemd1 import Unit
+import random
 import requests
 import re
-from json import JSONDecodeError
-from packaging import version
 import sys
-from pystemd.systemd1 import Unit
-import psutil
-import json
+import time
+import upnpclient as upnp
 
 try:
     from configparser import configparser
@@ -782,3 +784,22 @@ class Device():
             return True
         else:
             return False
+
+    def get_os_info(self):
+        os_release = {}
+        with open("/etc/os-release") as os_file:
+            for line in os_file:
+                name, var = line.partition("=")[::2]
+                os_release[name.strip()] = str(var)
+        return os_release
+
+    def get_os_codename(self):
+        os_info = self.get_os_info()
+        return os_info["VERSION_CODENAME"]
+
+    # kernel 6.6.x removed support for debugfs
+    # which broke older GPIO interface
+    # this return is OS is legacy model or updated
+    def is_legacy_gpio(self):
+        release = platform.release().split("-")[0]
+        return Version(release) < Version("6.6.0")
