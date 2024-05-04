@@ -27,6 +27,7 @@ device = Device(l)
 
 ip_address = ipw.myip()
 print(">>>>>>>>>>>> adding user ue.mp")
+print(a.get_service_creds_summary("1.2.3.4"))
 #s.add_user("ue.mp", ip_address ,"9628834282", 4000, 'en')#
 #print(s.get_add_email_text("ue.mp",ip_address,"en"))
 print(">>>>>>>>>>>> looking at list ")
@@ -44,6 +45,6 @@ print(">>>>>>>>>>>> looking at list ")
 #txt, html, attachments, subject = a.get_add_email_text("mycertname51",ip_address, 'en') 
 #print ("text is = " +txt)
 #print("deleting user ue.mp")
-s.self_test()
+#s.self_test()
 #s.delete_user("ue.mp")#
 #device.execute_cmd('/usr/bin/upnpc -l > /tmp/b')

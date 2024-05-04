@@ -6,6 +6,8 @@ export LANG=en_US.UTF-8
 export PATH=$PATH:/usr/local/sbin/:/usr/sbin/
 export DEBIAN_FRONTEND=noninteractive
 
+OS_VERSION=`cat /etc/os-release | grep VERSION_CODENAME | awk -F= '{print $2}'`
+
 PPROXY_HOME=/usr/local/pproxy
 PPROXY_VENV=/var/local/pproxy/wepn-env
 PIP_CACHE=/var/local/pproxy/pip-cache
@@ -14,10 +16,10 @@ OVPN_ENABLED=0
 adduser=/usr/sbin/adduser
 addgroup=/usr/sbin/addgroup
 
-######################################
+##############################################################################
 ## add heartbeat to crontab
 ## system updates to weekly/daily crontab
-######################################
+##############################################################################
 /usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
 /usr/bin/crontab -u root $PPROXY_HOME/setup/cron-root
 /usr/bin/crontab -u pi $PPROXY_HOME/setup/cron-pi
@@ -25,10 +27,10 @@ addgroup=/usr/sbin/addgroup
 WHO=`whoami`
 echo -e "$WHO"
 
-######################################
+##############################################################################
 ## Copy back up config files
 ## helps when files get corrupted
-######################################
+##############################################################################
 if [ ! -f "/var/local/pproxy/config.bak" ]; then
     cp /etc/pproxy/config.ini /var/local/pproxy/config.bak
 fi
@@ -41,10 +43,9 @@ chmod 0600 /var/local/pproxy/config.bak
 chown pproxy:pproxy /var/local/pproxy/status.bak
 chmod 0600 /var/local/pproxy/status.bak
 
-######################################
-######################################
+##############################################################################
 ## Add PProxy user
-######################################
+##############################################################################
 echo -e "\n* Configuring WEPN ... "
 echo -e "If you are setting up services yourself, expect some user/owner/file warnings."
 echo -e "These are usually harmless errors."
@@ -54,6 +55,8 @@ rm -rf /.git/*
 
 echo -e "\nAdding users"
 $adduser pproxy --disabled-password --disabled-login --home $PPROXY_HOME --quiet --gecos "WEPN PPROXY User"
+# Covering case of a first time setup
+/usr/bin/crontab -u pproxy $PPROXY_HOME/setup/cron
 $adduser openvpn --disabled-password --disabled-login  --quiet --gecos "OpenVPN User"
 # Adding specific API user so it can have access to local network
 $adduser wepn-api --disabled-password --disabled-login --home $PPROXY_HOME/local_server --quiet --gecos "WEPN-API User"
@@ -84,7 +87,14 @@ chown root:root $PPROXY_HOME/system_services/led_manager.py
 
 cat $PPROXY_HOME/setup/sudoers > /etc/sudoers
 
-python3 -m venv $PPROXY_VENV
+#  dhclient is called here since sometimes there was an IP issue here.
+# Very random, but a quick fix.
+/usr/sbin/dhclient
+
+##############################################################################
+## Setup and start using the virtual env for python
+##############################################################################
+python -m venv $PPROXY_VENV --system
 source $PPROXY_VENV/bin/activate
 touch $VENV_FLAG_FILE
 
@@ -92,15 +102,42 @@ mkdir -p $PIP_CACHE
 chown root $PIP_CACHE
 chown root $PIP_CACHE/* -R
 
-pip3 install --upgrade pip --cache-dir $PIP_CACHE
-pip3 install -r $PPROXY_HOME/setup/requirements.txt --cache-dir $PIP_CACHE
+pip install --upgrade pip --cache-dir $PIP_CACHE
+
+REQUIREMENTS_FILE_PATH=$PPROXY_HOME/setup/requirements-$OS_VERSION.txt
+if ! test -f $REQUIREMENTS_FILE_PATH; then
+	REQUIREMENTS_FILE_PATH=$PPROXY_HOME/setup/requirements.txt
+fi
+
+pip install -r $REQUIREMENTS_FILE_PATH --cache-dir $PIP_CACHE
 if [ ! $? -eq 0 ]; then
 	echo "Doing one-by-one pip install"
-	for pkg in `cat $PPROXY_HOME/setup/requirements.txt`
+	for pkg in `cat $REQUIREMENTS_FILE_PATH`
 	do
-		pip3 install --ignore-installed $pkg
+		pip install $pkg
 	done
 fi
+
+chown pproxy:pproxy $PIP_CACHE/* -R
+
+##############################################################################
+# remove extra dependency that kills keypad. this is not a proper fix, just a
+# workaround. Both these packages add a "board.py"
+# in root of venv. Hence the need to reinstall Adafruit-Blinka
+# this only applies to bullseye devices going to bookwork (kernel upgrade)
+##############################################################################
+
+if [ $OS_VERSION == "bullseye" ]; then
+	pip show board
+	if [  $? -eq 0 ]; then
+		# board should not be installed
+		pip uninstall -y board
+		pip install --force-reinstall Adafruit-Blinka==8.35.0
+	fi
+fi
+
+##############################################################################
+
 chown pproxy:pproxy $PPROXY_VENV
 chown pproxy:pproxy $PPROXY_VENV/* -R
 chown pproxy:pproxy $PIP_CACHE
@@ -119,7 +156,10 @@ else
 fi
 
 # this was missing when using git and not dpkg
-cp /var/local/pproxy/git/home_device/etc/pproxy/acl.conf /etc/pproxy/acl.conf
+if test /var/local/pproxy/git/home_device/etc/pproxy/acl.conf; then
+	cp /var/local/pproxy/git/home_device/etc/pproxy/acl.conf /etc/pproxy/acl.conf
+fi
+
 chown pproxy:pproxy /etc/pproxy/*
 chmod 644 /etc/pproxy/*
 
@@ -127,9 +167,9 @@ REMOTE_KEY=/var/local/pproxy/shared_remote_key.priv
 chown pproxy:pproxy $REMOTE_KEY
 chmod 0600 $REMOTE_KEY
 
-######################################
+##############################################################################
 ## Add OpenVPN Users, Set it up
-######################################
+##############################################################################
 if [ $OVPN_ENABLED -eq 1 ]; then
 
 	echo -e "\nSet up OpenVPN ..."
@@ -172,11 +212,11 @@ if [ $OVPN_ENABLED -eq 1 ]; then
 	/bin/bash $PPROXY_HOME/setup/openvpn-iptables.sh
 fi
 
-##################################
+##############################################################################
 # Setup DNS
 # This can be used to make
 # queries faster and safer
-##################################
+##############################################################################
 echo "Setting up DNS (local/remote)"
 systemctl enable resolvconf.service
 systemctl start resolvconf.service
@@ -187,11 +227,12 @@ EOF
 sudo resolvconf --enable-updates
 sudo resolvconf -u
 
-##################################
+##############################################################################
 # Create and correct permissions
-##################################
+##############################################################################
 
 $addgroup wepn-web
+$addgroup shadow-runners
 $adduser pproxy wepn-web
 $adduser wepn-api wepn-web
 $adduser wepn-api shadow-runners
@@ -203,9 +244,9 @@ chmod 664 /var/local/pproxy/tor.db*
 chown pproxy:shadow-runners /var/local/pproxy/shadow/shadow.sock
 chown pproxy:shadow-runners /var/local/pproxy/
 
-##################################
+##############################################################################
 # Create SSL invalid certifcates
-##################################
+##############################################################################
 echo -e "\n Setting up the local INVALID certificates"
 echo -e "These are ONLY used for local network communications."
 echo -e "Local API server will disable itself if it detects port exposure to external IP."
@@ -234,9 +275,9 @@ systemctl start wepn-keypad
 systemctl start wepn-leds
 cd $PPROXY_HOME/setup/
 
-##################################
+##############################################################################
 # Configure ShadowSocks
-##################################
+##############################################################################
 echo -e "\n ShadowSocks is being set up ... "
 $adduser shadowsocks --disabled-password --disabled-login  --quiet --gecos "ShadowSocks User"
 $addgroup shadow-runners
@@ -273,19 +314,20 @@ systemctl enable shadowsocks-libev-manager
 echo -e "\n enabling i2c"
 $adduser pproxy i2c
 $adduser pproxy gpio
-if grep -Fxq "dtparam=i2c_arm=on" /boot/config.txt
+BOOT_CONFIG=/boot/firmware/config.txt
+if grep -Fxq "dtparam=i2c_arm=on" $BOOT_CONFIG
 then
    echo "i2c aleady enabled"
 else
-   echo -e 'dtparam=i2c_arm=on' >> /boot/config.txt
+   echo -e 'dtparam=i2c_arm=on' >> $BOOT_CONFIG
 fi
 
-if grep -Fxq "hdmi_force_hotplug=1" /boot/config.txt
+if grep -Fxq "hdmi_force_hotplug=1" $BOOT_CONFIG
 then
    echo "audio already rerouted"
 else
-   echo -e 'hdmi_force_hotplug=1' >> /boot/config.txt
-   echo -e 'hdmi_force_edid_audio=1' >> /boot/config.txt
+   echo -e 'hdmi_force_hotplug=1' >> $BOOT_CONFIG
+   echo -e 'hdmi_force_edid_audio=1' >> $BOOT_CONFIG
 fi
 
 if ! grep -Fq "i2c" /etc/modules
@@ -295,11 +337,11 @@ then
 fi
 
 echo -e "\n enabling spi"
-if grep -Fxq "dtparam=spi=on" /boot/config.txt
+if grep -Fxq "dtparam=spi=on" $BOOT_CONFIG
 then
    echo "spi aleady enabled"
 else
-   echo -e 'dtparam=spi=on' >> /boot/config.txt
+   echo -e 'dtparam=spi=on' >> $BOOT_CONFIG
 fi
 
 echo -e "\n#### Restarting services ####"
@@ -312,10 +354,10 @@ chmod 0655 /etc/modprobe.d/snd-bcm2835.conf
 
 
 
-#######################################
+##############################################################################
 # Compile and intall the setuid program
 # so we don't need sudo
-######################################
+##############################################################################
 
 echo -e "\n compiling setuid"
 SRUN=/usr/local/sbin/wepn-run
@@ -327,26 +369,28 @@ ls -la $SRUN
 
 echo -e "\n done with setuid"
 
-#######################################
+##############################################################################
 # Install SeeedStudio for speakers
 # This is needed for HW2 ONLY
-######################################
+##############################################################################
 #/bin/bash install_seeedstudio.sh
 
 
 
-#######################################
+##############################################################################
 # Install Tor
-#######################################
+##############################################################################
 /bin/bash install_tor.sh
 
-#######################################
+##############################################################################
 # Install Wireguard
-#######################################
-#/bin/bash install_wireguard.sh
+##############################################################################
+/bin/bash install_wireguard.sh
 
 usermod -a -G spi pproxy
 usermod -a -G audio pproxy
+# below line needed for setup time prints
+usermod -a -G lp pproxy
 
 
 if [ $OVPN_ENABLED -eq 1 ]; then
@@ -357,11 +401,11 @@ else
 	systemctl stop openvpn
 fi
 
-#########################################################
+##############################################################################
 # TODO: this is not a good way to do this, but debhelper
 # can only handle one systemctl service ATM.
 # restart services independently to use this new update
-########################################################
+##############################################################################
 
 SERVICE_SH=/usr/local/pproxy/setup/set-services.sh
 chmod 755 $SERVICE_SH
@@ -369,6 +413,18 @@ FLG="/var/local/pproxy/pending-set-service"
 echo "1" > $FLG
 chown pproxy:pproxy $FLG
 
-########################################################
-echo -e "Installation of WEPN done."
+
+##############################################################################
+# kernels past 6.1 cause GPIO controls to change
+##############################################################################
+
+if [ $OS_VERSION == "bullseye" ]; then
+	/bin/bash /usr/local/pproxy/setup/freeze_kernel.sh
+fi
+
+
+##############################################################################
+echo -e "Installation of WEPN complete."
+echo -e "Restart WEPN services manually if you are reading this."
 exit 0
+##############################################################################

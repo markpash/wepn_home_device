@@ -1,30 +1,37 @@
 [openvpn]
-enabled = 1
+enabled = 0
 email = 0
 port = 3074
 
 [hw]
 buttons = 1
-led = 1
 iface = eth0
+num_leds = 27
+lcd-version = 3
+lcd = 1
+button-version = 2
+disable-reboot = 0
 
 [email]
 host = email-smtp.us-west-2.amazonaws.com
 port = 587
 username = CHANGE_SESUSER
-email = devices@we-pn.com
+email = WEPN Device<devices@we-pn.com>
 password = CHANGE_SESPASS
+enabled = 1
+type = text
 
 [mqtt]
-host = api.we-pn.com
+host = we-pn.com
 port = 8883
 timeout = 60
 username = CHANGE_DEVID
 password = CHANGE_DEVKEY
+onboard-timeout = 10
 
 [django]
 id = CHANGE_DEVID
-serial_number = CHANGE_SERIALNUM 
+serial_number = CHANGE_SERIALNUM
 host = api.we-pn.com
 url = https://api.we-pn.com
 device_key = CHANGE_DEVKEY
@@ -44,3 +51,23 @@ state = 2
 claimed = 1
 sw = 0.400
 
+[usage]
+db-path = /var/local/pproxy/usage.db
+
+[dyndns]
+enabled = 0
+username = 
+password = 
+hostname = 
+url = https://{}:{}@domains.google.com/nic/update?hostname={}&myip={}
+
+[tor]
+enabled = 1
+email = 1
+db-path = /var/local/pproxy/tor.db
+orport = 8991
+
+[wireguard]
+enabled = 1
+email = 1
+wireport = 6711

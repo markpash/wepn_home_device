@@ -1,29 +1,30 @@
 try:
-    import RPi.GPIO as GPIO
     from adafruit_bus_device import i2c_device
     import adafruit_aw9523
 except Exception as e:
     print("RPi import failed")
     print(e)
 from PIL import Image, ImageDraw, ImageFont
-import logging
 import board
+import logging
 import math
-import time
-import signal
 import os
+import signal
 import sys
+import time
+
 up_dir = os.path.dirname(os.path.abspath(__file__)) + '/../'
 sys.path.append(up_dir)
+
 # above line is needed for following classes:
-from led_client import LEDClient  # noqa E402 need up_dir first
-from heartbeat import HeartBeat  # noqa E402 need up_dir first
-from device import Device  # noqa E402 need up_dir first
-from diag import WPDiag  # noqa E402 need up_dir first
-from lcd import LCD as LCD  # noqa E402 need up_dir first
 import constants as consts  # noqa E402 need up_dir first
 from constants import LOG_CONFIG # noqa E402 need up_dir first
 from constants import FORCE_SCREEN_ON # noqa E402 need up_dir first
+from device import Device  # noqa E402 need up_dir first
+from diag import WPDiag  # noqa E402 need up_dir first
+from heartbeat import HeartBeat  # noqa E402 need up_dir first
+from lcd import LCD as LCD  # noqa E402 need up_dir first
+from led_client import LEDClient  # noqa E402 need up_dir first
 
 try:
     from self.configparser import configparser
@@ -43,6 +44,12 @@ BUTTONS = ["0", "1", "2", "up", "down", "back", "home"]
 # Unit of time: how often it wakes from sleep
 # in seconds
 UNIT_TIMEOUT = 30
+
+# number of retries to wait before checking
+# for OTA version again.
+# 1 hr = 60 * (60/UNIT_TIMEOUT)
+TIMEOUTS_BETWEEN_OTA_CHECK = 60 * (60 / UNIT_TIMEOUT)
+
 # Multiply by unit above for all below timeouts
 NRML_SCREEN_TIMEOUT = 40
 # if an error is detected, keep screen
@@ -96,15 +103,13 @@ class KEYPAD:
         self.prev_diag_code = 0
         self.err_pending_ack = False
         self.dev_remaining = 7
+        self.retries_before_ota_check = 0
         self.channel = "prod"
 
     def init_i2c(self):
         if (int(self.config.get('hw', 'buttons'))) == 0:
             return
-        GPIO.setmode(GPIO.BCM)
         i2c = board.I2C()
-        # Set this to the GPIO of the interrupt:
-        GPIO.setup(INT_EXPANDER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         try:
             self.aw = adafruit_aw9523.AW9523(i2c, 0x58)
             new_i2c = i2c_device.I2CDevice(i2c, 0x58)
@@ -156,7 +161,16 @@ class KEYPAD:
         #    print("Inputs: {:016b}".format(self.aw.inputs))
         #    time.sleep(0.5)
         time.sleep(0.5)
-        GPIO.add_event_detect(INT_EXPANDER, GPIO.FALLING, callback=self.key_press_cb)
+        if self.device.is_legacy_gpio():
+            import RPi.GPIO as GPIO
+            GPIO.setmode(GPIO.BCM)
+            # Set this to the GPIO of the interrupt:
+            GPIO.setup(INT_EXPANDER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO.add_event_detect(INT_EXPANDER, GPIO.FALLING, callback=self.key_press_cb)
+        else:
+            from gpiozero import Button
+            button = Button(5)
+            button.when_pressed = self.key_press_cb
 
     def key_press_cb(self, channel):
         inputs = self.aw.inputs
@@ -340,7 +354,8 @@ class KEYPAD:
                        (3, "Serial #", 0, "blue"), (4, serial_number, 0, "white"),
                        (5, "[ID]", 0, "blue"), (6, device_number, 0, "white"),
                        (7, current_e2e_key, 0, "white")]
-        self.lcd.display(display_str, 20)
+        if self.screen_timed_out is False:
+            self.lcd.display(display_str, 20)
         # self.render()
         return True  # exit the menu
 
@@ -350,7 +365,8 @@ class KEYPAD:
         serial_number = self.config.get('django', 'serial_number')
         display_str = [(1, "https://red.we-pn.com/?pk=" + str(current_e2e_key) + "&s=" +
                         str(serial_number) + "&k=" + str(current_key), 2, "white"), ]
-        self.lcd.display(display_str, 20)
+        if self.screen_timed_out is False:
+            self.lcd.display(display_str, 20)
         return True  # exit the menu
 
     def restart(self):
@@ -446,12 +462,18 @@ class KEYPAD:
         except:
             warmed = True
         if int(self.status.get("status", "claimed")) == 0:
-            if self.device.needs_package_update():
-                # Disable showing QR Code when software needs upgrade
-                # This way the update screen will not be covered
-                # Other menus work though.
-                # TODO: We need a proper WindowManager
-                return
+            # we don't want to check OTA status every single time
+            # for example: every hour not every 3 seconds
+            if self.retries_before_ota_check == 0:
+                if self.device.needs_package_update():
+                    # Disable showing QR Code when software needs upgrade
+                    # This way the update screen will not be covered
+                    # Other menus work though.
+                    # TODO: We need a proper WindowManager
+                    return
+                self.retries_before_ota_check = TIMEOUTS_BETWEEN_OTA_CHECK
+            else:
+                self.retries_before_ota_check -= 1
             self.show_claim_info_qrcode()
         else:
             # show the status info

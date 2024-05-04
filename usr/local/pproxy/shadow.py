@@ -35,6 +35,7 @@ class Shadow(Service):
         fd, self.socket_path = tempfile.mkstemp()
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.prefix = "HTTP%2F1.1%20"
         try:
             self.sock.bind(self.socket_path)
         except OSError:
@@ -59,7 +60,7 @@ class Shadow(Service):
     def add_user(self, cname, ip_address, password, unused_port, lang):
         is_new_user = False
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         # get max of assigned ports, new port is 1+ that.
         # if no entry in DB, copy from config default port start
         servers = local_db['servers']
@@ -123,7 +124,7 @@ class Shadow(Service):
     def delete_user(self, cname):
         # stop the service for that cert
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         server = servers.find_one(certname=cname)
         if server is not None:
@@ -180,7 +181,7 @@ class Shadow(Service):
         # used at boot time
         # loop over cert files, start each
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         if len(servers) == 0:
             return
@@ -193,7 +194,7 @@ class Shadow(Service):
         # used at service stop time
         # loop over cert files, stop all
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         try:
             if not servers:
@@ -212,7 +213,7 @@ class Shadow(Service):
 
     def forward_all(self):
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         device = Device(self.logger)
         try:
@@ -236,9 +237,24 @@ class Shadow(Service):
         self.stop_all()
         return
 
+    def create_link_and_hash(self, password, ip, port, certname):
+        try:
+            uri = str(self.config.get('shadow', 'method')) + ':' + str(
+                password)
+            access_params = '@' + str(ip) + ':' + str(port)
+            if self.prefix is not None:
+                access_params += "/?prefix=" + str(self.prefix)
+            uri64 = 'ss://' + \
+                base64.urlsafe_b64encode(str.encode(uri)).decode(
+                    'utf-8') + access_params + "#WEPN-" + certname
+            hash_link = hashlib.sha256(uri64.encode()).hexdigest()[:10]
+            return uri64, hash_link
+        except:
+            return "", ""
+
     def get_service_creds_summary(self, ip_address):
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         creds = {}
         if not servers or not self.is_enabled():
@@ -249,13 +265,8 @@ class Shadow(Service):
                 self.logger.error("Certname is empty, skipping")
                 continue
             self.logger.debug("creds for " + server['certname'])
-            uri = str(self.config.get('shadow', 'method')) + ':' + str(
-                server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
-            uri64 = 'ss://' + \
-                base64.urlsafe_b64encode(str.encode(uri)).decode(
-                    'utf-8') + "#WEPN-" + str(server['certname'])
-            creds[server['certname']] = hashlib.sha256(
-                uri64.encode()).hexdigest()[:10]
+            link, hash_link = self.create_link_and_hash(server['password'], ip_address, server['server_port'], server['certname'])
+            creds[server['certname']] = hash_link
         return creds
 
     # TODO: this function is still a copy of creds, and needs work
@@ -273,7 +284,9 @@ class Shadow(Service):
         return response
 
     def get_access_link(self, cname):
-        local_db = dataset.connect('sqlite:///' + self.config.get('shadow', 'db-path'))
+        local_db = dataset.connect(
+            'sqlite:///' + self.config.get('shadow', 'db-path') +
+            "?check_same_thread=False")
         ipw = IPW()
         ip_address = shlex.quote(ipw.myip())
         if self.config.has_section("dyndns") and self.config.getboolean('dyndns', 'enabled'):
@@ -283,17 +296,11 @@ class Shadow(Service):
             server_address = ip_address
         servers = local_db['servers']
         server = servers.find_one(certname=cname)
-        uri = "unknown"
         uri64 = "empty"
         digest = ""
         link = None
         if server is not None:
-            uri = str(self.config.get('shadow', 'method')) + ':' + \
-                str(server['password']) + '@' + str(server_address) + ':' + str(server['server_port'])
-            uri64 = 'ss://' + \
-                base64.urlsafe_b64encode(str.encode(uri)).decode(
-                    'utf-8') + "#WEPN-" + str(server['certname'])
-            digest = hashlib.sha256(uri64.encode()).hexdigest()[:10]
+            uri64, digest = self.create_link_and_hash(server['password'], server_address, server['server_port'], server['certname'])
             link = "{\"type\":\"shadowsocks\", \"link\":\"" \
                 + uri64 + "\", \"digest\": \"" + str(digest) + "\" }"
         local_db.close()
@@ -315,7 +322,7 @@ class Shadow(Service):
 
         self.logger.debug("---summary -----")
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         usage_results = {}
         if not servers or not self.is_enabled():
@@ -331,7 +338,7 @@ class Shadow(Service):
         self.logger.debug(raw_str)
         response = json.loads(raw_str)
         usage_db = dataset.connect(
-            'sqlite:///' + self.config.get('usage', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
 
         usage_servers = usage_db['servers']
         usage_daily = usage_db['daily']
@@ -428,10 +435,10 @@ class Shadow(Service):
 
     def get_usage_daily(self):
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         usage_db = dataset.connect(
-            'sqlite:///' + self.config.get('usage', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         usage_daily = usage_db['daily']
         days = {}
         for server in servers:
@@ -463,15 +470,11 @@ class Shadow(Service):
         count = 0
         while count < 5:
             local_db = dataset.connect(
-                'sqlite:///' + self.config.get('shadow', 'db-path'))
+                'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
             servers = local_db['servers']
             server = servers.find_one(certname=cname)
             if server is not None:
-                uri = str(self.config.get('shadow', 'method')) + ':' + str(
-                    server['password']) + '@' + str(ip_address) + ':' + str(server['server_port'])
-                uri64 = 'ss://' + \
-                        base64.urlsafe_b64encode(str.encode(uri)).decode(
-                            'utf-8') + "#WEPN-" + str(cname)
+                uri64, digest = self.create_link_and_hash(server['password'], ip_address, server['server_port'], server['certname'])
                 return uri64
             else:
                 count += 1
@@ -489,12 +492,12 @@ class Shadow(Service):
                            '/usr/local/pproxy/ui/' + lang + '/potatso.png']
                 subject = "Your New VPN Access Details"
                 if not is_new_user:
-                    txt = "You have been granted access to a private VPN server. "
+                    txt = "You have been granted access to a private VPN server (" + str(ip_address) + "). "
                     txt += 'This VPN server uses Shadowsocks server. To start using this service:'
-                    html = "<h2>You have been granted access to a private VPN server.</h2>"
+                    html = "<h2>You have been granted access to a private VPN server (" + str(ip_address) + "). </h2>"
                     html += 'This VPN server uses Shadowsocks server. To start using this service, '
                 else:
-                    txt = "Your access link to the private VPN server is updated."
+                    txt = "Your access link to the private VPN server is updated. "
                     txt += "This might be due to an IP change, among other reasons."
                     html = "<h2>Your access link to the private VPN server is updated.</h2>"
                     html += "This might be due to an IP change, among other reasons."
@@ -527,7 +530,7 @@ class Shadow(Service):
 
     def get_max_port(self):
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         # get max of assigned ports
         # if no entry in DB, copy from config default port start
         try:
@@ -543,7 +546,7 @@ class Shadow(Service):
     def recover_missing_servers(self):
         pid_missing = True
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         if not servers:
             self.logger.debug('no servers for recovery')
@@ -569,7 +572,7 @@ class Shadow(Service):
         success = True
         local_port = 10000 + randrange(10)  # nosec: not used for cryptography
         local_db = dataset.connect(
-            'sqlite:///' + self.config.get('shadow', 'db-path'))
+            'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
         servers = local_db['servers']
         if not servers:
             # if no entry in DB, just return true. No fail is a pass

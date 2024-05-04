@@ -37,12 +37,16 @@ class Service:
     def reload(self):
         pass
 
-    def is_enabled(self):
-        # TODO: this is a workaround until we update service name everywhere
+    def get_config_section_name(self):
         if self.name == "shadowsocks":
             service_config_name = "shadow"
         else:
             service_config_name = self.name
+        return service_config_name
+
+    def is_enabled(self):
+        # TODO: this is a workaround until we update service name everywhere
+        service_config_name = self.get_config_section_name()
         if self.config.has_section(service_config_name):
             service_present = (int(self.config.get(service_config_name, 'enabled')) == 1)
             service_active = self.wstatus.get_service_status(self.name)
@@ -52,7 +56,7 @@ class Service:
 
     def set_enabled(self, is_enabled):
         previously_enabled = self.is_enabled()
-        self.wstatus.set_service_status(self.name, is_enabled)
+        self.wstatus.set_service_status(self.get_config_section_name(), is_enabled)
         self.wstatus.save()
         if is_enabled and not previously_enabled:
             self.start()
@@ -60,8 +64,8 @@ class Service:
             self.stop()
 
     def can_email(self):
-        if self.config.has_section(self.name):
-            return (int(self.config.get(self.name, 'email')) == 1)
+        if self.config.has_section(self.get_config_section_name()):
+            return (int(self.config.get(self.get_config_section_name(), 'email')) == 1)
         else:
             return False
 

@@ -179,6 +179,7 @@ if not status.has_option('status', 'e2e_key'):
     t_key = secrets.token_bytes(16)
     rand_e2e_key = base64.urlsafe_b64encode(t_key).decode("utf-8").strip()
     status.set('status', 'e2e_key', str(rand_e2e_key))
+    status.set('status', 'temp_e2e_key', str(rand_e2e_key))
 
 # Wireguard installation and config
 if not config.has_section('wireguard'):
@@ -189,7 +190,7 @@ if not config.has_section('wireguard'):
 
 # GCM is required, but older shadowsocks doesn't support it
 config.set('shadow', 'method', 'aes-256-gcm')
-status.set('status', 'sw', '1.16.5')
+status.set('status', 'sw', '1.18.1')
 
 with open(CONFIG_FILE, 'w') as configfile:
     config.write(configfile)

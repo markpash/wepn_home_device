@@ -90,15 +90,19 @@ class Services:
     def get_short_link_text(self, cname, ip_address, tunnel="all"):
         links = ""
         for service in self.services:
-            if tunnel == "all" or tunnel == service["name"]:
+            if tunnel == "all":
+                if links != "":
+                    links += ", "
                 links = links + str(service['obj'].get_short_link_text(cname, ip_address))
+            elif tunnel == service["name"]:
+                return str(service['obj'].get_short_link_text(cname, ip_address))
         return links
 
     def get_add_email_text(self, certname, ip_address, lang, tunnel="all", is_new_user=False):
         txt = '\n'
         html = ''
         attachments = []
-        subject = ''
+        subject = 'Your New VPN Access Details'
         for service in self.services:
             if tunnel == "all" or tunnel == service["name"]:
                 ttxt, thtml, tattachments, tsubject = service['obj'].get_add_email_text(
@@ -107,7 +111,7 @@ class Services:
                 html += thtml + '<br />'
                 attachments.extend(tattachments)
                 # this would assume only one service has a subject
-                subject += tsubject
+                # subject += tsubject
         return txt, html, attachments, subject
 
     def get_service_creds_summary(self, ip_address):

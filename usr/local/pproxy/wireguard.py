@@ -24,17 +24,28 @@ class Wireguard(Service):
 
     def santizie_service_filename(self, filename):
         s = sanitize(filename)
-        s = re.sub(r'[^a-zA-Z0-9]', '', s)
+        s = re.sub(r'[^a-zA-Z0-9\.]', '', s)
         s = s.lower()
         return s
 
     def add_user(self, certname, ip_address, password, port, lang):
-        cmd = '/bin/bash ./add_user_wireguard.sh '
-        cmd += self.santizie_service_filename(certname)
-        cmd += " " + self.config.get("wireguard", "wireport")
-        self.logger.debug(cmd)
-        self.execute_cmd(cmd)
-        return False
+        try:
+            if not os.path.isdir(USERS_DIR):
+                os.mkdir(USERS_DIR)
+            if self.is_user_registered(certname):
+                old_ip, old_port = self.get_external_ip_port_in_conf(certname)
+                if old_ip == ip_address and old_port == int(port):
+                    # nothing has changed, do nothing
+                    return False
+            cmd = '/bin/bash ./add_user_wireguard.sh '
+            cmd += self.santizie_service_filename(certname)
+            cmd += " " + self.config.get("wireguard", "wireport")
+            self.logger.debug(cmd)
+            self.execute_cmd(cmd)
+            return self.is_user_registered(certname)
+        except Exception as e:
+            self.logger.exception(e)
+            return False
 
     def delete_user(self, certname):
         cmd = '/bin/bash ./delete_user_wireguard.sh '
@@ -73,20 +84,51 @@ class Wireguard(Service):
         self.execute_setuid(cmd)
         return
 
+    def get_users_list(self):
+        users = []
+        try:
+            if os.path.isdir(USERS_DIR):
+                for d in os.listdir(USERS_DIR):
+                    if (os.path.isdir(USERS_DIR + d) and os.path.isfile(USERS_DIR + d + "/wg.conf")):
+                        users.append(d)
+            else:
+                os.mkdir(USERS_DIR)
+        except Exception as e:
+            self.logger.exception(e)
+        return users
+
     def get_service_creds_summary(self, ip_address):
-        return {}
+        creds = {}
+        for d in self.get_users_list():
+            creds[d] = hashlib.sha256(self.get_short_link_text(d, ip_address).encode()).hexdigest()[:10]
+        return creds
 
     def get_usage_status_summary(self):
-        return {}
+        usage = {}
+        for d in self.get_users_list():
+            usage[d] = -1
+        return usage
 
     def get_usage_daily(self):
         return {}
+
+    def get_external_ip_port_in_conf(self, certname):
+        config_file_path = self.get_user_config_file_path(certname)
+        if config_file_path is None:
+            return None, None
+
+        with open(config_file_path, "r") as f:
+            contents = f.read()
+            endpoint_match = re.search(r"^Endpoint\s*=\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)\s*$", contents, re.MULTILINE)
+        if endpoint_match:
+            return endpoint_match.group(1), int(endpoint_match.group(2))
+        else:
+            return None, None
 
     def is_user_registered(self, certname):
         try:
             cert_dir = self.santizie_service_filename(certname)
             self.logger.debug("checking for user: " + cert_dir)
-            print((USERS_DIR + cert_dir + "/wg.conf"))
             return os.path.exists(USERS_DIR + cert_dir + "/wg.conf")
         except Exception:
             self.logger.exception("Could not check if wireguard registered")
@@ -104,21 +146,21 @@ class Wireguard(Service):
         filename = self.get_user_config_file_path(cname)
         if filename is not None:
             with open(filename, "rb") as file:
-                encoded_string = base64.b64encode(file.read())
+                encoded_string = "wg://" + str(base64.b64encode(file.read()).decode('utf-8'))
         return encoded_string
 
     def get_add_email_text(self, certname, ip_address, lang, is_new_user=False):
         txt = ''
         html = ''
-        subject = ''
+        subject = "Your New VPN Access Details"
         attachments = []
         if self.is_enabled() and self.can_email() and self.is_user_registered(certname):
             txt = "To use Wireguard (" + ip_address + \
-                ") \n\n1. download the attached certificate, \n 2. install Wireguard Client." + \
-                "\n 3. Import the certificate you downloaded in step 1."
+                  "): \n\n1. Download the attached certificate, \n2. Install Wireguard Client." + \
+                  "\n3. Import the certificate you downloaded in the first step."
             html = "To use Wireguard (" + ip_address + \
-                ")<ul><li>download the attached certificate, \n <li>install Wireguard Client." + \
-                "<li> Import the certificate you downloaded in step 1.</ul>"
+                ")<ul><li>Download the attached certificate, \n <li>Install Wireguard Client." + \
+                "<li> Import the certificate you downloaded in the first step.</ul>"
             attachments.append(self.get_user_config_file_path(certname))
         return txt, html, attachments, subject
 
@@ -129,7 +171,7 @@ class Wireguard(Service):
                 conf64 = base64.urlsafe_b64encode(conf)
                 digest = hashlib.sha256(conf64).hexdigest()[:10]
                 return "{\"type\":\"wireguard\", \"link\":\"" + \
-                    conf64.decode('utf-8') + \
+                    "wg://" + conf64.decode('utf-8') + \
                     "\", \"digest\": \"" + str(digest) + "\"}"
             except Exception:
                 self.logger.exception("Wireguard link crashing")
@@ -165,5 +207,21 @@ class Wireguard(Service):
         return
 
     def self_test(self):
+        '''
+        Perform a self-test of the Wireguard setup.
+        '''
         # not implemented for Wireguard
         return True
+
+    def get_enabled_peers(self):
+        """
+        Returns a list of currently enabled peers in the WireGuard setup.
+        """
+        enabled_peers = []
+        for config_file in os.listdir(USERS_DIR):
+            if os.path.isfile(os.path.join(USERS_DIR, config_file, "wg.conf")):
+                with open(os.path.join(USERS_DIR, config_file, "wg.conf"), "r") as f:
+                    contents = f.read()
+                    if "[Peer]" in contents:
+                        enabled_peers.append(config_file)
+        return enabled_peers
