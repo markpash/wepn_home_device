@@ -104,9 +104,9 @@ chown root $PIP_CACHE/* -R
 
 pip install --upgrade pip --cache-dir $PIP_CACHE
 
-REQUIREMENTS_FILE_PATH = $PPROXY_HOME/setup/requirements-$OS_VERSION.txt
+REQUIREMENTS_FILE_PATH=$PPROXY_HOME/setup/requirements-$OS_VERSION.txt
 if ! test -f $REQUIREMENTS_FILE_PATH; then
-	REQUIREMENTS_FILE_PATH = $PPROXY_HOME/setup/requirements.txt
+	REQUIREMENTS_FILE_PATH=$PPROXY_HOME/setup/requirements.txt
 fi
 
 pip install -r $REQUIREMENTS_FILE_PATH --cache-dir $PIP_CACHE
@@ -117,6 +117,8 @@ if [ ! $? -eq 0 ]; then
 		pip install $pkg
 	done
 fi
+
+chown pproxy:pproxy $PIP_CACHE/* -R
 
 ##############################################################################
 # remove extra dependency that kills keypad. this is not a proper fix, just a
@@ -129,7 +131,7 @@ if [ $OS_VERSION == "bullseye" ]; then
 	pip show board
 	if [  $? -eq 0 ]; then
 		# board should not be installed
-		pip uninstall board
+		pip uninstall -y board
 		pip install --force-reinstall Adafruit-Blinka==8.35.0
 	fi
 fi

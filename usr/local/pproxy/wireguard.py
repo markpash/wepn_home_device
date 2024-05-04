@@ -207,5 +207,21 @@ class Wireguard(Service):
         return
 
     def self_test(self):
+        '''
+        Perform a self-test of the Wireguard setup.
+        '''
         # not implemented for Wireguard
         return True
+
+    def get_enabled_peers(self):
+        """
+        Returns a list of currently enabled peers in the WireGuard setup.
+        """
+        enabled_peers = []
+        for config_file in os.listdir(USERS_DIR):
+            if os.path.isfile(os.path.join(USERS_DIR, config_file, "wg.conf")):
+                with open(os.path.join(USERS_DIR, config_file, "wg.conf"), "r") as f:
+                    contents = f.read()
+                    if "[Peer]" in contents:
+                        enabled_peers.append(config_file)
+        return enabled_peers

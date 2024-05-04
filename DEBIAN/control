@@ -1,9 +1,10 @@
 Package: pproxy-rpi
-Version: 1.18.0
+Version: 1.18.1
 Maintainer: WEPN Support <support@we-pn.com>
 Architecture: all 
 Description: RPi3 python executables for WEPN PProxy
 Depends:build-essential, ffmpeg, gcc, gir1.2-gtk-3.0, i2c-tools, iptables, jq, libatlas-base-dev, libavcodec-dev, libavformat-dev, libcairo2-dev, libcap-dev, libcups2-dev, libdbus-1-dev, libgirepository1.0-dev, libglib2.0-dev, libopenjp2-7-dev, libopusfile0, libpcap-dev, libportmidi0, libportmidi-dev, libpython3-dev, librtimulib-dev, libsdl1.2-dev, libsdl2-dev, libsdl2-image-2.0-0, libsdl2-image-dev, libsdl2-mixer-2.0-0, libsdl2-mixer-dev, libsdl2-ttf-2.0-0, libsdl2-ttf-dev, libsdl-image1.2-dev, libsdl-mixer1.2-dev, libsdl-ttf2.0-dev, libsmbclient-dev, libsmpeg-dev, libssl-dev, libswscale-dev, libsystemd-dev, libxslt1-dev, miniupnpc, obfs4proxy, openvpn, pkg-config, portaudio19-dev, python-apt-dev, python3, python3-dev, python3-pip, python3-pyaudio, python3-pygame, resolvconf, rng-tools, shadowsocks-libev, smbclient, sox, tor, uwsgi, wireguard
+
 
 
 
