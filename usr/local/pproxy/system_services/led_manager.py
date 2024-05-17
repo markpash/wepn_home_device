@@ -22,7 +22,7 @@ PPROXY_GID = grp.getgrnam("pproxy").gr_gid
 ORDER = neopixel.GRB
 CONFIG_FILE = '/etc/pproxy/config.ini'
 try:
-    from self.configparser import configparser
+    from configparser import configparser
 except ImportError:
     import configparser
 
