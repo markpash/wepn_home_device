@@ -433,7 +433,7 @@ class PProxy():
                 # alse send a message to the app via Messaging API
                 short_link = services.get_short_link_text(username, server_address, tunnel)
                 if short_link != "" and self.messages.e2ee_available():
-                    self.messages.send_msg(short_link, cert_id=username, secure=True)
+                    self.messages.send_msg(short_link, cert_id=username, secure=True, msg_type="user_added")
 
             except BaseException:
                 self.logger.exception("Unhandled exception adding friend")
@@ -479,7 +479,7 @@ class PProxy():
                                files_in=None,
                                unsubscribe_link=None)  # at this point, friend is removed from backend db
             # alse send a message to the app via Messaging API
-            self.messages.send_msg("deleted user " + str(username) + " from " + str(ip_address), secure=False)
+            self.messages.send_msg("deleted user " + str(username) + " from " + str(ip_address), secure=False, msg_type="user_deleted")
         elif (data['action'] == 'reboot_device'):
             self.save_state("3")
             self.device.reboot()

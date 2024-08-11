@@ -84,7 +84,7 @@ class Messages():
                 self.logger.critical("Message " + str(id) + "was marked as read, but it was not pending")
         return response
 
-    def send_msg(self, text, destination="APP", cert_id="", secure=True):
+    def send_msg(self, text, destination="APP", cert_id="", secure=True, msg_type=""):
         nonce = ""
         if secure:
             secure_text, nonce = self.encrypt_message(text)
@@ -95,6 +95,7 @@ class Messages():
             "serial_number": self.config.get('django', 'serial_number'),
             "device_key": self.config.get('django', 'device_key'),
             "message_body": {
+                "message_type": msg_type,
                 "message": text,
                 "is_secure": secure,
                 "cert_id": cert_id,
