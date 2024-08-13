@@ -52,3 +52,4 @@ usr/local/pproxy/pproxy.code-workspace
 .xorgxrdp.*
 .xsession-errors
 
+DEBIAN/.control.swp
