@@ -746,18 +746,24 @@ class Device():
             self.execute_cmd_output(cmd, True)
         else:
             for proc in psutil.process_iter():
-                if "ssh" in proc.name():
-                    for c in proc.cmdline():
-                        if c == "remote@relay.we-pn.com":
-                            proc.kill()
+                try:
+                    if "ssh" in proc.name():
+                        for c in proc.cmdline():
+                            if c == "remote@relay.we-pn.com":
+                                proc.kill()
+                except psutil.ZombieProcess:
+                    pass
 
     def is_remote_session_running(self):
         found = False
         for i in psutil.process_iter():
             if i.name() == "ssh":
-                for c in i.cmdline():
-                    if c == "remote@relay.we-pn.com":
-                        found = True
+                try:
+                    for c in i.cmdline():
+                        if c == "remote@relay.we-pn.com":
+                            found = True
+                except psutil.ZombieProcess:
+                    pass
         return found
 
     def set_vnc_service(self, enabled=True):

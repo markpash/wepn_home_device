@@ -19,7 +19,7 @@ ipw = IPW()
 CONFIG_FILE = '/etc/pproxy/config.ini'
 STATUS_FILE = '/var/local/pproxy/status.ini'
 try:
-    from self.configparser import ConfigParser as configparser
+    from configparser import ConfigParser as configparser
 except ImportError:
     import configparser
 
