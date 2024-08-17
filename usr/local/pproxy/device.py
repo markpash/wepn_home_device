@@ -1,18 +1,20 @@
-import atexit
-from json import JSONDecodeError
-import json
-import getopt
 from getmac import get_mac_address
-import netifaces
-import os
+from json import JSONDecodeError
 from packaging import version
 from packaging.version import Version
+from pystemd.systemd1 import Unit
+import atexit
+import getopt
+import json
+import netifaces
+import os
 import platform
 import psutil
-from pystemd.systemd1 import Unit
 import random
-import requests
 import re
+import requests
+import shlex
+import subprocess  # nosec shlex split used for sanitization go.we-pn.com/waiver-1
 import sys
 import time
 import upnpclient as upnp
@@ -21,13 +23,12 @@ try:
     from configparser import configparser
 except ImportError:
     import configparser
-
-import subprocess  # nosec shlex split used for sanitization go.we-pn.com/waiver-1
-import shlex
 from wstatus import WStatus as WStatus
+
 from constants import SKIP_OTA_CHECK
 from constants import DEFAULT_UPNP_TIMEOUT
 from constants import DEFAULT_GET_TIMEOUT as GET_TIMEOUT
+
 
 COL_PINS = [26]  # BCM numbering
 ROW_PINS = [19, 13, 6]  # BCM numbering

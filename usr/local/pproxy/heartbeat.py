@@ -1,15 +1,16 @@
 #!/usr/bin/python
-from services import Services
-from wstatus import WStatus
-from shadow import Shadow
-from diag import WPDiag
-from lcd import LCD as LCD
 import json
 import random
 import requests
-from device import Device
 
+from device import Device
+from diag import WPDiag
 from ipw import IPW
+from lcd import LCD as LCD
+from services import Services
+from shadow import Shadow
+from wstatus import WStatus
+
 ipw = IPW()
 
 

@@ -1,32 +1,25 @@
-import atexit
-import json
-import logging.config
-import os
-import random
-import re
-import ssl
-import time
-from threading import Lock, Thread
-
-try:
-    from configparser import configparser
-except ImportError:
-    import configparser
-
-import shlex
-import smtplib
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
 from os.path import basename
-
+from threading import Lock, Thread
+import atexit
+import json
+import logging.config
+import os
 import paho.mqtt.client as mqtt
+import random
+import re
+import shlex
+import smtplib
+import ssl
+import time
 
-from heartbeat import HeartBeat
-from ipw import IPW
-from led_client import LEDClient
-
+try:
+    from configparser import configparser
+except ImportError:
+    import configparser
 try:
     import RPi.GPIO as GPIO
     from pad4pi import rpi_gpio
@@ -35,13 +28,17 @@ except Exception as err:
     print("Error in GPIO: " + str(err))
     gpio_up = False
 
-from constants import LOG_CONFIG
 from device import Device
 from diag import WPDiag
+from heartbeat import HeartBeat
+from ipw import IPW
 from lcd import LCD as LCD
+from led_client import LEDClient
 from messages import Messages
 from services import Services
 from wstatus import WStatus
+
+from constants import LOG_CONFIG
 
 COL_PINS = [26]  # BCM numbering
 ROW_PINS = [19, 13, 6]  # BCM numbering

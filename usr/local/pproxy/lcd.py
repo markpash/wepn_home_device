@@ -1,23 +1,23 @@
 # for font reference: https://www.dafont.com/heydings-icons.font
 
 try:
+    import Adafruit_SSD1306
+    import adafruit_rgb_display.st7789 as st7789  # pylint: disable=unused-import
     import board
     import digitalio
-    import adafruit_rgb_display.st7789 as st7789  # pylint: disable=unused-import
-    import Adafruit_SSD1306
 except Exception as err:
     print("Possibly unsupported board: " + str(err))
 
-import os
-import time
 from PIL import Image
 from PIL import ImageDraw
-from PIL import ImageFont
 from PIL import ImageFilter
+from PIL import ImageFont
 from PIL import ImageSequence
 import logging.config
+import os
 import qrcode
 import textwrap
+import time
 
 from constants import LOG_CONFIG
 try:

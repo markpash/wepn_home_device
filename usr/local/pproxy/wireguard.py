@@ -1,3 +1,4 @@
+from sanitize_filename import sanitize
 import base64
 import hashlib
 import os
@@ -5,8 +6,6 @@ import re
 import shlex
 import subprocess  # nosec: sanitized with shlex, go.we-pn.com/waiver-1
 import sys as system
-
-from sanitize_filename import sanitize
 
 from device import Device
 from service import Service

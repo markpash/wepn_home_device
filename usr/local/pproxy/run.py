@@ -1,20 +1,22 @@
-from pproxy import PProxy
-import time
-from lcd import LCD as LCD
 from setup.onboard import OnBoard
-import requests
+from shutil import copyfile
 import json
 import logging.config
-from device import Device
 import os
-from shutil import copyfile
+import requests
+import time
+
+from device import Device
+from lcd import LCD as LCD
 from led_client import LEDClient
-from constants import LOG_CONFIG
+from pproxy import PProxy
 
 try:
     from self.configparser import configparser
 except ImportError:
     import configparser
+
+from constants import LOG_CONFIG
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
 CONFIG_FILE_BACKUP = '/var/local/pproxy/config.bak'

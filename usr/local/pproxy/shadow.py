@@ -1,20 +1,19 @@
+from datetime import datetime
+from random import randrange  # nosec: not used for cryptography
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import atexit
 import base64
+import dataset
 import hashlib
 import json
 import logging
 import os
+import requests
 import shlex
 import socket
 import sqlite3 as sqli
 import tempfile
 import time
-from datetime import datetime
-from random import randrange  # nosec: not used for cryptography
-
-import dataset
-import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from device import Device
 from diag import WPDiag
