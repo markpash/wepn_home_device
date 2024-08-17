@@ -27,8 +27,7 @@ import shlex
 from wstatus import WStatus as WStatus
 from constants import SKIP_OTA_CHECK
 from constants import DEFAULT_UPNP_TIMEOUT
-
-GET_TIMEOUT = 10
+from constants import DEFAULT_GET_TIMEOUT as GET_TIMEOUT
 
 COL_PINS = [26]  # BCM numbering
 ROW_PINS = [19, 13, 6]  # BCM numbering

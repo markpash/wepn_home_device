@@ -1,23 +1,26 @@
-import socket
-import sys as system
-import shlex
-import subprocess  # nosec: shlex is used, go.we-pn.com/waiver-1
-import json
-import requests
-import random
-import threading
-from device import Device
-import time
+from datetime import timedelta
 import atexit
 import datetime as datetime
-from datetime import timedelta
 import dateutil.parser
+import json
 import os
+import random
+import requests
+import shlex
+import socket
+import subprocess  # nosec: shlex is used, go.we-pn.com/waiver-1
+import sys as system
+import threading
+import time
+
+from constants import DEFAULT_GET_TIMEOUT as GET_TIMEOUT
 
 try:
     from configparser import configparser
 except ImportError:
     import configparser
+
+from device import Device
 from ipw import IPW
 from wstatus import WStatus
 
@@ -112,7 +115,7 @@ class WPDiag:
             try:
                 # connect to the host -- tells us if the host is actually
                 # reachable
-                requests.get(url)
+                requests.get(url, timeout=GET_TIMEOUT)
                 return True
             except:
                 self.logger.exception("Could not connect to the internet")
@@ -144,18 +147,26 @@ class WPDiag:
 
     def request_port_check(self, port):
         experiment_num = 0
+        try:
+            ports, num_forwards = self.device.get_all_port_mappings()
+            version = self.device.get_installed_package_version()
+            logs = {"ports": ports, 'num_port_fwds': num_forwards, "sw_version": version}
+        except Exception as err:
+            logs = {'error': str(err)[:35]}
         headers = {"Content-Type": "application/json"}
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "device_key": self.config.get('django', 'device_key'),
             "input": {"port": str(port), "experiment_name": "port_test",
-                      "debug": str(self.device.igd_names)},
+                      "debug": [{"igds": str(self.device.igd_names)},
+                                {"logs": logs}],
+                      }
         }
         data_json = json.dumps(data)
         self.logger.debug("Port check data to send: " + data_json)
         url = self.config.get('django', 'url') + "/api/experiment/"
         try:
-            response = requests.post(url, data=data_json, headers=headers)
+            response = requests.post(url, data=data_json, headers=headers, timeout=GET_TIMEOUT)
             self.logger.debug(
                 "Response to port check request" + str(response.status_code))
             resp = response.json()
@@ -181,7 +192,7 @@ class WPDiag:
         url = self.config.get('django', 'url') + \
             "/api/experiment/" + str(experiment_number) + "/result/"
         try:
-            response = requests.post(url, data=data_json, headers=headers)
+            response = requests.post(url, data=data_json, headers=headers, timeout=GET_TIMEOUT)
             self.logger.info("server experiment results"
                              + str(response.status_code))
             self.logger.info(response.json())
@@ -341,7 +352,7 @@ class WPDiag:
         data_json = json.dumps(data)
         url = self.config.get('django', 'url') + "/api/device/diagnosis/"
         try:
-            response = requests.post(url, data=data_json, headers=headers)
+            response = requests.post(url, data=data_json, headers=headers, timeout=GET_TIMEOUT)
             self.logger.info("server diag analysis:" +
                              str(response.status_code))
             return response.json()
