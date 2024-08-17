@@ -10,7 +10,7 @@ then
 	mkdir $GIT_DIR 
 	cd $GIT_DIR
 	git clone https://bitbucket.org/dvpn4hr/home_device.git
-	ln -s $GIT_DIR/home_device/usr/local/pproxy/ $WEPN_DIR
+	echo "ln -s $GIT_DIR/home_device/usr/local/pproxy/ $WEPN_DIR"
 else
 	cd $GIT_DIR/home_device/
 	git stash

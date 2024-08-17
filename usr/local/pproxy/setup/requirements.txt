@@ -145,7 +145,7 @@ s3transfer==0.7.0
 sanitize-filename==1.2.0
 scipy==1.11.3
 self==2020.12.3
-Send2Trash==1.8.1b0
+Send2Trash==1.8.3
 sense-hat==2.6.0
 simplejpeg==1.6.6
 simplejson==3.18.3
