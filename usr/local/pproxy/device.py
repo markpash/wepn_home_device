@@ -26,6 +26,7 @@ import subprocess  # nosec shlex split used for sanitization go.we-pn.com/waiver
 import shlex
 from wstatus import WStatus as WStatus
 from constants import SKIP_OTA_CHECK
+from constants import DEFAULT_UPNP_TIMEOUT
 
 GET_TIMEOUT = 10
 
@@ -212,7 +213,7 @@ class Device():
         cmd = "1 4"
         self.execute_setuid(cmd)
 
-    def open_port(self, port, text, outside_port=None, timeout=500000):
+    def open_port(self, port, text, outside_port=None, timeout=DEFAULT_UPNP_TIMEOUT):
         result = True
         if outside_port is None:
             outside_port = port
@@ -311,7 +312,7 @@ class Device():
                     return port_mapper.GetGenericPortMappingEntry(
                         NewPortMappingIndex=index_num,)
 
-    def set_port_forward(self, open_close, port, text, outside_port=None, timeout=500000):
+    def set_port_forward(self, open_close, port, text, outside_port=None, timeout=DEFAULT_UPNP_TIMEOUT):
         result = True
         if outside_port is None:
             outside_port = port
