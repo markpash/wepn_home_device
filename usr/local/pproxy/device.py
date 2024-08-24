@@ -810,3 +810,14 @@ class Device():
     def is_legacy_gpio(self):
         release = platform.release().split("-")[0]
         return Version(release) < Version("6.6.0")
+
+    def get_device_config_backend(self):
+        url = self.config.get('django', 'url') + "/api/device/" + self.config.get('django', 'id') + "/"
+        data = {
+            "serial_number": self.config.get('django', 'serial_number'),
+            "device_key": self.config.get('django', 'device_key'),
+        }
+        headers = {"Content-Type": "application/json"}
+        data_json = json.dumps(data)
+        response = requests.get(url, data=data_json, headers=headers, timeout=GET_TIMEOUT)
+        return response.json()
