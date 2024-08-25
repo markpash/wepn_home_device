@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 import os
+import pwd
 import requests
 import shlex
 import socket
@@ -23,6 +24,7 @@ from service import Service
 ipw = IPW()
 
 CONFIG_FILE = '/etc/pproxy/config.ini'
+SHADOWSOCKS_FOLDER = '/usr/local/pproxy/.shadowsocks/'
 
 
 class Shadow(Service):
@@ -38,6 +40,7 @@ class Shadow(Service):
         try:
             self.sock.bind(self.socket_path)
         except OSError:
+            self.init_shadowsocks_folder()
             self.clear()
             self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -51,10 +54,13 @@ class Shadow(Service):
         self.clear()
 
     def clear(self):
-        if os.path.isfile(self.socket_path):
-            self.sock.shutdown(0)
-            self.sock.close()
-            os.remove(self.socket_path)
+        try:
+            if os.path.isfile(self.socket_path):
+                self.sock.shutdown(0)
+                self.sock.close()
+                os.remove(self.socket_path)
+        except Exception:
+            self.logger.exception("could not clear socket")
 
     def add_user(self, cname, ip_address, password, unused_port, lang):
         is_new_user = False
@@ -153,11 +159,15 @@ class Shadow(Service):
             '" , \r\n"mode":"tcp_and_udp", \r\n"nameserver":"8.8.8.8", \r\n"method":"' +\
             str(self.config.get('shadow', 'method')) +\
             '", \r\n "timeout":300, \r\n "workers":10} '
-        shadow_file = '/usr/local/pproxy/.shadowsocks/.shadowsocks_' + \
+        shadow_file = SHADOWSOCKS_FOLDER + '/.shadowsocks_' + \
             str(server_port) + '.conf'
-        with open(shadow_file, 'w') as shadow_conf:
-            shadow_conf.write(conf_json)
-            shadow_conf.close()
+        self.init_shadowsocks_folder()
+        try:
+            with open(shadow_file, 'w') as shadow_conf:
+                shadow_conf.write(conf_json)
+                shadow_conf.close()
+        except Exception:
+            self.logger.exception("cannot add shadow conf file")
 
     def start_server(self, server):
         device = Device(self.logger)
@@ -542,6 +552,16 @@ class Shadow(Service):
             max_port = int(self.config.get('shadow', 'start-port'))
         return max_port
 
+    def init_shadowsocks_folder(self):
+        try:
+            if not os.path.exists(SHADOWSOCKS_FOLDER):
+                os.makedirs(SHADOWSOCKS_FOLDER)
+                uid = pwd.getpwnam('pproxy').pw_uid
+                gid = pwd.getpwnam('shadow-runners').pw_uid
+                os.chown(SHADOWSOCKS_FOLDER, uid, gid)
+        except Exception:
+            self.logger.exception("could not create shadow folder")
+
     def recover_missing_servers(self):
         pid_missing = True
         local_db = dataset.connect(
@@ -553,8 +573,9 @@ class Shadow(Service):
         device = Device(self.logger)
         for server in local_db['servers']:
             self.logger.debug("recovery checking server:" + str(server['server_port']))
-            pid_file_ = '/usr/local/pproxy/.shadowsocks/.shadowsocks_' + \
+            pid_file_ = SHADOWSOCKS_FOLDER + '/.shadowsocks_' + \
                 str(server['server_port']) + '.pid'
+            self.init_shadowsocks_folder()
             try:
                 pid_file = open(pid_file_, 'r')
                 pid = int(pid_file.read())
