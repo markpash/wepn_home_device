@@ -238,7 +238,7 @@ class WPDiag:
     # If a recent result is available, just skips doing anything
     # If an experiment is ongoing (pending), just try fetching results of that
     # If neither of above, try starting a new one
-    def perform_server_port_check(self, port):
+    def perform_server_port_check(self, port, force_check=False):
 
         if self.status.has_section("port_check"):
             last_port_check = self.status.get_field("port_check", "last_check")
@@ -250,6 +250,10 @@ class WPDiag:
                                  (datetime.datetime.now().replace(tzinfo=None) + timedelta(hours=-6)))
             short_term_expired = (last_check_date.replace(tzinfo=None) <
                                   (datetime.datetime.now().replace(tzinfo=None) + timedelta(hours=-2)))
+
+            if force_check:
+                long_term_expired = True
+                short_term_expired = True
             previous_failed = self.status.get_field(
                 "port_check", "result") == "False"
 
@@ -326,7 +330,7 @@ class WPDiag:
 
     # if you make changes here to the order of the flags, please
     # make sure the server side is also updated to reflect that
-    def get_error_code(self, port_no):
+    def get_error_code(self, port_no, force_check=False):
         local_ip = self.device.get_local_ip()
         internet = self.is_connected_to_internet()
         service_connected = self.is_connected_to_service()
@@ -335,7 +339,7 @@ class WPDiag:
         claimed = int(self.status.get('claimed'))
         # port check doesn't work when not claimed
         if claimed == 1:
-            self.perform_server_port_check(port_no)
+            self.perform_server_port_check(port_no, force_check)
         port = 0
         if self.status.get_field('port_check', 'result') == "True":
             port = 1
