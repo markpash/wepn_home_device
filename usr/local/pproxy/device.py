@@ -1,9 +1,11 @@
+from datetime import timedelta
 from getmac import get_mac_address
 from json import JSONDecodeError
 from packaging import version
 from packaging.version import Version
 from pystemd.systemd1 import Unit
 import atexit
+import datetime as datetime
 import getopt
 import json
 import netifaces
@@ -25,9 +27,10 @@ except ImportError:
     import configparser
 from wstatus import WStatus as WStatus
 
-from constants import SKIP_OTA_CHECK
+from constants import DATETIME_FORMAT
 from constants import DEFAULT_UPNP_TIMEOUT
 from constants import DEFAULT_GET_TIMEOUT as GET_TIMEOUT
+from constants import SKIP_OTA_CHECK
 
 
 COL_PINS = [26]  # BCM numbering
@@ -87,8 +90,8 @@ class Device():
                 self.igds.append(d)
                 try:
                     self.igd_names.append(d.friendly_name)
-                    print("Type: %s name: %s manufacturer:%s model:%s model:%s model:%s serial:%s" % (
-                        d.device_type, d.friendly_name, d.manufacturer, d.model_description, d.model_name, d.model_number, d.serial_number))
+                    # print("Type: %s name: %s manufacturer:%s model:%s model:%s model:%s serial:%s" % (
+                    #    d.device_type, d.friendly_name, d.manufacturer, d.model_description, d.model_name, d.model_number, d.serial_number))
                 except Exception as e:
                     # mainly if friendly name is not there
                     self.logger.debug(
@@ -147,6 +150,10 @@ class Device():
             self.status.set_field('port-fwd', 'skipping', '0')
             self.status.set_field('port-fwd', 'skips', '0')
             self.status.set_field('port-fwd', 'skips-max', '20')
+            self.status.save()
+
+        if not self.status.has_option('port-fwd', 'skipping-date'):
+            self.status.set_field('port-fwd', 'skipping-date', '1985-10-26 01:21:00.680749')
             self.status.save()
 
     def cleanup(self):
@@ -213,45 +220,54 @@ class Device():
         cmd = "1 4"
         self.execute_setuid(cmd)
 
+    def get_safe_skipping_start_date(self):
+        # make sure a str is not returned when not set
+        skip_start_date = self.status.get_field('port-fwd', 'skipping-date')
+        if skip_start_date == "":
+            # this should have been a date
+            skip_start_date = datetime.datetime(1985, 10, 26)
+        elif type(skip_start_date) is str:
+            skip_start_date = datetime.datetime.strptime(skip_start_date, DATETIME_FORMAT)
+        return skip_start_date
+
+    def should_skip_upnp(self):
+        skip = int(self.status.get_field('port-fwd', 'skipping'))
+        skip_start_date = self.get_safe_skipping_start_date()
+        # at least try forwarding ports once a day
+        skipping_expired = (skip_start_date.replace(tzinfo=None) <
+                            (datetime.datetime.now().replace(tzinfo=None) + timedelta(days=-1)))
+
+        skip_count = int(self.status.get_field('port-fwd', 'skips'))
+        if skip:
+            if (skip_count < int(self.status.get_field('port-fwd', 'skips-max'))
+                    and not skipping_expired):
+                # skip, do nothing just increase count
+                skip_count += 1
+                self.status.set_field('port-fwd', 'skips', str(skip_count))
+            else:
+                # if skipped too much, or skipping decision was taken too long ago
+                # then try opening port again in case it works
+                self.status.set_field('port-fwd', 'skipping', '0')
+                self.status.set_field('port-fwd', 'skips', '0')
+                # allow port test right away too
+                skip = False
+        self.logger.info("skipping?" + str(skip) + " count=" + str(skip_count))
+        return skip
+
     def open_port(self, port, text, outside_port=None, timeout=DEFAULT_UPNP_TIMEOUT):
         result = True
         if outside_port is None:
             outside_port = port
-        skip = int(self.status.get_field('port-fwd', 'skipping'))
-        skip_count = int(self.status.get_field('port-fwd', 'skips'))
-        if skip:
-            if skip_count < int(self.status.get_field('port-fwd', 'skips-max')):
-                # skip, do nothing just increase cound
-                skip_count += 1
-                self.status.set_field('port-fwd', 'skips', str(skip_count))
-            else:
-                # skipped too much, try open port again in case it works
-                self.status.set_field('port-fwd', 'skipping', '0')
-                self.status.set_field('port-fwd', 'skips', '0')
-        else:
+        if not self.should_skip_upnp():
             # no skipping, just try opening port normally with UPNP
             result = self.set_port_forward("open", port, text, outside_port, timeout)
-        self.logger.info("skipping? " + str(skip) +
-                         " count=" + str(skip_count) + " result=" + str(result))
+        self.logger.info("port forward result = " + str(result))
         return result
 
     def close_port(self, port):
-        skip = int(self.status.get_field('port-fwd', 'skipping'))
-        skip_count = int(self.status.get_field('port-fwd', 'skips'))
-        if skip:
-            if skip_count < int(self.status.get_field('port-fwd', 'skips-max')):
-                # skip, do nothing just increase cound
-                skip_count += 1
-                self.status.set_field('port-fwd', 'skips', str(skip_count))
-            else:
-                # skipped too much, try open port again in case it works
-                self.status.set_field('port-fwd', 'skipping', '0')
-                self.status.set_field('port-fwd', 'skips', '0')
-            self.status.save()
-        else:
+        if not self.should_skip_upnp():
             # no skipping, just try opening port normally with UPNP
             self.set_port_forward("close", port, "")
-        self.logger.info("skipping?" + str(skip) + " count=" + str(skip_count))
 
     def get_all_port_mappings(self):
         still_counting = True
@@ -384,9 +400,16 @@ class Device():
                 self.status.set_field('port-fwd', 'fails', 0)
                 # indicate next one is going to be skip
                 self.status.set_field('port-fwd', 'skipping', 1)
+                self.status.set_field('port-fwd', 'skipping-date',
+                                      str(datetime.datetime.now().replace(tzinfo=None).strftime(DATETIME_FORMAT)))
             else:
                 # failed, but has not passed the threshold
-                fails += failed
+                # Change as of 8/24/2024:
+                # Instead of 1 negative point per *EACH UPnP server*, -1pt for the entrire loop.:
+                # This previously was `fails += failed` which made it -1pt per UPnP server.
+                # This causes issues when a user has many UPnP capable devices (TV, etc.) at home.
+                fails += 1
+
                 self.status.set_field('port-fwd', 'fails', str(fails))
         return result
 
@@ -743,7 +766,7 @@ class Device():
             port = 9000 + int(self.config.get('django', 'id'))
             cmd = "ssh -R *:" + str(port) + ":localhost:22 -i " + key + " " + server
             cmd += " -fTN -o StrictHostKeyChecking=accept-new"
-            print(cmd)
+            # print(cmd)
             self.execute_cmd_output(cmd, True)
         else:
             for proc in psutil.process_iter():

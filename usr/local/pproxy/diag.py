@@ -247,7 +247,7 @@ class WPDiag:
             self.logger.info("last port check was " + str(last_check_date))
 
             long_term_expired = (last_check_date.replace(tzinfo=None) <
-                                 (datetime.datetime.now().replace(tzinfo=None) + timedelta(days=-1)))
+                                 (datetime.datetime.now().replace(tzinfo=None) + timedelta(hours=-6)))
             short_term_expired = (last_check_date.replace(tzinfo=None) <
                                   (datetime.datetime.now().replace(tzinfo=None) + timedelta(hours=-2)))
             previous_failed = self.status.get_field(

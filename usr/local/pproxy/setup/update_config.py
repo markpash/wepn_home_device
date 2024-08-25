@@ -80,7 +80,7 @@ if not status.has_section('status'):
 
 if not status.has_section('port_check'):
     status.add_section('port_check')
-    status.set('port_check', 'last_check', '2020-02-02 18:00:00.680749')
+    status.set('port_check', 'last_check', '1985-10-26 01:21:00.680749')
     status.set('port_check', 'pending', 'False')
     status.set('port_check', 'experiment_number', '0')
     status.set('port_check', 'result', 'False')
@@ -93,6 +93,9 @@ if not port_status.has_section('port-fwd'):
     port_status.set('port-fwd', 'skipping', '0')
     port_status.set('port-fwd', 'skips', '0')
     port_status.set('port-fwd', 'skips-max', '20')
+
+if not port_status.has_option('port-fwd', 'skipping-date'):
+    port_status.set('port-fwd', 'skipping-date', '1985-10-26 01:21:00.680749')
 
 if status.has_section('port-fwd'):
     status.remove_section('port-fwd')
