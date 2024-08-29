@@ -1,8 +1,7 @@
 import atexit
+import dataset
 import hashlib
 import shlex
-
-import dataset
 
 from device import Device
 from ipw import IPW

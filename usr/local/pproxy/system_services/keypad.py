@@ -386,7 +386,7 @@ class KEYPAD:
         display_str = "Starting Diagnostics, please wait."
         self.lcd.long_text(display_str, "i", "green")
         test_port = int(self.config.get('openvpn', 'port')) + 1
-        self.diag_code = diag.get_error_code(test_port)
+        self.diag_code = diag.get_error_code(test_port, force_check=True)
         serial_number = self.config.get('django', 'serial_number')
         time.sleep(3)
         display_str = [(1, "Status Code", 0, "blue"), (2, str(self.diag_code), 0, "white"),

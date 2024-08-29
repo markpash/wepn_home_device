@@ -1,32 +1,25 @@
-import atexit
-import json
-import logging.config
-import os
-import random
-import re
-import ssl
-import time
-from threading import Lock, Thread
-
-try:
-    from configparser import configparser
-except ImportError:
-    import configparser
-
-import shlex
-import smtplib
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
 from os.path import basename
-
+from threading import Lock, Thread
+import atexit
+import json
+import logging.config
+import os
 import paho.mqtt.client as mqtt
+import random
+import re
+import shlex
+import smtplib
+import ssl
+import time
 
-from heartbeat import HeartBeat
-from ipw import IPW
-from led_client import LEDClient
-
+try:
+    from configparser import configparser
+except ImportError:
+    import configparser
 try:
     import RPi.GPIO as GPIO
     from pad4pi import rpi_gpio
@@ -35,13 +28,17 @@ except Exception as err:
     print("Error in GPIO: " + str(err))
     gpio_up = False
 
-from constants import LOG_CONFIG
 from device import Device
 from diag import WPDiag
+from heartbeat import HeartBeat
+from ipw import IPW
 from lcd import LCD as LCD
+from led_client import LEDClient
 from messages import Messages
 from services import Services
 from wstatus import WStatus
+
+from constants import LOG_CONFIG
 
 COL_PINS = [26]  # BCM numbering
 ROW_PINS = [19, 13, 6]  # BCM numbering
@@ -479,7 +476,7 @@ class PProxy():
                                files_in=None,
                                unsubscribe_link=None)  # at this point, friend is removed from backend db
             # alse send a message to the app via Messaging API
-            self.messages.send_msg("deleted user " + str(username) + " from " + str(ip_address), secure=False, msg_type="user_deleted")
+            self.messages.send_msg("deleted user " + str(username) + " from " + str(ip_address), cert_id=username, secure=False, msg_type="user_deleted")
         elif (data['action'] == 'reboot_device'):
             self.save_state("3")
             self.device.reboot()
@@ -517,11 +514,15 @@ class PProxy():
                                     self.sanitize_str(data[item]))
             with open(CONFIG_FILE, 'w') as configfile:
                 self.config.write(configfile)
-        elif (data['action'] == 'config_service'):
+        elif (data['action'] == 'config_update'):
             # TODO: these might require sanitization
-            service_name = self.sanitize_str(data["service_name"])
-            config = data["config"]
-            services.configure(service_name, config)
+            new_config = self.device.get_device_config_backend()
+            # if local version is larger than remote, ignore messages as outdated
+            # pass each part of the config to the right service handler
+            print(new_config)
+            # service_name = self.sanitize_str(data["service_name"])
+            # config = data["config"]
+            # services.configure(service_name, config)
         elif (data['action'] == 'wipe_device'):
             # very important action: make sure all VPN/ShadowSocks are deleted, and stopped
             # now reset the status bits

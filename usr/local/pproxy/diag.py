@@ -1,23 +1,26 @@
-import socket
-import sys as system
-import shlex
-import subprocess  # nosec: shlex is used, go.we-pn.com/waiver-1
-import json
-import requests
-import random
-import threading
-from device import Device
-import time
+from datetime import timedelta
 import atexit
 import datetime as datetime
-from datetime import timedelta
 import dateutil.parser
+import json
 import os
+import random
+import requests
+import shlex
+import socket
+import subprocess  # nosec: shlex is used, go.we-pn.com/waiver-1
+import sys as system
+import threading
+import time
+
+from constants import DEFAULT_GET_TIMEOUT as GET_TIMEOUT
 
 try:
     from configparser import configparser
 except ImportError:
     import configparser
+
+from device import Device
 from ipw import IPW
 from wstatus import WStatus
 
@@ -112,7 +115,7 @@ class WPDiag:
             try:
                 # connect to the host -- tells us if the host is actually
                 # reachable
-                requests.get(url)
+                requests.get(url, timeout=GET_TIMEOUT)
                 return True
             except:
                 self.logger.exception("Could not connect to the internet")
@@ -144,18 +147,26 @@ class WPDiag:
 
     def request_port_check(self, port):
         experiment_num = 0
+        try:
+            ports, num_forwards = self.device.get_all_port_mappings()
+            version = self.device.get_installed_package_version()
+            logs = {"ports": ports, 'num_port_fwds': num_forwards, "sw_version": version}
+        except Exception as err:
+            logs = {'error': str(err)[:35]}
         headers = {"Content-Type": "application/json"}
         data = {
             "serial_number": self.config.get('django', 'serial_number'),
             "device_key": self.config.get('django', 'device_key'),
             "input": {"port": str(port), "experiment_name": "port_test",
-                      "debug": str(self.device.igd_names)},
+                      "debug": [{"igds": str(self.device.igd_names)},
+                                {"logs": logs}],
+                      }
         }
         data_json = json.dumps(data)
         self.logger.debug("Port check data to send: " + data_json)
         url = self.config.get('django', 'url') + "/api/experiment/"
         try:
-            response = requests.post(url, data=data_json, headers=headers)
+            response = requests.post(url, data=data_json, headers=headers, timeout=GET_TIMEOUT)
             self.logger.debug(
                 "Response to port check request" + str(response.status_code))
             resp = response.json()
@@ -181,7 +192,7 @@ class WPDiag:
         url = self.config.get('django', 'url') + \
             "/api/experiment/" + str(experiment_number) + "/result/"
         try:
-            response = requests.post(url, data=data_json, headers=headers)
+            response = requests.post(url, data=data_json, headers=headers, timeout=GET_TIMEOUT)
             self.logger.info("server experiment results"
                              + str(response.status_code))
             self.logger.info(response.json())
@@ -227,7 +238,7 @@ class WPDiag:
     # If a recent result is available, just skips doing anything
     # If an experiment is ongoing (pending), just try fetching results of that
     # If neither of above, try starting a new one
-    def perform_server_port_check(self, port):
+    def perform_server_port_check(self, port, force_check=False):
 
         if self.status.has_section("port_check"):
             last_port_check = self.status.get_field("port_check", "last_check")
@@ -236,9 +247,13 @@ class WPDiag:
             self.logger.info("last port check was " + str(last_check_date))
 
             long_term_expired = (last_check_date.replace(tzinfo=None) <
-                                 (datetime.datetime.now().replace(tzinfo=None) + timedelta(days=-1)))
+                                 (datetime.datetime.now().replace(tzinfo=None) + timedelta(hours=-6)))
             short_term_expired = (last_check_date.replace(tzinfo=None) <
                                   (datetime.datetime.now().replace(tzinfo=None) + timedelta(hours=-2)))
+
+            if force_check:
+                long_term_expired = True
+                short_term_expired = True
             previous_failed = self.status.get_field(
                 "port_check", "result") == "False"
 
@@ -315,7 +330,7 @@ class WPDiag:
 
     # if you make changes here to the order of the flags, please
     # make sure the server side is also updated to reflect that
-    def get_error_code(self, port_no):
+    def get_error_code(self, port_no, force_check=False):
         local_ip = self.device.get_local_ip()
         internet = self.is_connected_to_internet()
         service_connected = self.is_connected_to_service()
@@ -324,7 +339,7 @@ class WPDiag:
         claimed = int(self.status.get('claimed'))
         # port check doesn't work when not claimed
         if claimed == 1:
-            self.perform_server_port_check(port_no)
+            self.perform_server_port_check(port_no, force_check)
         port = 0
         if self.status.get_field('port_check', 'result') == "True":
             port = 1
@@ -341,7 +356,7 @@ class WPDiag:
         data_json = json.dumps(data)
         url = self.config.get('django', 'url') + "/api/device/diagnosis/"
         try:
-            response = requests.post(url, data=data_json, headers=headers)
+            response = requests.post(url, data=data_json, headers=headers, timeout=GET_TIMEOUT)
             self.logger.info("server diag analysis:" +
                              str(response.status_code))
             return response.json()

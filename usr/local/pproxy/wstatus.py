@@ -32,6 +32,9 @@ class WStatus:
     def has_section(self, section):
         return self.status.has_section(section)
 
+    def has_option(self, section, option):
+        return self.status.has_option(section, option)
+
     def add_section(self, section):
         return self.status.add_section(section)
 

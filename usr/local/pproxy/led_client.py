@@ -1,9 +1,11 @@
-import os
 import logging
 import logging.config
+import os
 import socket
 import time
+
 import device
+
 from constants import LOG_CONFIG
 
 LM_SOCKET_PATH = "/var/local/pproxy/ledmanagersocket.sock"

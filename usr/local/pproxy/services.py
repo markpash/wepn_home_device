@@ -1,10 +1,10 @@
 import re
 from sanitize_filename import sanitize
 
-from shadow import Shadow
 from openvpn import OpenVPN
-from wireguard import Wireguard
+from shadow import Shadow
 from tor import Tor
+from wireguard import Wireguard
 
 try:
     from configparser import configparser
