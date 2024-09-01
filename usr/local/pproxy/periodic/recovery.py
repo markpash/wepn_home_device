@@ -16,6 +16,10 @@ logging.config.fileConfig(LOG_CONFIG,
 logger = logging.getLogger("recovery")
 device = Device(logger)
 shadow_server = Shadow(logger)
+# each service should back up and restore their critical services
+# currently only shadowsocks has a crtical DB
+shadow_server.backup_restore()
+# now recover missing servers
 shadow_server.recover_missing_servers()
 
 
