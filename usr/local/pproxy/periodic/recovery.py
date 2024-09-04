@@ -18,6 +18,8 @@ device = Device(logger)
 shadow_server = Shadow(logger)
 # each service should back up and restore their critical services
 # currently only shadowsocks has a crtical DB
+# TODO: replace with services.rercover_misisng_servers() and services.backup_restor()
+# might make sense to create an umbrella method like services.heal() which calls these
 shadow_server.backup_restore()
 # now recover missing servers
 shadow_server.recover_missing_servers()

@@ -114,3 +114,6 @@ class Service:
         self.logger.error("configuring with : " + str(config_data))
         if "enabled" in config_data:
             self.set_enabled(config_data["enabled"])
+
+    def backup_restore(self):
+        return True

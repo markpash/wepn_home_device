@@ -650,20 +650,25 @@ class Shadow(Service):
         return success
 
     def backup(self):
+        result = True
         try:
             shutil.copyfile(self.config.get('shadow', 'db-path'),
                             self.config.get('shadow', 'db-path') + ".backup")
         except:
             # TODO: handle permission error once permission recovery is set
             self.logger.exception("backup failed")
+        return result
 
     def restore(self):
+        result = True
         try:
             shutil.copyfile(self.config.get('shadow', 'db-path') + '.backup',
                             self.config.get('shadow', 'db-path'))
         except:
             # TODO: handle permission error once permission recovery is set
             self.logger.exception("restore failed")
+            result = False
+        return result
 
     def corrupted_files(self):
         corruption_detected = False
@@ -704,12 +709,14 @@ class Shadow(Service):
                                WHERE certname NOT IN
                                  (SELECT certname FROM backup.servers)
                             """).fetchall()
-        return len(res1)
+        return (len(res1) > 0)
 
     def backup_restore(self):
+        result = True
         if True:
             if self.corrupted_files():
-                self.restore()
+                result = self.restore()
             else:
                 if self.db_changed():
-                    self.backup()
+                    result = self.backup()
+        return result
