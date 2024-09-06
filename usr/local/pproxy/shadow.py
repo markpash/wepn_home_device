@@ -713,7 +713,7 @@ class Shadow(Service):
 
     def backup_restore(self):
         result = True
-        if True:
+        if False:
             if self.corrupted_files():
                 result = self.restore()
             else:
