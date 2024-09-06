@@ -80,8 +80,8 @@ class Tor(Service):
         device = Device(self.logger)
         self.start_all()
         # add tor redirects for go.we-pn.com/wrong-location
-        device.execute_setuid("1 8")
-        device.execute_setuid("1 9")
+        device.execute_setuid("1 8", detached=True)
+        device.execute_setuid("1 9", detached=True)
         return
 
     def stop(self):

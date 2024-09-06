@@ -163,11 +163,11 @@ class Device():
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
 
-    def execute_setuid(self, cmd):
-        return self.execute_cmd(SRUN + " " + cmd)
+    def execute_setuid(self, cmd, detached=False):
+        return self.execute_cmd(SRUN + " " + cmd, detached)
 
-    def execute_cmd(self, cmd):
-        out, err, failed, pid = self.execute_cmd_output(cmd)
+    def execute_cmd(self, cmd, detached=False):
+        out, err, failed, pid = self.execute_cmd_output(cmd, detached)
         return failed
 
     def execute_cmd_output(self, cmd, detached=False):
@@ -186,6 +186,7 @@ class Device():
                 out, err = sp.communicate()
                 sp.wait()
                 if err:
+                    print("error in sp.communicate")
                     time.sleep(3)
                     failed += 1
             return out, err, failed, sp

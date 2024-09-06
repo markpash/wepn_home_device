@@ -236,6 +236,12 @@ $addgroup shadow-runners
 $adduser pproxy wepn-web
 $adduser wepn-api wepn-web
 $adduser wepn-api shadow-runners
+for db in shadow.db shadow.db-shm shadow.db-wal
+do
+	db_file=/var/local/pproxy/$db
+	touch $db_file
+done
+# just in case other files exist
 chown pproxy:shadow-runners /var/local/pproxy/shadow.db*
 chmod 664 /var/local/pproxy/shadow.db*
 touch /var/local/pproxy/tor.db

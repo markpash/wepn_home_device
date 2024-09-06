@@ -22,8 +22,8 @@ USER=pproxy
 #	exit
 #fi
 
-wget https://www.gstatic.com/ipranges/goog.txt -O goog.txt
-wget https://www.gstatic.com/ipranges/cloud.json -O cloud.json
+wget -4 -T10 https://www.gstatic.com/ipranges/goog.txt -O goog.txt
+wget -4 -T10 https://www.gstatic.com/ipranges/cloud.json -O cloud.json
 
 do_iptables() {
 	ip=$1

@@ -173,60 +173,68 @@ class KEYPAD:
             button.when_pressed = self.key_press_cb
 
     def key_press_cb(self, channel):
-        inputs = self.aw.inputs
-        # print("Inputs: {:016b}".format(inputs))
-        inputs = 127 - inputs & 0x7F
-        if inputs < 1:
-            return
-        index = (int)(math.log2(inputs))
-        exit_menu = False
-        menu_base_index = 0
-        window_size = len(self.window_stack)
-        self.err_pending_ack = False
-        if inputs > -1:
-            # first set countdown for menu being active to 10
-            # this ensures while menu is actively used
-            # it is not overwritten
-            self.menu_active_countdown = MENU_TIMEOUT
-            # This below countdown will turn off screen if not used
-            # every time keys are touched, the countdown will be reset
-            self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
-            # if screen has timed out, first button press should ONLY
-            # render the screen and nothing else
-            if self.screen_timed_out is True:
-                self.screen_timed_out = False
-                # just show whatever the last menu was on screen
-                self.render()
+        try:
+            inputs = self.aw.inputs
+            # print("Inputs: {:016b}".format(inputs))
+            inputs = 127 - inputs & 0x7F
+            if inputs < 1:
                 return
-
-            if BUTTONS[index] == "up":
-                print("Key up on " + str(index))
-            if BUTTONS[index] == "down":
-                print("Key down on " + str(index))
-            if BUTTONS[index] == "back":
-                print("Key back on " + str(index))
-                if window_size > 0:
-                    back = self.window_stack.pop()
-                    self.menu_index = back
+            index = (int)(math.log2(inputs))
+            exit_menu = False
+            menu_base_index = 0
+            window_size = len(self.window_stack)
+            self.err_pending_ack = False
+            if inputs > -1:
+                # first set countdown for menu being active to 10
+                # this ensures while menu is actively used
+                # it is not overwritten
+                self.menu_active_countdown = MENU_TIMEOUT
+                # This below countdown will turn off screen if not used
+                # every time keys are touched, the countdown will be reset
+                self.countdown_to_turn_off_screen = NRML_SCREEN_TIMEOUT
+                # if screen has timed out, first button press should ONLY
+                # render the screen and nothing else
+                if self.screen_timed_out is True:
+                    self.screen_timed_out = False
+                    # just show whatever the last menu was on screen
                     self.render()
-                elif window_size == 0:
-                    self.set_current_menu(0)
+                    return
+
+                if BUTTONS[index] == "up":
+                    print("Key up on " + str(index))
+                if BUTTONS[index] == "down":
+                    print("Key down on " + str(index))
+                if BUTTONS[index] == "back":
+                    print("Key back on " + str(index))
+                    if window_size > 0:
+                        back = self.window_stack.pop()
+                        self.menu_index = back
+                        self.render()
+                    elif window_size == 0:
+                        self.set_current_menu(0)
+                        exit_menu = True
+                        self.show_home_screen()
+                if BUTTONS[index] in ["1", "2", "0"]:
+                    if window_size == 0 or (self.menu_index != self.window_stack[window_size - 1]):
+                        self.window_stack.append(self.menu_index)
+                    if len(self.menu[self.menu_index]) > (int(
+                            BUTTONS[index]) + menu_base_index):
+                        exit_menu = self.menu[self.menu_index][int(
+                            BUTTONS[index]) + menu_base_index]["action"]()
+                    if self.diag_shown is True:
+                        self.diag_shown = False
+                if BUTTONS[index] == "home":
+                    self.window_stack.clear()
                     exit_menu = True
                     self.show_home_screen()
-            if BUTTONS[index] in ["1", "2", "0"]:
-                if window_size == 0 or (self.menu_index != self.window_stack[window_size - 1]):
-                    self.window_stack.append(self.menu_index)
-                exit_menu = self.menu[self.menu_index][int(
-                    BUTTONS[index]) + menu_base_index]["action"]()
-                if self.diag_shown is True:
-                    self.diag_shown = False
-            if BUTTONS[index] == "home":
-                print("Key home on " + str(index))
-                self.window_stack.clear()
-                exit_menu = True
-                self.show_home_screen()
-            if exit_menu is False:
-                self.render()
+                if exit_menu is False:
+                    self.render()
+        except Exception:
+            self.logger.exception("Catch all callback exception")
+            # just go to the home as failure recovery point
+            self.window_stack.clear()
+            exit_menu = True
+            self.show_home_screen()
 
     def clear_screen(self):
         self.lcd.clear()
@@ -751,12 +759,12 @@ def main():
          {"text": "Access", "action": keypad.show_config_menu}, ],
         [{"text": "Getting version ...  " + s, "action": keypad.show_software_version},
          {"text": "Update", "action": keypad.update_software}, ],
-        [{"text": "", "display": False, "action": 0},
+        [{"text": "", "display": False, "action": ()},
             {"text": "Help", "display": False, "action": keypad.show_summary},
             {"text": "Menu", "action": keypad.show_home_screen}],
-        [{"text": "", "display": False, "action": 0},
-            {"text": "", "display": False, "action": 0},
-            {"text": "", "display": False, "action": 0},
+        [{"text": "", "display": False, "action": ()},
+            {"text": "", "display": False, "action": ()},
+            {"text": "", "display": False, "action": ()},
          ],
     ]
     titles = [{"text": "Main"}, {"text": "Power"}, {"text": "About"}, {"text": "Settings"},

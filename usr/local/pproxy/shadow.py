@@ -1,6 +1,7 @@
 from datetime import datetime
 from random import randrange  # nosec: not used for cryptography
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from sqlalchemy.exc import SQLAlchemyError
 import atexit
 import base64
 import dataset
@@ -11,6 +12,7 @@ import os
 import pwd
 import requests
 import shlex
+import shutil
 import socket
 import sqlite3 as sqli
 import tempfile
@@ -646,3 +648,75 @@ class Shadow(Service):
             if ss_process:
                 ss_process.kill()
         return success
+
+    def backup(self):
+        result = True
+        try:
+            shutil.copyfile(self.config.get('shadow', 'db-path'),
+                            self.config.get('shadow', 'db-path') + ".backup")
+        except:
+            # TODO: handle permission error once permission recovery is set
+            self.logger.exception("backup failed")
+        return result
+
+    def restore(self):
+        result = True
+        try:
+            shutil.copyfile(self.config.get('shadow', 'db-path') + '.backup',
+                            self.config.get('shadow', 'db-path'))
+        except:
+            # TODO: handle permission error once permission recovery is set
+            self.logger.exception("restore failed")
+            result = False
+        return result
+
+    def corrupted_files(self):
+        corruption_detected = False
+        try:
+            local_db = dataset.connect(
+                'sqlite:///' + self.config.get('shadow', 'db-path') + "?check_same_thread=False")
+            results = local_db.query('pragma integrity_check')
+            integrity_check = list(results)
+            for check in integrity_check:
+                print("check = " + str(check))
+                for test, result in check.items():
+                    print(test + "=" + result)
+                    # If the db is corrupted
+                    if result != "ok":
+                        corruption_detected = True
+                        # prints error
+                        print(result)
+                        # If db is malformed
+                        if result == 'database disk image is malformed':
+                            print("We are experiencing technical difficulties at the moment")
+                        # If the db is not malformed
+                        else:
+                            # Run application menu()
+                            print(result)
+        except SQLAlchemyError as e:
+            corruption_detected = True
+            print(e)
+        return corruption_detected
+
+    def db_changed(self):
+        current = self.config.get('shadow', 'db-path')
+        backup = self.config.get('shadow', 'db-path') + ".backup"
+
+        conn = sqli.connect(current)
+        conn.execute("ATTACH ? AS backup", [backup])
+
+        res1 = conn.execute("""SELECT * FROM main.servers
+                               WHERE certname NOT IN
+                                 (SELECT certname FROM backup.servers)
+                            """).fetchall()
+        return (len(res1) > 0)
+
+    def backup_restore(self):
+        result = True
+        if False:
+            if self.corrupted_files():
+                result = self.restore()
+            else:
+                if self.db_changed():
+                    result = self.backup()
+        return result
