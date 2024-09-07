@@ -6,7 +6,7 @@
 //#define DEBUG
 #define SRV_CNT 6
 #define CMD_CNT 6
-#define SPECIAL_CMD_CNT 18
+#define SPECIAL_CMD_CNT 20
 
 char* _sanitize(char input[], short type) {
 	static char ok_chars[] = "abcdefghijklmnopqrstuvwxyz"
@@ -84,6 +84,8 @@ int main(int argc, char * argv[])
 	scommands[15]= "/usr/bin/systemctl stop wepn-api ; /usr/bin/sleep 1 && /usr/bin/systemctl start wepn-api";
 	scommands[16]= "/usr/bin/wg-quick down wg%s";
 	scommands[17]= "/usr/bin/wg set wg%s peer %s remove";
+	scommands[18]= "echo \"deb [signed-by=/etc/apt/keyrings/repo.we-pn.com.gpg] https://repo.we-pn.com/debian/ testing main\" > /etc/apt/sources.list.d/wepn-beta.list";
+	scommands[19]= "rm /etc/apt/sources.list.d/wepn-beta.list";
 
 	int c,s,t;
 

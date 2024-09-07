@@ -191,6 +191,10 @@ if not config.has_section('wireguard'):
     config.set('wireguard', 'email', "1")
     config.set('wireguard', 'wireport', "6711")
 
+if not status.has_section('software'):
+    config.add_section('software')
+    config.set('software', 'channel', "prod")
+
 # GCM is required, but older shadowsocks doesn't support it
 config.set('shadow', 'method', 'aes-256-gcm')
 status.set('status', 'sw', '1.19.1')

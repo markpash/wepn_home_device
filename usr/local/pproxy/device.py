@@ -70,6 +70,7 @@ class Device():
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
         self.port_status = WStatus(logger, PORT_STATUS_FILE)
+        self.status = WStatus(logger)
         self.logger = logger
         self.correct_port_status_file()
         self.igds = []
@@ -554,6 +555,26 @@ class Device():
             return None
         except:
             return None
+
+    def switch_ota_channel(self, new_channel="prod"):
+        if new_channel != self.get_ota_channel():
+            self.status.set_field("software", "channel", new_channel)
+            if new_channel == "prod":
+                cmd_sudo = SRUN + " 1 19"
+                self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
+            elif new_channel == "beta":
+                cmd_sudo = SRUN + " 1 18"
+                self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
+            return True
+        else:
+            return False
+
+    def get_ota_channel(self):
+        self.status.reload()
+        try:
+            return self.status.get_field("software", "channel")
+        except:
+            return "prod"
 
     def get_min_ota_version(self):
         self.repo_pkg_version = None
