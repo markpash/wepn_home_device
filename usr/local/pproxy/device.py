@@ -6,6 +6,7 @@ from packaging.version import Version
 from pystemd.systemd1 import Unit
 import atexit
 import datetime as datetime
+import distro
 import getopt
 import json
 import netifaces
@@ -528,8 +529,20 @@ class Device():
 
     def get_repo_package_version(self):
         self.repo_pkg_version = None
-        dist = "bullseye"
-        url = "https://repo.we-pn.com/debian/dists/" + dist + "/main/binary-armhf/Packages"
+        try:
+            dist = distro.codename()
+        except:
+            dist = "bookworm"
+        try:
+            if platform.architecture()[0] == "64bit":
+                arch = "arm64"
+            else:
+                arch = "armhf"
+        except:
+            arch = "arm64"
+
+        url = "https://repo.we-pn.com/debian/dists/" + dist + \
+            "/main/binary-" + arch + "/Packages"
         try:
             resp = requests.get(url, timeout=GET_TIMEOUT)
             res = re.findall(r"Version: ((\d+)\.(\d+)\.(\d+)).*", resp.text)
