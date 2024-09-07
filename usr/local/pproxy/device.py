@@ -69,7 +69,7 @@ class Device():
     def __init__(self, logger):
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
-        self.status = WStatus(logger, PORT_STATUS_FILE)
+        self.port_status = WStatus(logger, PORT_STATUS_FILE)
         self.logger = logger
         self.correct_port_status_file()
         self.igds = []
@@ -144,22 +144,22 @@ class Device():
         return True
 
     def correct_port_status_file(self):
-        if not self.status.has_section('port-fwd'):
-            self.status.add_section('port-fwd')
-            self.status.set_field('port-fwd', 'fails', '0')
-            self.status.set_field('port-fwd', 'fails-max', '3')
-            self.status.set_field('port-fwd', 'skipping', '0')
-            self.status.set_field('port-fwd', 'skips', '0')
-            self.status.set_field('port-fwd', 'skips-max', '20')
-            self.status.save()
+        if not self.port_status.has_section('port-fwd'):
+            self.port_status.add_section('port-fwd')
+            self.port_status.set_field('port-fwd', 'fails', '0')
+            self.port_status.set_field('port-fwd', 'fails-max', '3')
+            self.port_status.set_field('port-fwd', 'skipping', '0')
+            self.port_status.set_field('port-fwd', 'skips', '0')
+            self.port_status.set_field('port-fwd', 'skips-max', '20')
+            self.port_status.save()
 
-        if not self.status.has_option('port-fwd', 'skipping-date'):
-            self.status.set_field('port-fwd', 'skipping-date', '1985-10-26 01:21:00.680749')
-            self.status.save()
+        if not self.port_status.has_option('port-fwd', 'skipping-date'):
+            self.port_status.set_field('port-fwd', 'skipping-date', '1985-10-26 01:21:00.680749')
+            self.port_status.save()
 
     def cleanup(self):
-        if self.status is not None:
-            self.status.save()
+        if self.port_status is not None:
+            self.port_status.save()
 
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
@@ -224,7 +224,7 @@ class Device():
 
     def get_safe_skipping_start_date(self):
         # make sure a str is not returned when not set
-        skip_start_date = self.status.get_field('port-fwd', 'skipping-date')
+        skip_start_date = self.port_status.get_field('port-fwd', 'skipping-date')
         if skip_start_date == "":
             # this should have been a date
             skip_start_date = datetime.datetime(1985, 10, 26)
@@ -233,24 +233,24 @@ class Device():
         return skip_start_date
 
     def should_skip_upnp(self):
-        skip = int(self.status.get_field('port-fwd', 'skipping'))
+        skip = int(self.port_status.get_field('port-fwd', 'skipping'))
         skip_start_date = self.get_safe_skipping_start_date()
         # at least try forwarding ports once a day
         skipping_expired = (skip_start_date.replace(tzinfo=None) <
                             (datetime.datetime.now().replace(tzinfo=None) + timedelta(days=-1)))
 
-        skip_count = int(self.status.get_field('port-fwd', 'skips'))
+        skip_count = int(self.port_status.get_field('port-fwd', 'skips'))
         if skip:
-            if (skip_count < int(self.status.get_field('port-fwd', 'skips-max'))
+            if (skip_count < int(self.port_status.get_field('port-fwd', 'skips-max'))
                     and not skipping_expired):
                 # skip, do nothing just increase count
                 skip_count += 1
-                self.status.set_field('port-fwd', 'skips', str(skip_count))
+                self.port_status.set_field('port-fwd', 'skips', str(skip_count))
             else:
                 # if skipped too much, or skipping decision was taken too long ago
                 # then try opening port again in case it works
-                self.status.set_field('port-fwd', 'skipping', '0')
-                self.status.set_field('port-fwd', 'skips', '0')
+                self.port_status.set_field('port-fwd', 'skipping', '0')
+                self.port_status.set_field('port-fwd', 'skips', '0')
                 # allow port test right away too
                 skip = False
         self.logger.info("skipping?" + str(skip) + " count=" + str(skip_count))
@@ -394,16 +394,16 @@ class Device():
                 result = False
 
         # if we failed, check to see if max-fails has passed
-        fails = int(self.status.get_field('port-fwd', 'fails'))
+        fails = int(self.port_status.get_field('port-fwd', 'fails'))
         if failed > 0:
             self.logger.error("PORT MAP FAILED")
-            if fails >= int(self.status.get_field('port-fwd', 'fails-max')):
+            if fails >= int(self.port_status.get_field('port-fwd', 'fails-max')):
                 # if passed limit, reset fail count,
-                self.status.set_field('port-fwd', 'fails', 0)
+                self.port_status.set_field('port-fwd', 'fails', 0)
                 # indicate next one is going to be skip
-                self.status.set_field('port-fwd', 'skipping', 1)
-                self.status.set_field('port-fwd', 'skipping-date',
-                                      str(datetime.datetime.now().replace(tzinfo=None).strftime(DATETIME_FORMAT)))
+                self.port_status.set_field('port-fwd', 'skipping', 1)
+                self.port_status.set_field('port-fwd', 'skipping-date',
+                                           str(datetime.datetime.now().replace(tzinfo=None).strftime(DATETIME_FORMAT)))
             else:
                 # failed, but has not passed the threshold
                 # Change as of 8/24/2024:
@@ -412,7 +412,7 @@ class Device():
                 # This causes issues when a user has many UPnP capable devices (TV, etc.) at home.
                 fails += 1
 
-                self.status.set_field('port-fwd', 'fails', str(fails))
+                self.port_status.set_field('port-fwd', 'fails', str(fails))
         return result
 
     def get_local_ip(self):
