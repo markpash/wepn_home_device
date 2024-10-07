@@ -18,34 +18,24 @@ except ImportError:
     import configparser
 messages = Messages()
 #messages.send_msg("added user 8", secure=True)
-messages.get_messages()
-exit(1)
+print(messages.get_messages())
 
-CONFIG_FILE = '/etc/pproxy/config.ini'
-LOG_CONFIG="/etc/pproxy/logging-debug.ini"
-logging.config.fileConfig(LOG_CONFIG,
-            disable_existing_loggers=False)
+print("="*10)
+messages.send_msg("test message", "DEVICE", "xx", False, msg_type="test")
+print("="*10)
+messages.send_msg("test secure message", "DEVICE", "xx", True, msg_type="test secure")
+print("="*10)
 
-logger = logging.getLogger("diag")
-lcd = LCD()
-config = configparser.ConfigParser()
-config.read(CONFIG_FILE)
+print(messages.get_messages())
 
-headers = {"Content-Type": "application/json"}
+msgs = messages.get_messages()
+for msg in msgs:
+    if msg["message_body"]["is_secure"]:
+        print("got a secure message")
+        # TODO: check decryption of it
+    print(f'marking meessage {msg["id"]} as read')
+    messages.mark_msg_read(msg["id"])
 
-data = {
-    "serial_number": config.get('django', 'serial_number'),
-    "device_key": config.get('django', 'device_key'),
-}
+print(messages.get_messages())
 
-
-data_json = json.dumps(data)
-url = config.get('django', 'url') + "/api/message/"
-try:
-    response = requests.get(url, data=data_json, headers=headers)
-    logger.debug("Response to messages" + str(response.status_code))
-    print(response.text)
-except requests.exceptions.RequestException as exception_error:
-    logger.error(
-        "Error in sending messages: \r\n\t" + str(exception_error))
 
