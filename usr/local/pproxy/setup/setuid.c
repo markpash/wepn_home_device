@@ -86,6 +86,8 @@ int main(int argc, char * argv[])
 	scommands[17]= "/usr/bin/wg set wg%s peer %s remove";
 	scommands[18]= "echo \"deb [signed-by=/etc/apt/keyrings/repo.we-pn.com.gpg] https://repo.we-pn.com/debian/ testing main\" > /etc/apt/sources.list.d/wepn-beta.list";
 	scommands[19]= "rm /etc/apt/sources.list.d/wepn-beta.list";
+	// hard coding sda2 for rootfs
+	scommands[20]= "mount /dev/sda2 /mnt/";
 
 	int c,s,t;
 

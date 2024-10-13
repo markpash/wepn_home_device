@@ -724,52 +724,86 @@ class Device():
         except:
             return False
 
-    def generate_new_config(self):
+    def umount_all_drives(self):
         # umount all USB drives first
         cmd_sudo = SRUN + " 1 12"
         self.execute_cmd_output(cmd_sudo, True)
         time.sleep(5)
+
+    def mount_drive(self, partition):
+        # now mount USB drive sda2
+
+        # It would make sense if we could pass this param to setuid
+        # but it would open up possibility of abuse.
+        # It's harder to read with the numbers (11, 20,...),
+        # but less potential to have to fight
+        # pentesters to prove we sanitize it correctly.
+        if partition == 1:
+            # sda1
+            _cmd = "11"
+        else:
+            # sda2
+            _cmd = "20"
+        # see setuid.c commands 11 and 20 for details
+        cmd_sudo = SRUN + " 1 " + _cmd
+        self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
+        time.sleep(5)
+
+    def generate_new_config(self):
         try:
-            # now mount USB drive
-            cmd_sudo = SRUN + " 1 11"
-            self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
-            time.sleep(5)
 
             preset_config = "/mnt/wepn.ini"
             previous_config = "/mnt/etc/pproxy/config.ini"
             new_config_str = None
             # read serial number that is written on eeprom
             board_serial = self.get_serial_from_eeprom()
-            # This allows us to force overriding the serial number match
-            if os.path.isfile("/mnt/ignore-serial-match.txt"):
-                board_serial = None
 
-            # priority 1: SD card has wepn.ini in root folder and serial matches device
-            if os.path.isfile(preset_config) and self.config_matches_serial(preset_config, board_serial):
-                with open(preset_config) as f:
-                    new_config_str = f.read()
-            # priority 2: SD card is a previous WEPN SD card and serial matches device
-            elif os.path.isfile(previous_config) and self.config_matches_serial(previous_config, board_serial):
-                with open(previous_config) as f:
-                    new_config_str = f.read()
-            else:
-                # use the setup file there to generate the config, get contents
-                sys.path.append("/mnt/device_setup/")
-                # write to the current config
-                from setup_mod import create_config  # noqa: setup_mod is defined on the USB drive just mounted
-                new_config_str = create_config()
-            if new_config_str is not None:
+            found = False
+
+            # search partitions sda1 and sda2 for options
+            for partition_num in [1, 2]:
+                self.logger.info(f"scanning partition: {partition_num}")
+                self.umount_all_drives()
+                self.mount_drive(partition_num)
+
+                # This allows us to force overriding the serial number match
+                if os.path.isfile("/mnt/ignore-serial-match.txt"):
+                    board_serial = None
+
+                # priority 1: SD card has wepn.ini in root folder and serial matches device
+                if os.path.isfile(preset_config) and self.config_matches_serial(preset_config, board_serial):
+                    with open(preset_config) as f:
+                        new_config_str = f.read()
+                    found = True
+                    break
+
+                # priority 2: SD card is a previous WEPN SD card and serial matches device
+                # we will check all partitions, just in case
+                if os.path.isfile(previous_config) and self.config_matches_serial(previous_config, board_serial):
+                    with open(previous_config) as f:
+                        new_config_str = f.read()
+                    found = True
+                    break
+
+                # priority 3: use the setup file there to generate the config, get contents
+                if os.path.isdir("/mnt/device_setup/"):
+                    sys.path.append("/mnt/device_setup/")
+                    # write to the current config
+                    from setup_mod import create_config  # noqa: setup_mod is defined on the USB drive just mounted
+                    new_config_str = create_config()
+                    found = True
+                    break
+
+            if found and new_config_str is not None:
                 config_file = open("/etc/pproxy/config.ini", 'w')
                 config_file.write(new_config_str)
                 config_file.close()
             else:
-                self.logger.error("new config str is empty")
+                self.logger.error("cound not find or generate new configuration")
         except Exception:
             self.logger.exception("Error generating new config file")
         finally:
-            # umount USB drive
-            cmd_sudo = SRUN + " 1 12"
-            self.execute_cmd_output(cmd_sudo, True)
+            self.umount_all_drives()
 
     def generate_ssh_host_keys(self):
         cmd_sudo = SRUN + " 1 13"
