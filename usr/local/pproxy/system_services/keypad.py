@@ -104,7 +104,7 @@ class KEYPAD:
         self.err_pending_ack = False
         self.dev_remaining = 7
         self.retries_before_ota_check = 0
-        self.channel = "prod"
+        self.channel = self.device.get_ota_channel()
 
     def init_i2c(self):
         if (int(self.config.get('hw', 'buttons'))) == 0:
@@ -640,23 +640,18 @@ class KEYPAD:
 
     def channel_update(self):
         print("channel_update:" + str(self.dev_remaining) + " channel: " + self.channel)
-        if self.channel == "prod":
-            if self.dev_remaining == 0:
-                # 7 clicks done already, switch
-                self.channel = "dev"
-                self.chin = {"text": "Development", "color": (
-                    255, 255, 255), "opacity": 50, "errs": [False] * 7}
+        if self.dev_remaining == 0:
+            # 7 clicks done already, switch
+            if self.channel == "prod":
+                self.channel = "beta"
                 self.show_software_version()
             else:
-                self.dev_remaining -= 1
-        else:
-            if self.dev_remaining == 7:
                 self.channel = "prod"
-                self.chin = {"text": "Production", "color": (
-                    255, 255, 255), "opacity": 50, "errs": [False] * 7}
                 self.show_software_version()
-            else:
-                self.dev_remaining += 1
+            self.device.switch_ota_channel(self.channel)
+            self.dev_remanining = 7
+        else:
+            self.dev_remaining -= 1
         self.render()
 
     def show_software_version(self):
@@ -676,7 +671,10 @@ class KEYPAD:
                 # self.logger.error(e.output)
                 label = "no git hash"
         else:
+            # both beta and prod use debian package management
             label = self.device.get_installed_package_version()
+            if self.channel == "beta":
+                label += " (beta)"
         self.menu[4][0]["text"] = label
         self.menu[4][0]["action"] = self.channel_update
         self.render()

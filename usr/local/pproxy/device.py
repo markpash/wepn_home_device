@@ -6,6 +6,7 @@ from packaging.version import Version
 from pystemd.systemd1 import Unit
 import atexit
 import datetime as datetime
+import distro
 import getopt
 import json
 import netifaces
@@ -68,7 +69,8 @@ class Device():
     def __init__(self, logger):
         self.config = configparser.ConfigParser()
         self.config.read(CONFIG_FILE)
-        self.status = WStatus(logger, PORT_STATUS_FILE)
+        self.port_status = WStatus(logger, PORT_STATUS_FILE)
+        self.status = WStatus(logger)
         self.logger = logger
         self.correct_port_status_file()
         self.igds = []
@@ -143,22 +145,22 @@ class Device():
         return True
 
     def correct_port_status_file(self):
-        if not self.status.has_section('port-fwd'):
-            self.status.add_section('port-fwd')
-            self.status.set_field('port-fwd', 'fails', '0')
-            self.status.set_field('port-fwd', 'fails-max', '3')
-            self.status.set_field('port-fwd', 'skipping', '0')
-            self.status.set_field('port-fwd', 'skips', '0')
-            self.status.set_field('port-fwd', 'skips-max', '20')
-            self.status.save()
+        if not self.port_status.has_section('port-fwd'):
+            self.port_status.add_section('port-fwd')
+            self.port_status.set_field('port-fwd', 'fails', '0')
+            self.port_status.set_field('port-fwd', 'fails-max', '3')
+            self.port_status.set_field('port-fwd', 'skipping', '0')
+            self.port_status.set_field('port-fwd', 'skips', '0')
+            self.port_status.set_field('port-fwd', 'skips-max', '20')
+            self.port_status.save()
 
-        if not self.status.has_option('port-fwd', 'skipping-date'):
-            self.status.set_field('port-fwd', 'skipping-date', '1985-10-26 01:21:00.680749')
-            self.status.save()
+        if not self.port_status.has_option('port-fwd', 'skipping-date'):
+            self.port_status.set_field('port-fwd', 'skipping-date', '1985-10-26 01:21:00.680749')
+            self.port_status.save()
 
     def cleanup(self):
-        if self.status is not None:
-            self.status.save()
+        if self.port_status is not None:
+            self.port_status.save()
 
     def sanitize_str(self, str_in):
         return (shlex.quote(str_in))
@@ -223,7 +225,7 @@ class Device():
 
     def get_safe_skipping_start_date(self):
         # make sure a str is not returned when not set
-        skip_start_date = self.status.get_field('port-fwd', 'skipping-date')
+        skip_start_date = self.port_status.get_field('port-fwd', 'skipping-date')
         if skip_start_date == "":
             # this should have been a date
             skip_start_date = datetime.datetime(1985, 10, 26)
@@ -232,24 +234,24 @@ class Device():
         return skip_start_date
 
     def should_skip_upnp(self):
-        skip = int(self.status.get_field('port-fwd', 'skipping'))
+        skip = int(self.port_status.get_field('port-fwd', 'skipping'))
         skip_start_date = self.get_safe_skipping_start_date()
         # at least try forwarding ports once a day
         skipping_expired = (skip_start_date.replace(tzinfo=None) <
                             (datetime.datetime.now().replace(tzinfo=None) + timedelta(days=-1)))
 
-        skip_count = int(self.status.get_field('port-fwd', 'skips'))
+        skip_count = int(self.port_status.get_field('port-fwd', 'skips'))
         if skip:
-            if (skip_count < int(self.status.get_field('port-fwd', 'skips-max'))
+            if (skip_count < int(self.port_status.get_field('port-fwd', 'skips-max'))
                     and not skipping_expired):
                 # skip, do nothing just increase count
                 skip_count += 1
-                self.status.set_field('port-fwd', 'skips', str(skip_count))
+                self.port_status.set_field('port-fwd', 'skips', str(skip_count))
             else:
                 # if skipped too much, or skipping decision was taken too long ago
                 # then try opening port again in case it works
-                self.status.set_field('port-fwd', 'skipping', '0')
-                self.status.set_field('port-fwd', 'skips', '0')
+                self.port_status.set_field('port-fwd', 'skipping', '0')
+                self.port_status.set_field('port-fwd', 'skips', '0')
                 # allow port test right away too
                 skip = False
         self.logger.info("skipping?" + str(skip) + " count=" + str(skip_count))
@@ -393,16 +395,16 @@ class Device():
                 result = False
 
         # if we failed, check to see if max-fails has passed
-        fails = int(self.status.get_field('port-fwd', 'fails'))
+        fails = int(self.port_status.get_field('port-fwd', 'fails'))
         if failed > 0:
             self.logger.error("PORT MAP FAILED")
-            if fails >= int(self.status.get_field('port-fwd', 'fails-max')):
+            if fails >= int(self.port_status.get_field('port-fwd', 'fails-max')):
                 # if passed limit, reset fail count,
-                self.status.set_field('port-fwd', 'fails', 0)
+                self.port_status.set_field('port-fwd', 'fails', 0)
                 # indicate next one is going to be skip
-                self.status.set_field('port-fwd', 'skipping', 1)
-                self.status.set_field('port-fwd', 'skipping-date',
-                                      str(datetime.datetime.now().replace(tzinfo=None).strftime(DATETIME_FORMAT)))
+                self.port_status.set_field('port-fwd', 'skipping', 1)
+                self.port_status.set_field('port-fwd', 'skipping-date',
+                                           str(datetime.datetime.now().replace(tzinfo=None).strftime(DATETIME_FORMAT)))
             else:
                 # failed, but has not passed the threshold
                 # Change as of 8/24/2024:
@@ -411,7 +413,7 @@ class Device():
                 # This causes issues when a user has many UPnP capable devices (TV, etc.) at home.
                 fails += 1
 
-                self.status.set_field('port-fwd', 'fails', str(fails))
+                self.port_status.set_field('port-fwd', 'fails', str(fails))
         return result
 
     def get_local_ip(self):
@@ -528,8 +530,20 @@ class Device():
 
     def get_repo_package_version(self):
         self.repo_pkg_version = None
-        dist = "bullseye"
-        url = "https://repo.we-pn.com/debian/dists/" + dist + "/main/binary-armhf/Packages"
+        try:
+            dist = distro.codename()
+        except:
+            dist = "bookworm"
+        try:
+            if platform.architecture()[0] == "64bit":
+                arch = "arm64"
+            else:
+                arch = "armhf"
+        except:
+            arch = "arm64"
+
+        url = "https://repo.we-pn.com/debian/dists/" + dist + \
+            "/main/binary-" + arch + "/Packages"
         try:
             resp = requests.get(url, timeout=GET_TIMEOUT)
             res = re.findall(r"Version: ((\d+)\.(\d+)\.(\d+)).*", resp.text)
@@ -541,6 +555,26 @@ class Device():
             return None
         except:
             return None
+
+    def switch_ota_channel(self, new_channel="prod"):
+        if new_channel != self.get_ota_channel():
+            self.status.set_field("software", "channel", new_channel)
+            if new_channel == "prod":
+                cmd_sudo = SRUN + " 1 19"
+                self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
+            elif new_channel == "beta":
+                cmd_sudo = SRUN + " 1 18"
+                self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
+            return True
+        else:
+            return False
+
+    def get_ota_channel(self):
+        self.status.reload()
+        try:
+            return self.status.get_field("software", "channel")
+        except:
+            return "prod"
 
     def get_min_ota_version(self):
         self.repo_pkg_version = None
@@ -690,52 +724,86 @@ class Device():
         except:
             return False
 
-    def generate_new_config(self):
+    def umount_all_drives(self):
         # umount all USB drives first
         cmd_sudo = SRUN + " 1 12"
         self.execute_cmd_output(cmd_sudo, True)
         time.sleep(5)
+
+    def mount_drive(self, partition):
+        # now mount USB drive sda2
+
+        # It would make sense if we could pass this param to setuid
+        # but it would open up possibility of abuse.
+        # It's harder to read with the numbers (11, 20,...),
+        # but less potential to have to fight
+        # pentesters to prove we sanitize it correctly.
+        if partition == 1:
+            # sda1
+            _cmd = "11"
+        else:
+            # sda2
+            _cmd = "20"
+        # see setuid.c commands 11 and 20 for details
+        cmd_sudo = SRUN + " 1 " + _cmd
+        self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
+        time.sleep(5)
+
+    def generate_new_config(self):
         try:
-            # now mount USB drive
-            cmd_sudo = SRUN + " 1 11"
-            self.execute_cmd_output(cmd_sudo, True)  # nosec static input (go.we-pn.com/waiver-1)
-            time.sleep(5)
 
             preset_config = "/mnt/wepn.ini"
             previous_config = "/mnt/etc/pproxy/config.ini"
             new_config_str = None
             # read serial number that is written on eeprom
             board_serial = self.get_serial_from_eeprom()
-            # This allows us to force overriding the serial number match
-            if os.path.isfile("/mnt/ignore-serial-match.txt"):
-                board_serial = None
 
-            # priority 1: SD card has wepn.ini in root folder and serial matches device
-            if os.path.isfile(preset_config) and self.config_matches_serial(preset_config, board_serial):
-                with open(preset_config) as f:
-                    new_config_str = f.read()
-            # priority 2: SD card is a previous WEPN SD card and serial matches device
-            elif os.path.isfile(previous_config) and self.config_matches_serial(previous_config, board_serial):
-                with open(previous_config) as f:
-                    new_config_str = f.read()
-            else:
-                # use the setup file there to generate the config, get contents
-                sys.path.append("/mnt/device_setup/")
-                # write to the current config
-                from setup_mod import create_config  # noqa: setup_mod is defined on the USB drive just mounted
-                new_config_str = create_config()
-            if new_config_str is not None:
+            found = False
+
+            # search partitions sda1 and sda2 for options
+            for partition_num in [1, 2]:
+                self.logger.info(f"scanning partition: {partition_num}")
+                self.umount_all_drives()
+                self.mount_drive(partition_num)
+
+                # This allows us to force overriding the serial number match
+                if os.path.isfile("/mnt/ignore-serial-match.txt"):
+                    board_serial = None
+
+                # priority 1: SD card has wepn.ini in root folder and serial matches device
+                if os.path.isfile(preset_config) and self.config_matches_serial(preset_config, board_serial):
+                    with open(preset_config) as f:
+                        new_config_str = f.read()
+                    found = True
+                    break
+
+                # priority 2: SD card is a previous WEPN SD card and serial matches device
+                # we will check all partitions, just in case
+                if os.path.isfile(previous_config) and self.config_matches_serial(previous_config, board_serial):
+                    with open(previous_config) as f:
+                        new_config_str = f.read()
+                    found = True
+                    break
+
+                # priority 3: use the setup file there to generate the config, get contents
+                if os.path.isdir("/mnt/device_setup/"):
+                    sys.path.append("/mnt/device_setup/")
+                    # write to the current config
+                    from setup_mod import create_config  # noqa: setup_mod is defined on the USB drive just mounted
+                    new_config_str = create_config()
+                    found = True
+                    break
+
+            if found and new_config_str is not None:
                 config_file = open("/etc/pproxy/config.ini", 'w')
                 config_file.write(new_config_str)
                 config_file.close()
             else:
-                self.logger.error("new config str is empty")
+                self.logger.error("cound not find or generate new configuration")
         except Exception:
             self.logger.exception("Error generating new config file")
         finally:
-            # umount USB drive
-            cmd_sudo = SRUN + " 1 12"
-            self.execute_cmd_output(cmd_sudo, True)
+            self.umount_all_drives()
 
     def generate_ssh_host_keys(self):
         cmd_sudo = SRUN + " 1 13"
