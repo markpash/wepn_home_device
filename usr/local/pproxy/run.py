@@ -81,7 +81,7 @@ response = None
 url_address = config.get('django', 'url') + "/api/device/is_claimed/"
 data = json.dumps({'serial_number': config.get('django', 'serial_number')})
 headers = {'Content-Type': 'application/json'}
-
+dots = "."
 while not server_checkin_done:
     try:
         response = requests.post(url_address, data=data, headers=headers, timeout=10)
@@ -90,6 +90,11 @@ while not server_checkin_done:
         leds.progress_wheel_step(color=(255, 255, 255))
     except requests.exceptions.RequestException:
         logger.error("Error in connecting to server for claim status")
+        lcd.long_text("Cannot connect to server" + dots, "i", "red")
+        if len(dots) < 5:
+            dots += "."
+        else:
+            dots = "."
         # leds.blink(color=(255, 0, 0),
         #           wait=200,
         #           repetitions=4)
