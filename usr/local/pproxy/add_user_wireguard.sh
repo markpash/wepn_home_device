@@ -11,7 +11,7 @@ ip=`curl -s https://ip.we-pn.com`
 ip=${ip//[$'\r\n ']/}
 name=$1
 port=$2
-inv_ip_server=10.0.0.1
+inv_ip_server=10.10.0.1
 
 
 clean_port=${port//[^0-9]/}

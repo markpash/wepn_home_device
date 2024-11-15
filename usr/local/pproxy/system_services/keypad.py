@@ -683,10 +683,11 @@ class KEYPAD:
         self.display_active = True
         self.menu[4][1]["text"] = "checking ..."
         self.render()
-        if self.channel == "prod":
-            self.device.software_update_blocking(self.lcd, self.led_client, use_latest_sw=True)
-        else:
-            self.device.software_update_from_git()
+        # if self.channel == "prod":
+        #     self.device.software_update_blocking(self.lcd, self.led_client, use_latest_sw=True)
+        # else:
+        #     self.device.software_update_from_git()
+        self.device.software_update_from_git()
         self.menu[4][1]["text"] = "Update"
         self.show_software_version()
 

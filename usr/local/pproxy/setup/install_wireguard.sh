@@ -36,7 +36,7 @@ cat > /etc/wireguard/wg0.conf << EOF
 
 [Interface]
 PrivateKey = $PRIV_SERVER
-Address = 10.0.0.1/24
+Address = 10.10.0.1/24
 ListenPort = $PORT
 PostUp = iptables -I INPUT -p udp --dport $PORT -j ACCEPT
 PostUp = iptables -I FORWARD -i eth0 -o wg0 -j ACCEPT
